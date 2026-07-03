@@ -12,6 +12,8 @@ export const ADMIN_COOKIE = "jc_admin";
 export function adminDigest(): string | null {
   const key = process.env.ADMIN_KEY;
   if (!key) return null;
+  // The checked-in dev key must never unlock a public deployment.
+  if (process.env.NODE_ENV === "production" && key === "local-admin") return null;
   return createHash("sha256").update(`jc-admin:${key}`).digest("hex");
 }
 

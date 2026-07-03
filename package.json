@@ -1,12 +1,16 @@
 {
   "name": "judgment-call",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "analyze": "tsx scripts/analyze.ts",
+    "digest": "tsx scripts/digest.ts",
+    "replay": "tsx scripts/replay.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",

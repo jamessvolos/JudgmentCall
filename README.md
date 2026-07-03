@@ -5,8 +5,11 @@ finding — same facts, different craft — and you tap the better one. Every va
 tagged with craft attributes (lead type, length, caveat placement, …), so aggregated
 votes produce an empirical answer to *"what makes a great insight?"*
 
-This repo is **Milestone 1**: the full playable core loop, running locally on SQLite.
-See [`JudgmentCallSpec.md`](./JudgmentCallSpec.md) for the product spec and later milestones.
+This is **v1**: the full product — core voting loop, personal taste card, public
+results page, blinded overclaim experiment, judge scoring, AI variant generation
+behind a human review gate, BYO decks, and an admin console. It runs locally on
+SQLite in one command and deploys as a responsive **website** (mobile-first; no
+native app needed). See [`JudgmentCallSpec.md`](./JudgmentCallSpec.md) for the spec.
 
 ## Quick start
 
@@ -181,8 +184,53 @@ where the text, tags, claims ledger, and lints are reviewed side by side. The
 fidelity contrast is up-weighted in matchmaking (its coverage count is halved) so
 the flagship overclaim experiment reaches publishable sample sizes first.
 
-## Milestone 1 scope
+## Releasing v1
 
-No auth, no API-based variant generation, no admin screens, no public analytics page,
-no deployment. The repo module (`src/lib/repo.ts`) and string-based enums keep the
-Postgres swap and the M2 admin review flow from requiring a refactor.
+Judgment Call ships as a **website**, not a native app: the audience arrives from a
+Medium article mid-read, and the 15-second time-to-first-vote budget doesn't survive
+an App Store detour. The UI is mobile-first (390px is the design target), works as an
+embed, and can be wrapped as a PWA or native shell later without touching the core.
+
+### Deploy (Vercel + Postgres)
+
+1. **Swap the database.** In `prisma/schema.prisma`, change the datasource to
+   `provider = "postgresql"` and point `DATABASE_URL` at your Postgres instance
+   (Vercel Postgres/Neon/Supabase all work). Then:
+
+   ```bash
+   rm -rf prisma/migrations          # SQLite migration history doesn't transfer
+   npx prisma migrate dev --name init  # regenerates against Postgres + seeds
+   ```
+
+   All DB access already goes through `src/lib/repo.ts` and enums are plain
+   strings, so no application code changes.
+
+2. **Import the repo into Vercel.** The build needs no config beyond env vars —
+   `postinstall` runs `prisma generate`.
+
+3. **Set production env vars:**
+
+   | Var | Required | Notes |
+   |---|---|---|
+   | `DATABASE_URL` | yes | Postgres connection string |
+   | `ADMIN_KEY` | yes | Long random string. The dev default `local-admin` is **rejected in production** — the admin surface stays locked until you set a real key. |
+   | `IP_HASH_SALT` | yes | Long random string. Without it, production stores **no** IP digests (a known salt would be dictionary-attackable) and sybil forensics lose a signal. |
+   | `NEXT_PUBLIC_SITE_URL` | recommended | Absolute origin (e.g. `https://judgmentcall.example`) for OG/social metadata. |
+   | `ANTHROPIC_API_KEY` | for generation | Only needed when running `scripts/generate.ts`; the serving app never calls the API. |
+   | `DIGEST_WEBHOOK_URL` | optional | `scripts/digest.ts` posts the daily digest here. |
+   | `FRED_API_KEY` | optional | For `scripts/ingest.ts` FRED adapter. |
+
+4. **Release checklist:**
+   - [ ] Fresh production DB seeded once (`npx prisma db seed`) — never reuse a dev DB with test votes.
+   - [ ] `/admin` 404s without the key; `/admin/login` works with the new `ADMIN_KEY`.
+   - [ ] Cast one vote end-to-end in production; confirm it lands in `Comparison` with an `ipHash`.
+   - [ ] `docs/PREREGISTRATION.md` is committed *before* votes are collected (the alpha-spending plan depends on it).
+   - [ ] `/results` renders in an iframe/embed context (no fixed backgrounds — it inherits the page).
+   - [ ] Point a cron (or GitHub Action) at `scripts/analyze.ts` and `scripts/digest.ts` daily.
+
+### Operations
+
+Recurring jobs are plain scripts (run from repo root): `npm run analyze` writes an
+`AnalysisSnapshot` (the Study Log on `/results`), `npm run digest` posts the daily
+ops digest, `npm run replay` sanity-checks serving-policy changes against logged
+votes before you save them in `/admin`.

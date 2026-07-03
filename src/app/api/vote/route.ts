@@ -24,7 +24,13 @@ import {
 function hashIp(request: Request): string | null {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   if (!ip) return null;
-  const salt = process.env.IP_HASH_SALT ?? "judgment-call-dev-salt";
+  let salt = process.env.IP_HASH_SALT;
+  if (!salt) {
+    // A publicly-known salt makes the digest dictionary-attackable, so in
+    // production we store nothing rather than a false sense of hashing.
+    if (process.env.NODE_ENV === "production") return null;
+    salt = "judgment-call-dev-salt";
+  }
   return createHash("sha256").update(`${salt}:${ip}`).digest("hex").slice(0, 32);
 }
 
