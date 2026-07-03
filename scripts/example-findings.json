@@ -1,0 +1,9 @@
+[
+  {
+    "title": "Example: replace with a real finding",
+    "domain": "earnings",
+    "contextSnippet": "**Company X — Q1:** metric $1.23B (+4.5% YoY) · Driver +3.9% · Other +0.6%",
+    "sourceLabel": "Company X Q1 earnings release (fictional)",
+    "truthSummary": "Fact sentence with the exact figures. Driver sentence attributing the movement. Limitation sentence (one quarter of data / correlation not causation)."
+  }
+]

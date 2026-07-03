@@ -135,8 +135,8 @@ deliberately excluded from the card so the overclaim experiment stays blind.
    `.env.local`, which stays ignored.
 8. **System font stack instead of Google Fonts** so a fresh clone builds with no
    network dependency.
-9. **"Can't decide" is not yet rate-limited** (spec §2 mentions discouraging overuse) —
-   it's logged and Elo-neutral; throttling is deferred to the Sybil/troll pass (spec §9).
+9. **"Can't decide" is throttled server-side** (more than 2 undecided of the last 5
+   votes forces a pick), alongside a 30 votes/minute/session cap — see Integrity rules.
 
 ## Analytics (`/results`, `/admin`)
 
@@ -160,6 +160,26 @@ deliberately excluded from the card so the overclaim experiment stays blind.
 - Comparisons carry a salted IP hash + user agent for post-hoc sybil forensics;
   sessions carry referrer/UTM for share-loop attribution.
 - See `docs/ATTRIBUTES.md` for the tagging rubric shared by seeds, generation, and review.
+
+## Variant generation (M2)
+
+```bash
+export ANTHROPIC_API_KEY=...          # or `ant auth login`
+npx tsx scripts/generate.ts my-findings.json   # see scripts/example-findings.json
+```
+
+The deterministic planner (`src/lib/generation/planner.ts`) designs each finding's
+6-profile star — rotating base profiles and contrasted attributes so no value is
+"always the base" — and the model (`claude-sonnet-4-6`, pinned by spec §4) only
+writes prose to the declared profiles, returning a claim-by-claim self-check
+ledger. Mechanical validators (`src/lib/generation/validate.ts`, same rules and
+tokenizer as the seed) check tag echo, length bands, numeric fidelity against the
+truth summary, and the star properties; hard failures trigger up to two repair
+turns that regenerate only the failing slots. Output lands as `status="pending"` —
+**nothing is served to voters until a human approves it at `/admin/review?key=…`**,
+where the text, tags, claims ledger, and lints are reviewed side by side. The
+fidelity contrast is up-weighted in matchmaking (its coverage count is halved) so
+the flagship overclaim experiment reaches publishable sample sizes first.
 
 ## Milestone 1 scope
 

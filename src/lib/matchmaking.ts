@@ -79,12 +79,20 @@ function sampleFindingOrder(counts: { findingId: string; count: number }[]): str
 
 function pickBest(candidates: CandidatePair[], contrastCounts: Map<string, number>): CandidatePair {
   // Fewest total comparisons for the contrast → closest Elo → random.
-  const scored = candidates.map((c) => ({
-    c,
-    coverage: contrastCounts.get(contrastKey(c.diff)) ?? 0,
-    eloGap: Math.abs(c.a.elo - c.b.elo),
-    jitter: Math.random(),
-  }));
+  // The fidelity contrast (the flagship overclaim experiment) is up-weighted:
+  // its count is halved, so matchmaking keeps preferring it until it has
+  // roughly twice the votes of other contrasts — it has only 1 pair per
+  // finding and needs n>=30 per segment before anything is publishable.
+  const scored = candidates.map((c) => {
+    const raw = contrastCounts.get(contrastKey(c.diff)) ?? 0;
+    const isFidelity = c.diff.length === 1 && c.diff[0] === "fidelity";
+    return {
+      c,
+      coverage: isFidelity ? raw / 2 : raw,
+      eloGap: Math.abs(c.a.elo - c.b.elo),
+      jitter: Math.random(),
+    };
+  });
   scored.sort(
     (x, y) => x.coverage - y.coverage || x.eloGap - y.eloGap || x.jitter - y.jitter
   );
