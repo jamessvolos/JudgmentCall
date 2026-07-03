@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Snippet } from "@/components/Snippet";
 import { ResultsCard, type ResultsDto } from "@/components/ResultsCard";
 import { getSessionId, nowMs } from "@/lib/session-client";
 import { RESULTS_AT_VOTES } from "@/lib/client-constants";
+import { withViewTransition } from "@/lib/view-transition";
 
 type PairDto = {
   finding: {
@@ -58,6 +60,7 @@ function SwipeInner() {
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [promotion, setPromotion] = useState<{ title: string; xp: number } | null>(null);
   const [liveMessage, setLiveMessage] = useState("");
   const [snippetExpanded, setSnippetExpanded] = useState(false);
   const [snippetTruncated, setSnippetTruncated] = useState(false);
@@ -77,10 +80,12 @@ function SwipeInner() {
       );
       if (!res.ok) throw new Error(`pair failed (${res.status})`);
       const data: PairDto = await res.json();
-      setPair(data);
-      setPickedId(null);
-      setSnippetExpanded(false);
-      setVoteCount(data.voteCount);
+      withViewTransition(() => {
+        setPair(data);
+        setPickedId(null);
+        setSnippetExpanded(false);
+        setVoteCount(data.voteCount);
+      });
       renderedAt.current = nowMs();
     } catch {
       setError("Couldn't load the next pair.");
@@ -136,7 +141,8 @@ function SwipeInner() {
     try {
       const res = await fetch(`/api/results?sessionId=${encodeURIComponent(sessionId)}`);
       if (!res.ok) throw new Error(`results failed (${res.status})`);
-      setResults(await res.json());
+      const data = await res.json();
+      withViewTransition(() => setResults(data));
     } catch {
       setError("Couldn't load your results.");
     }
@@ -181,7 +187,10 @@ function SwipeInner() {
         await showResults(); // the milestone interstitial
       } else {
         if (data.leveledUp) {
-          flashNotice(`Promoted: ${data.level.title} — ${data.xp} XP.`);
+          // Promotion earns typeset ceremony, not a toast; the slug's whole
+          // lifecycle is one 2600ms keyframe matched to this timer.
+          setPromotion({ title: data.level.title, xp: data.xp });
+          setTimeout(() => setPromotion(null), 2600);
         } else if (data.voteCount > RESULTS_AT_VOTES && data.voteCount % 10 === 0) {
           flashNotice(`${data.voteCount} calls — run complete. Review it from your results.`);
         }
@@ -226,12 +235,12 @@ function SwipeInner() {
               ) : (
                 <>
                   <p className="font-mono text-xs text-muted tabular-nums">{voteCount} calls</p>
-                  <a
+                  <Link
                     href="/review"
                     className="font-mono text-xs font-semibold text-accent hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none rounded"
                   >
                     Review
-                  </a>
+                  </Link>
                   <button
                     onClick={showResults}
                     className="font-mono text-xs font-semibold text-accent hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none rounded"
@@ -292,7 +301,7 @@ function SwipeInner() {
                     pickedId === variant.id
                       ? "border-rule-strong scale-[0.99]"
                       : pickedId
-                        ? "border-card-border opacity-40"
+                        ? "clear-back border-card-border opacity-40"
                         : "border-card-border hover:border-rule-strong hover:shadow-[var(--shadow-lift)] active:scale-[0.99]"
                   }`}
                 >
@@ -339,6 +348,24 @@ function SwipeInner() {
           )
         )}
 
+        {promotion && (
+          <div
+            role="status"
+            className="promo-slug mt-4 rounded-card border border-card-border bg-card px-4 py-3"
+          >
+            <div className="rule-draw double-rule" aria-hidden />
+            <p className="kicker text-accent mt-3">Promoted</p>
+            <p className="mt-1 font-serif text-lg font-semibold text-ink-strong">
+              {promotion.title}
+              <span
+                className="stamp-in ml-2 inline-block align-middle rounded-chip border-2 border-rule-strong px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-[0.18em] text-rule-strong"
+                style={{ animationDelay: "300ms" }}
+              >
+                {promotion.xp} XP
+              </span>
+            </p>
+          </div>
+        )}
         {notice && (
           <div className="mt-4 rounded-card bg-accent-soft px-3 py-2 text-center text-sm font-medium text-accent">
             {notice}

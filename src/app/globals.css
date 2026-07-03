@@ -33,6 +33,8 @@
   --t-fast: 120ms;
   --t-base: 240ms;
   --t-slow: 420ms;
+  --t-beat: 180ms; /* choreography gap between sequenced siblings */
+  --t-step: 60ms; /* stagger unit for list cascades */
   --ease: cubic-bezier(0.2, 0, 0, 1);
 }
 
@@ -127,16 +129,40 @@ body {
   }
 }
 .pair-in {
-  animation: pair-in var(--t-base) var(--ease);
+  animation: pair-in var(--t-base) var(--ease) both;
+}
+
+/* Staggered entrance: same rise, delayed by an index (--i) in steps. */
+.rise {
+  animation: pair-in var(--t-base) var(--ease) calc(var(--i, 0) * var(--t-step)) both;
+}
+
+/* Below the fold, reveal binds to the scroll axis instead of a clock: each
+   card develops once as it enters the viewport. Starts at 0.2, never 0 — a
+   card must stay readable mid-viewport even if the range math is off.
+   Unsupported browsers render static cards, which is the correct fallback. */
+@keyframes card-develop {
+  from {
+    opacity: 0.2;
+    transform: translateY(10px);
+  }
+}
+@supports (animation-timeline: view()) {
+  .card-reveal {
+    animation: card-develop linear both;
+    animation-timeline: view();
+    animation-range: entry 10% entry 40%;
+  }
 }
 
 /* Poster reveal: the print "develops" — blur and rise resolve to sharp,
-   then everything is still. No confetti. */
+   then everything is still. No confetti. (blur only, capped at 4px:
+   filter animation repaints per frame on low-end GPUs.) */
 @keyframes poster-in {
   from {
     opacity: 0;
     transform: translateY(12px);
-    filter: blur(6px) grayscale(1);
+    filter: blur(4px);
   }
   to {
     opacity: 1;
@@ -204,12 +230,101 @@ body {
   transform-origin: bottom;
 }
 
+/* Drill verdict, three beats: culprit stamp (0ms) → culprit inks to danger
+   (--t-beat) → explanation rises (--t-slow). Both tellings stay fully
+   legible after the verdict — post-verdict is a comparison moment. */
+.verdict-culprit {
+  transition:
+    border-color var(--t-base) var(--ease) var(--t-beat),
+    background-color var(--t-base) var(--ease) var(--t-beat);
+}
+.verdict-card-in {
+  animation: pair-in var(--t-base) var(--ease) var(--t-slow) both;
+}
+
+/* Swipe post-pick: stamp lands (--t-fast beat) before the room clears. */
+.clear-back {
+  transition: opacity var(--t-base) var(--ease) var(--t-fast);
+}
+
+/* Promotion slug: entry, hold, and exit in one keyframe matched to the
+   2600ms notice timer — nothing can be orphaned mid-fade. */
+@keyframes slug-life {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(3px);
+  }
+  10% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.promo-slug {
+  animation: slug-life 2600ms var(--ease) both;
+}
+@keyframes rule-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+.rule-draw {
+  animation: rule-draw var(--t-slow) var(--ease) 200ms both;
+  transform-origin: left;
+}
+
+/* Mechanical counter: the number re-settles like a scoreboard when --num
+   changes. Unsupported browsers snap to the final value. */
+@property --num {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+.count {
+  transition: --num 700ms var(--ease);
+  counter-reset: num var(--num);
+}
+.count::after {
+  content: counter(num);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Same-document view transitions: quick exit, token-timed entry. */
+::view-transition-old(root) {
+  animation-duration: 90ms;
+}
+::view-transition-new(root) {
+  animation-duration: var(--t-fast);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pair-in,
   .poster-in,
   .stamp-in,
   .notch-pop,
-  .tick-beckon {
+  .tick-beckon,
+  .verdict-card-in,
+  .rise,
+  .card-reveal,
+  .promo-slug,
+  .rule-draw {
     animation: none;
+  }
+  .verdict-culprit,
+  .clear-back,
+  .count {
+    transition: none;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

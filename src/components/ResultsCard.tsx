@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { SEGMENT_LABELS, type Segment } from "@/lib/client-constants";
 
@@ -208,12 +209,12 @@ export function ResultsCard({
         >
           Keep going — sharpen your profile
         </button>
-        <a
+        <Link
           href="/review"
           className="flex-1 rounded-card border border-card-border px-4 py-3 text-center font-mono text-sm font-semibold transition hover:border-rule-strong focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         >
           Review my calls →
-        </a>
+        </Link>
         <button
           onClick={share}
           className="flex-1 rounded-card border border-card-border px-4 py-3 font-mono text-sm font-semibold transition hover:border-rule-strong focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
