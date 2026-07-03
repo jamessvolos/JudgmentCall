@@ -13,7 +13,9 @@ import {
   getSeenPairKeys,
   getContrastCounts,
   getSessionContrastCounts,
+  getServingConfig,
   type Finding,
+  type ServingConfig,
   type Variant,
 } from "./repo";
 import { attributeDiff, type AttributeKey, type AttributeProfile } from "./types";
@@ -81,7 +83,8 @@ function sampleFindingOrder(counts: { findingId: string; count: number }[]): str
 function pickBest(
   candidates: CandidatePair[],
   contrastCounts: Map<string, number>,
-  sessionContrasts: Map<string, number>
+  sessionContrasts: Map<string, number>,
+  policy: ServingConfig
 ): CandidatePair {
   // Session variety first (a contrast this session hasn't judged beats one it
   // has — this is what feeds the personal results card), then global coverage,
@@ -96,7 +99,7 @@ function pickBest(
     return {
       c,
       sessionSeen: sessionContrasts.get(key) ?? 0,
-      coverage: isFidelity ? raw / 2 : raw,
+      coverage: isFidelity ? raw / Math.max(1, policy.fidelityBoost) : raw,
       eloGap: Math.abs(c.a.elo - c.b.elo),
       jitter: Math.random(),
     };
@@ -115,11 +118,12 @@ export async function selectPair(
   sessionId: string,
   deckId: string | null = null
 ): Promise<SelectedPair | null> {
-  const [findingCounts, seen, contrastCounts, sessionContrasts] = await Promise.all([
+  const [findingCounts, seen, contrastCounts, sessionContrasts, policy] = await Promise.all([
     getFindingComparisonCounts(deckId),
     getSeenPairKeys(sessionId),
     getContrastCounts(),
     getSessionContrastCounts(sessionId),
+    getServingConfig(),
   ]);
   if (findingCounts.length === 0) return null;
 
@@ -131,7 +135,7 @@ export async function selectPair(
   // sessions that keep going.
   const sessionVotes = [...sessionContrasts.values()].reduce((a, b) => a + b, 0);
   const fidelityVotes = sessionContrasts.get("fidelity") ?? 0;
-  const capFidelity = sessionVotes < 10 && fidelityVotes >= 2;
+  const capFidelity = sessionVotes < policy.capUntilVotes && fidelityVotes >= policy.earlyFidelityCap;
 
   const findingOrder = sampleFindingOrder(findingCounts);
 
@@ -156,7 +160,7 @@ export async function selectPair(
         if (nonFidelity.length > 0) tier = nonFidelity;
       }
 
-      const best = pickBest(tier, contrastCounts, sessionContrasts);
+      const best = pickBest(tier, contrastCounts, sessionContrasts, policy);
 
       // Randomize left/right so position bias doesn't correlate with identity.
       const flip = Math.random() < 0.5;

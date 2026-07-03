@@ -59,6 +59,8 @@ async function main() {
   });
 
   const bySegment = new Map<string, Obs[]>();
+  const clustered: Obs[] = []; // robustness: first vote per (session, value-pair) only
+  const clusterSeen = new Set<string>();
   const coverage = new Map<string, number>(); // `${segment}|${attr}:${a}|${b}`
   for (const c of comparisons) {
     const attrs = c.contrastAttrs.split(",").filter(Boolean) as AttributeKey[];
@@ -70,6 +72,12 @@ async function main() {
     for (const seg of ["all", c.segment]) {
       bySegment.set(seg, [...(bySegment.get(seg) ?? []), obs]);
     }
+    const pairKey = [winner[attr], loser[attr]].sort().join("|");
+    const clusterKey = `${c.sessionId}|${attr}:${pairKey}`;
+    if (!clusterSeen.has(clusterKey)) {
+      clusterSeen.add(clusterKey);
+      clustered.push(obs);
+    }
     const [va, vb] = [winner[attr], loser[attr]].sort();
     for (const seg of ["all", c.segment]) {
       const key = `${seg}|${attr}:${va}|${vb}`;
@@ -80,6 +88,10 @@ async function main() {
   const coefficients = Object.fromEntries(
     [...bySegment.entries()].map(([seg, obs]) => [seg, { n: obs.length, effects: fitLogistic(obs) }])
   );
+  // Robustness cut (ROADMAP-2 §1): Wilson/logistic assumes independent votes;
+  // heavy sessions cluster. One-vote-per-session-per-cell must tell the same
+  // story as the full fit, or the full fit doesn't get published.
+  const coefficientsClustered = { n: clustered.length, effects: fitLogistic(clustered) };
 
   // Starvation ranking: craft attributes ordered by how far their thinnest
   // value-pair is below MIN_N (overall cut) — feeds planner targeting.
@@ -95,7 +107,7 @@ async function main() {
   const snapshot = await prisma.analysisSnapshot.create({
     data: {
       method: "logistic-diff-v1 (finding FE absorbed by pairwise design)",
-      coefficients: JSON.stringify(coefficients),
+      coefficients: JSON.stringify({ full: coefficients, clustered: coefficientsClustered }),
       coverage: JSON.stringify({
         minN: MIN_N,
         pairs: Object.fromEntries(coverage),
@@ -105,6 +117,7 @@ async function main() {
   });
   console.log(`snapshot ${snapshot.id}: ${comparisons.length} clean votes`);
   console.log("starvation ranking:", starvation.map((s) => `${s.attr}(min ${s.minPairN})`).join("  "));
+  console.log(`clustered robustness n=${coefficientsClustered.n} (full n=${bySegment.get("all")?.length ?? 0})`);
   for (const [v, e] of Object.entries(coefficients.all?.effects ?? {})) {
     const eff = e as { beta: number; se: number };
     console.log(`  ${v}: β=${eff.beta.toFixed(3)} ±${(1.96 * eff.se).toFixed(3)}`);

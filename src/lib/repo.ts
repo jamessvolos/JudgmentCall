@@ -40,11 +40,48 @@ export async function getSession(id: string): Promise<Session | null> {
 // Matchmaking reads
 
 /** All findings with their comparison counts (for fewest-comparisons weighting). */
+export type ServingConfig = { fidelityBoost: number; earlyFidelityCap: number; capUntilVotes: number };
+export const DEFAULT_SERVING: ServingConfig = { fidelityBoost: 2, earlyFidelityCap: 2, capUntilVotes: 10 };
+
+export async function getServingConfig(): Promise<ServingConfig> {
+  const row = await prisma.servingPolicy.findUnique({ where: { id: "default" } });
+  if (!row) return DEFAULT_SERVING;
+  try {
+    return { ...DEFAULT_SERVING, ...JSON.parse(row.config) };
+  } catch {
+    return DEFAULT_SERVING;
+  }
+}
+
+export async function setServingConfig(config: ServingConfig): Promise<void> {
+  await prisma.servingPolicy.upsert({
+    where: { id: "default" },
+    create: { id: "default", config: JSON.stringify(config) },
+    update: { config: JSON.stringify(config) },
+  });
+}
+
+export async function getAnalysisSnapshots(take = 20) {
+  return prisma.analysisSnapshot.findMany({ orderBy: { createdAt: "desc" }, take });
+}
+
+export async function getDeckComparisonsCsv(deckId: string) {
+  return prisma.comparison.findMany({
+    where: { deckId },
+    include: { variantA: true, variantB: true },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
 export async function getFindingComparisonCounts(
   deckId: string | null = null
 ): Promise<{ findingId: string; count: number }[]> {
   const findings = await prisma.finding.findMany({
-    where: { deckId, status: { in: ["active", "submitted"] } },
+    where: {
+      deckId,
+      status: { in: ["active", "submitted"] },
+      OR: [{ staleAfter: null }, { staleAfter: { gte: new Date() } }],
+    },
     select: { id: true },
   });
   const grouped = await prisma.comparison.groupBy({ by: ["findingId"], _count: { _all: true } });
@@ -270,6 +307,27 @@ export async function getDecidedComparisonSlots(): Promise<
     where: { winnerId: { not: null } },
     select: { variantAId: true, winnerId: true },
   });
+}
+
+/** sessionId -> judgeScore (null when unscored) for weighting robustness views. */
+export async function getJudgeScores(): Promise<Map<string, number | null>> {
+  const rows = await prisma.session.findMany({ select: { id: true, judgeScore: true } });
+  return new Map(rows.map((r) => [r.id, r.judgeScore]));
+}
+
+/** Public-study votes per UTC day for the last `days` days (admin time series). */
+export async function getVotesPerDay(days = 14): Promise<{ day: string; votes: number }[]> {
+  const since = new Date(Date.now() - days * 86400_000);
+  const rows = await prisma.comparison.findMany({
+    where: { createdAt: { gte: since }, deckId: null },
+    select: { createdAt: true },
+  });
+  const byDay = new Map<string, number>();
+  for (const r of rows) {
+    const day = r.createdAt.toISOString().slice(0, 10);
+    byDay.set(day, (byDay.get(day) ?? 0) + 1);
+  }
+  return [...byDay.entries()].map(([day, votes]) => ({ day, votes })).sort((a, b) => a.day.localeCompare(b.day));
 }
 
 /** Findings with approved variants sorted by Elo, for the per-finding leaderboard. */

@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
-import { computeOverclaim, computeAnalytics, MIN_N } from "@/lib/analytics";
-import { isAdmin } from "@/lib/admin-auth";
+import { revalidatePath } from "next/cache";
+import { computeCoverageGrid, computeOverclaim, computeAnalytics, MIN_N } from "@/lib/analytics";
+import { audit, isAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
+import { getServingConfig, getVotesPerDay, setServingConfig } from "@/lib/repo";
+import { SEGMENTS } from "@/lib/types";
 import { AdminNav } from "@/components/AdminNav";
 
 export const dynamic = "force-dynamic";
@@ -23,15 +26,32 @@ export default async function AdminPage({
   const { key } = await searchParams;
   if (!(await isAdmin(key))) notFound();
 
-  const [o, a, pendingCount, weekVotes, lowJudges] = await Promise.all([
+  const [o, a, grid, series, policy, pendingCount, weekVotes, lowJudges] = await Promise.all([
     computeOverclaim(),
     computeAnalytics(),
+    computeCoverageGrid(),
+    getVotesPerDay(14),
+    getServingConfig(),
     prisma.variant.count({ where: { status: "pending" } }),
     prisma.comparison.count({
       where: { createdAt: { gte: weekAgo() }, deckId: null },
     }),
     prisma.session.count({ where: { judgeScore: { lt: 0.5 }, goldCount: { gte: 3 } } }),
   ]);
+  const maxDay = Math.max(1, ...series.map((d) => d.votes));
+
+  async function updatePolicy(formData: FormData) {
+    "use server";
+    if (!(await isAdmin(String(formData.get("key") ?? "") || undefined))) return;
+    const config = {
+      fidelityBoost: Number(formData.get("fidelityBoost")) || 2,
+      earlyFidelityCap: Number(formData.get("earlyFidelityCap")) || 2,
+      capUntilVotes: Number(formData.get("capUntilVotes")) || 10,
+    };
+    await setServingConfig(config);
+    await audit("policy.update", "serving", JSON.stringify(config));
+    revalidatePath("/admin");
+  }
   const publishable = a.attributeStats.filter((s) => !s.suppressed).length;
   const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 
@@ -52,6 +72,24 @@ export default async function AdminPage({
             </div>
           ))}
         </div>
+        {/* Votes/day time series */}
+        <section className="mt-6 rounded-2xl border border-card-border bg-card p-5">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
+            Public-study votes / day (14d)
+          </h2>
+          <div className="mt-3 flex items-end gap-1 h-20">
+            {series.length === 0 && <p className="text-xs text-muted">No votes in window.</p>}
+            {series.map((d) => (
+              <div key={d.day} className="flex-1" title={`${d.day}: ${d.votes}`}>
+                <div
+                  className="rounded-t bg-accent"
+                  style={{ height: `${(d.votes / maxDay) * 72}px` }}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+
         <h1 className="mt-8 text-3xl font-bold tracking-tight">The overclaim experiment</h1>
         <p className="mt-2 text-sm text-muted">
           Faithful vs. overclaimed head-to-heads (decided, attention-passing, non-repeat votes
@@ -116,6 +154,97 @@ export default async function AdminPage({
             . Placement is randomized server-side, so deviation from 50% is position bias — cite
             it in the methods section if the interval excludes 50%.
           </p>
+        </section>
+        {/* Judge-quality panel */}
+        <section className="mt-6 rounded-2xl border border-card-border bg-card p-5">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">Judge quality</h2>
+          <p className="mt-2 text-sm">
+            Overclaim rate weighted by judge score:{" "}
+            <strong>
+              {o.weightedOverallRate === null ? "—" : pct(o.weightedOverallRate)}
+            </strong>{" "}
+            vs unweighted{" "}
+            <strong>{o.overall.n > 0 ? pct(o.overall.overclaimWins / o.overall.n) : "—"}</strong>
+            <span className="text-muted"> — a large gap means low-quality judges move the result.</span>
+          </p>
+          <div className="mt-3 flex gap-4 text-sm tabular-nums">
+            {o.judgeHistogram.map((b) => (
+              <p key={b.bucket}>
+                <span className="text-muted">{b.bucket}:</span> {b.sessions}
+              </p>
+            ))}
+          </div>
+        </section>
+
+        {/* Coverage heatmap */}
+        <section className="mt-6 rounded-2xl border border-card-border bg-card p-5 overflow-x-auto">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
+            Coverage heatmap (n / {MIN_N} per segment)
+          </h2>
+          <table className="mt-3 w-full text-xs">
+            <thead>
+              <tr className="text-muted">
+                <th className="text-left font-normal pr-2">contrast</th>
+                {SEGMENTS.map((seg) => (
+                  <th key={seg} className="font-normal px-1">{seg.slice(0, 4)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {grid.map((cell) => (
+                <tr key={cell.key}>
+                  <td className="pr-2 py-0.5 whitespace-nowrap">{cell.label}</td>
+                  {SEGMENTS.map((seg) => {
+                    const n = cell.bySegment[seg] ?? 0;
+                    const frac = Math.min(1, n / MIN_N);
+                    return (
+                      <td key={seg} className="px-1 py-0.5">
+                        <div
+                          className="rounded px-1 text-center tabular-nums"
+                          style={{
+                            background: `color-mix(in oklab, var(--accent) ${Math.round(frac * 85)}%, var(--card-border))`,
+                            color: frac > 0.5 ? "white" : "inherit",
+                          }}
+                        >
+                          {n}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+
+        {/* Serving policy editor */}
+        <section className="mt-6 rounded-2xl border border-card-border bg-card p-5">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
+            Serving policy <span className="normal-case font-normal">(audited; replay-check with scripts/replay.ts before big changes)</span>
+          </h2>
+          <form action={updatePolicy} className="mt-3 flex flex-wrap items-end gap-3 text-sm">
+            <input type="hidden" name="key" value={key} />
+            {[
+              { name: "fidelityBoost", label: "fidelity boost", value: policy.fidelityBoost },
+              { name: "earlyFidelityCap", label: "early fidelity cap", value: policy.earlyFidelityCap },
+              { name: "capUntilVotes", label: "cap until votes", value: policy.capUntilVotes },
+            ].map((f) => (
+              <label key={f.name} className="block">
+                <span className="text-xs text-muted">{f.label}</span>
+                <input
+                  name={f.name}
+                  type="number"
+                  step="1"
+                  min="0"
+                  defaultValue={f.value}
+                  className="mt-1 w-24 rounded-lg border border-card-border bg-background px-2 py-1.5"
+                />
+              </label>
+            ))}
+            <button className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white">
+              Save policy
+            </button>
+          </form>
         </section>
       </div>
     </main>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { computeAnalytics, MIN_N, type ValuePairStat } from "@/lib/analytics";
+import { getAnalysisSnapshots } from "@/lib/repo";
 import { YourContribution } from "@/components/YourContribution";
 
 export const dynamic = "force-dynamic";
@@ -63,7 +64,7 @@ function ContrastRow({ stat }: { stat: ValuePairStat }) {
 }
 
 export default async function ResultsPage() {
-  const a = await computeAnalytics();
+  const [a, snapshots] = await Promise.all([computeAnalytics(), getAnalysisSnapshots(5)]);
   const exec = a.segmentStats.executive ?? [];
   const analyst = a.segmentStats.analyst ?? [];
   // Disagreement view: pairs where both segments have unsuppressed data.
@@ -155,6 +156,22 @@ export default async function ResultsPage() {
                   Elo {Math.round(row.elo)} · {row.wins}W–{row.losses}L
                 </p>
               </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <h2 className="text-lg font-bold">Study log</h2>
+          <p className="mt-1 text-sm text-muted">
+            Formal analysis runs, newest first — published findings cite a snapshot id so anyone
+            can ask for the exact numbers behind a claim.
+          </p>
+          <div className="mt-2 rounded-2xl border border-card-border bg-card px-5 py-3 text-xs font-mono text-muted space-y-1">
+            {snapshots.length === 0 && <p>No analysis runs yet.</p>}
+            {snapshots.map((s) => (
+              <p key={s.id}>
+                {s.createdAt.toISOString().slice(0, 10)} · {s.id.slice(0, 12)} · {s.method}
+              </p>
             ))}
           </div>
         </section>

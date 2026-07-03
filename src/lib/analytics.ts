@@ -12,6 +12,7 @@ import {
   getAnalyticsComparisons,
   getDecidedComparisonSlots,
   getFindingsWithVariantStats,
+  getJudgeScores,
 } from "./repo";
 import { VALUE_LABELS, ATTRIBUTE_LABELS, type AttributeKey, type Segment } from "./types";
 
@@ -88,6 +89,11 @@ export type AnalyticsSnapshot = {
 
 export type OverclaimSnapshot = {
   overall: { overclaimWins: number; n: number; interval: Interval | null; suppressed: boolean };
+  // Robustness: same rate weighting each vote by its session's judgeScore
+  // (unscored sessions weight 1). Published numbers stay unweighted; this
+  // shows whether low-quality judges move the result.
+  weightedOverallRate: number | null;
+  judgeHistogram: { bucket: string; sessions: number }[];
   bySegment: { segment: string; overclaimWins: number; n: number; interval: Interval | null; suppressed: boolean }[];
   positionBias: { leftWins: number; n: number; leftRate: number | null; interval: Interval | null };
 };
@@ -166,9 +172,10 @@ export async function computeAnalytics(): Promise<AnalyticsSnapshot> {
 }
 
 export async function computeOverclaim(): Promise<OverclaimSnapshot> {
-  const [comparisons, slots] = await Promise.all([
+  const [comparisons, slots, judges] = await Promise.all([
     getAnalyticsComparisons(),
     getDecidedComparisonSlots(),
+    getJudgeScores(),
   ]);
 
   const fidelity = comparisons.filter((c) => c.contrastAttrs === "fidelity");
@@ -185,8 +192,32 @@ export async function computeOverclaim(): Promise<OverclaimSnapshot> {
   const leftWins = slots.filter((s) => s.winnerId === s.variantAId).length;
   const n = slots.length;
 
+  let wWins = 0;
+  let wTotal = 0;
+  for (const c of fidelity) {
+    const w = judges.get(c.sessionId) ?? 1;
+    wTotal += w;
+    const winner = c.winnerId === c.variantAId ? c.variantA : c.variantB;
+    if (winner.fidelity === "overclaimed") wWins += w;
+  }
+  const buckets = [0, 0, 0, 0]; // <0.5, 0.5-0.8, >=0.8, unscored handled separately
+  let unscored = 0;
+  for (const score of judges.values()) {
+    if (score === null) unscored++;
+    else if (score < 0.5) buckets[0]++;
+    else if (score < 0.8) buckets[1]++;
+    else buckets[2]++;
+  }
+
   return {
     overall: count(fidelity),
+    weightedOverallRate: wTotal > 0 ? wWins / wTotal : null,
+    judgeHistogram: [
+      { bucket: "<0.5", sessions: buckets[0] },
+      { bucket: "0.5–0.8", sessions: buckets[1] },
+      { bucket: "≥0.8", sessions: buckets[2] },
+      { bucket: "unscored", sessions: unscored },
+    ],
     bySegment: segments.map((segment) => ({
       segment,
       ...count(fidelity.filter((c) => c.segment === segment)),
@@ -198,4 +229,29 @@ export async function computeOverclaim(): Promise<OverclaimSnapshot> {
       interval: n > 0 ? wilson(leftWins, n) : null,
     },
   };
+}
+
+export type CoverageCell = { key: string; label: string; bySegment: Record<string, number> };
+
+/** Value-pair x segment coverage grid (admin heatmap). Craft contrasts only. */
+export async function computeCoverageGrid(): Promise<CoverageCell[]> {
+  const comparisons = await getAnalyticsComparisons();
+  const cells = new Map<string, CoverageCell>();
+  for (const c of comparisons) {
+    const attrs = c.contrastAttrs.split(",").filter(Boolean) as AttributeKey[];
+    if (attrs.length !== 1 || attrs[0] === "fidelity") continue;
+    const attr = attrs[0];
+    const winner = c.winnerId === c.variantAId ? c.variantA : c.variantB;
+    const loser = c.winnerId === c.variantAId ? c.variantB : c.variantA;
+    const [va, vb] = [winner[attr], loser[attr]].sort();
+    const key = `${attr}:${va}|${vb}`;
+    const cell = cells.get(key) ?? {
+      key,
+      label: `${VALUE_LABELS[va] ?? va} vs ${VALUE_LABELS[vb] ?? vb}`,
+      bySegment: {},
+    };
+    cell.bySegment[c.segment] = (cell.bySegment[c.segment] ?? 0) + 1;
+    cells.set(key, cell);
+  }
+  return [...cells.values()].sort((a, b) => a.key.localeCompare(b.key));
 }

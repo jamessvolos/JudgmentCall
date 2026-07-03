@@ -21,6 +21,9 @@ model Finding {
   sourceLabel    String
   truthSummary   String // ground-truth claim every faithful variant must respect
   status         String       @default("active") // active | submitted | retired
+  sourceUrl      String? // provenance for ingested/public-source findings
+  retrievedAt    DateTime? // when the source data was fetched
+  staleAfter     DateTime? // matchmaking stops serving past this date
   deck           Deck?        @relation(fields: [deckId], references: [id])
   deckId         String? // null = public pool; set = private BYO deck
   variants       Variant[]
@@ -129,4 +132,12 @@ model AnalysisSnapshot {
   coefficients String // JSON: per attribute-value effect + intervals, per segment
   coverage     String // JSON: value-pair n per segment, starvation ranking
   createdAt    DateTime @default(now())
+}
+
+// Tunable matchmaking weights (ROADMAP-2 §1). Single row, admin-edited, audited.
+// Policy changes ship like prompt changes: replay-evaluated first.
+model ServingPolicy {
+  id        String   @id @default("default")
+  config    String // JSON: { fidelityBoost, earlyFidelityCap, capUntilVotes }
+  updatedAt DateTime @updatedAt
 }
