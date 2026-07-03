@@ -1,0 +1,77 @@
+// Judgment Call — Milestone 1 schema.
+// SQLite for local dev; designed to swap to Postgres by changing the
+// datasource provider + DATABASE_URL only. Enum-like fields are stored as
+// strings (validated in src/lib/types.ts) because SQLite has no native enums —
+// this also keeps the Postgres migration a pure config change.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Finding {
+  id             String       @id @default(cuid())
+  title          String
+  domain         String // earnings | econ | sports | ops
+  contextSnippet String // markdown, shown in the swipe header
+  sourceLabel    String
+  truthSummary   String // ground-truth claim every faithful variant must respect
+  variants       Variant[]
+  comparisons    Comparison[]
+}
+
+model Variant {
+  id              String  @id @default(cuid())
+  finding         Finding @relation(fields: [findingId], references: [id])
+  findingId       String
+  text            String
+  leadType        String // number_first | implication_first | question_first
+  lengthBand      String // short | medium | long
+  caveatPlacement String // upfront | trailing | omitted
+  quantification  String // precise | rounded | qualitative
+  soWhat          String // explicit | implied
+  fidelity        String  @default("faithful") // faithful | overclaimed (hidden experiment flag)
+  elo             Float   @default(1200)
+  wins            Int     @default(0)
+  losses          Int     @default(0)
+
+  comparisonsAsA Comparison[] @relation("variantA")
+  comparisonsAsB Comparison[] @relation("variantB")
+  comparisonsWon Comparison[] @relation("winner")
+
+  @@index([findingId])
+}
+
+model Comparison {
+  id           String   @id @default(cuid())
+  finding      Finding  @relation(fields: [findingId], references: [id])
+  findingId    String
+  variantA     Variant  @relation("variantA", fields: [variantAId], references: [id])
+  variantAId   String
+  variantB     Variant  @relation("variantB", fields: [variantBId], references: [id])
+  variantBId   String
+  winner       Variant? @relation("winner", fields: [winnerId], references: [id])
+  winnerId     String? // null = "can't decide"
+  session      Session  @relation(fields: [sessionId], references: [id])
+  sessionId    String
+  segment      String // denormalized from session for easy analytics cuts
+  contrastAttrs String // comma-joined sorted attribute keys the pair differed on, e.g. "leadType"
+  latencyMs    Int
+  lowAttention Boolean  @default(false) // latencyMs < 800; included in Elo, excludable in analytics
+  createdAt    DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([findingId])
+}
+
+model Session {
+  id          String       @id // client-generated UUID (localStorage)
+  segment     String // executive | analyst | data_leader | other
+  voteCount   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  comparisons Comparison[]
+}
