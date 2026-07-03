@@ -19,6 +19,9 @@ export type ResultsDto = {
   voteCount: number;
   decidedSingleContrasts: number;
   preferences: PreferenceDto[];
+  xp?: number;
+  level?: { level: number; title: string; nextAt: number | null };
+  judgeRank?: string | null;
 };
 
 
@@ -120,6 +123,7 @@ export function ResultsCard({
         <p className="mt-2 font-mono text-xs" style={{ color: "var(--poster-mut)" }}>
           {results.voteCount} judgment calls · voting as{" "}
           {SEGMENT_LABELS[results.segment as Segment] ?? "Reader"}
+          {results.level && ` · ${results.level.title.toUpperCase()}`}
           {results.calibrated && (
             <span
               className="ml-2 rounded-full border px-2 py-0.5 font-semibold"
@@ -204,6 +208,12 @@ export function ResultsCard({
         >
           Keep going — sharpen your profile
         </button>
+        <a
+          href="/review"
+          className="flex-1 rounded-card border border-card-border px-4 py-3 text-center font-mono text-sm font-semibold transition hover:border-rule-strong focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        >
+          Review my calls →
+        </a>
         <button
           onClick={share}
           className="flex-1 rounded-card border border-card-border px-4 py-3 font-mono text-sm font-semibold transition hover:border-rule-strong focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"

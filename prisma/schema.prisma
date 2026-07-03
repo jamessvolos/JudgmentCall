@@ -77,6 +77,7 @@ model Comparison {
   lowAttention Boolean  @default(false) // latencyMs < 800; included in Elo, excludable in analytics
   isRepeat     Boolean  @default(false) // session saw this pair before (exhaustion fallback); non-independent, exclude from analytics
   isGold       Boolean  @default(false) // pair had a strong prior consensus when this vote was cast (judge scoring)
+  postDrill    Boolean  @default(false) // session had completed >=1 overclaim drill before this vote — lets the fidelity analysis cut naive vs trained judges
   deckId       String? // BYO-data deck scope; null = the public study
   ipHash       String? // salted SHA-256 of client IP — sybil forensics only, never reversible
   userAgent    String?
@@ -97,9 +98,67 @@ model Session {
   goldCount     Int    @default(0)
   goldAgreement Int    @default(0)
   judgeScore    Float? // goldAgreement/goldCount once goldCount >= 3
-  createdAt   DateTime     @default(now())
+  // Progression (cosmetic only — NEVER read by analytics; judgeScore alone
+  // re-weights analysis). XP rewards volume and coverage, not agreement.
+  xp           Int    @default(0)
+  // Skill: Rasch-style judge ability updated per gold vote against the pair's
+  // consensus-margin difficulty. Display + robustness cuts only.
+  judgeAbility Float?
+  // Drill track (chess-puzzles analog): Elo vs item ratings, separate world
+  // from the study; drillCount also stamps Comparison.postDrill.
+  drillRating Float @default(1200)
+  drillCount  Int   @default(0)
+  createdAt   DateTime       @default(now())
   comparisons Comparison[]
   decks       Deck[]
+  xpEvents    XpEvent[]
+  drillAttempts DrillAttempt[]
+}
+
+// Auditable XP ledger — every point traceable, like everything else in the study.
+model XpEvent {
+  id        String   @id @default(cuid())
+  session   Session  @relation(fields: [sessionId], references: [id])
+  sessionId String
+  kind      String // vote | first_contrast | frontier | run_complete | daily | drill
+  amount    Int
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+// "Spot the overclaim" training items. Purpose-built content, fully separate
+// from study findings: drill attempts never touch analytics, and drill items
+// are never served in the voting pool.
+model DrillItem {
+  id              String         @id @default(cuid())
+  title           String
+  contextSnippet  String
+  sourceLabel     String
+  faithfulText    String
+  overclaimedText String
+  explanation     String // the claims-ledger reveal shown after an attempt
+  device          String // the overclaim device used, e.g. "trend extrapolation"
+  rating          Float          @default(1200)
+  attempts        Int            @default(0)
+  status          String         @default("active") // active | retired
+  createdAt       DateTime       @default(now())
+  drillAttempts   DrillAttempt[]
+}
+
+model DrillAttempt {
+  id          String    @id @default(cuid())
+  session     Session   @relation(fields: [sessionId], references: [id])
+  sessionId   String
+  item        DrillItem @relation(fields: [drillItemId], references: [id])
+  drillItemId String
+  correct     Boolean
+  latencyMs   Int
+  createdAt   DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([drillItemId])
 }
 
 // BYO-data deck (ROADMAP §3): a private pool of findings owned by the session

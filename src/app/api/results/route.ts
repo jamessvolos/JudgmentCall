@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/repo";
 import { computePersonalResults } from "@/lib/results";
+import { judgeRank, levelFor } from "@/lib/progression";
 
 // GET /api/results?sessionId=... — the session's personal preference profile,
 // computed from its single-attribute-contrast votes only.
@@ -18,5 +19,13 @@ export async function GET(request: Request) {
   const results = await computePersonalResults(sessionId);
   const calibrated =
     session.goldCount >= 3 && session.judgeScore !== null && session.judgeScore >= 0.8;
-  return NextResponse.json({ segment: session.segment, calibrated, ...results });
+  return NextResponse.json({
+    segment: session.segment,
+    calibrated,
+    xp: session.xp,
+    level: levelFor(session.xp),
+    judgeRank: judgeRank(session.judgeAbility, session.goldCount),
+    drillRating: session.drillCount > 0 ? Math.round(session.drillRating) : null,
+    ...results,
+  });
 }

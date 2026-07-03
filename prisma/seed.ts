@@ -17,6 +17,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import { DRILL_SEEDS } from "./drills";
 import {
   ATTRIBUTE_KEYS,
   CAVEAT_PLACEMENTS,
@@ -714,10 +715,17 @@ async function main(): Promise<void> {
 
   // Idempotent re-seed: wipe in FK order. Comparisons reference variants, so
   // reseeding resets all votes — fine pre-launch, revisit before production.
+  await prisma.drillAttempt.deleteMany();
+  await prisma.xpEvent.deleteMany();
   await prisma.comparison.deleteMany();
   await prisma.session.deleteMany();
   await prisma.variant.deleteMany();
   await prisma.finding.deleteMany();
+  await prisma.drillItem.deleteMany();
+
+  for (const d of DRILL_SEEDS) {
+    await prisma.drillItem.create({ data: d });
+  }
 
   for (const f of findings) {
     await prisma.finding.create({
@@ -735,8 +743,11 @@ async function main(): Promise<void> {
   const counts = {
     findings: await prisma.finding.count(),
     variants: await prisma.variant.count(),
+    drills: await prisma.drillItem.count(),
   };
-  console.log(`Seeded ${counts.findings} findings, ${counts.variants} variants.`);
+  console.log(
+    `Seeded ${counts.findings} findings, ${counts.variants} variants, ${counts.drills} drill items.`
+  );
 }
 
 main()

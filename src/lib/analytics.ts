@@ -94,6 +94,14 @@ export type OverclaimSnapshot = {
   // shows whether low-quality judges move the result.
   weightedOverallRate: number | null;
   judgeHistogram: { bucket: string; sessions: number }[];
+  // The training quasi-experiment: same rate split by whether the voter had
+  // completed >=1 overclaim drill before casting the vote (stamped at vote
+  // time, not retroactively). "Does training judges reduce the overclaim
+  // win rate?" is itself a publishable finding.
+  byTraining: {
+    naive: { overclaimWins: number; n: number; interval: Interval | null; suppressed: boolean };
+    trained: { overclaimWins: number; n: number; interval: Interval | null; suppressed: boolean };
+  };
   bySegment: { segment: string; overclaimWins: number; n: number; interval: Interval | null; suppressed: boolean }[];
   positionBias: { leftWins: number; n: number; leftRate: number | null; interval: Interval | null };
 };
@@ -212,6 +220,10 @@ export async function computeOverclaim(): Promise<OverclaimSnapshot> {
   return {
     overall: count(fidelity),
     weightedOverallRate: wTotal > 0 ? wWins / wTotal : null,
+    byTraining: {
+      naive: count(fidelity.filter((c) => !c.postDrill)),
+      trained: count(fidelity.filter((c) => c.postDrill)),
+    },
     judgeHistogram: [
       { bucket: "<0.5", sessions: buckets[0] },
       { bucket: "0.5–0.8", sessions: buckets[1] },

@@ -180,8 +180,10 @@ function SwipeInner() {
       if (data.voteCount === RESULTS_AT_VOTES) {
         await showResults(); // the milestone interstitial
       } else {
-        if (data.voteCount > RESULTS_AT_VOTES && data.voteCount % 10 === 0) {
-          flashNotice(`${data.voteCount} calls — your profile just got sharper.`);
+        if (data.leveledUp) {
+          flashNotice(`Promoted: ${data.level.title} — ${data.xp} XP.`);
+        } else if (data.voteCount > RESULTS_AT_VOTES && data.voteCount % 10 === 0) {
+          flashNotice(`${data.voteCount} calls — run complete. Review it from your results.`);
         }
         await fetchPair();
       }
@@ -224,6 +226,12 @@ function SwipeInner() {
               ) : (
                 <>
                   <p className="font-mono text-xs text-muted tabular-nums">{voteCount} calls</p>
+                  <a
+                    href="/review"
+                    className="font-mono text-xs font-semibold text-accent hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none rounded"
+                  >
+                    Review
+                  </a>
                   <button
                     onClick={showResults}
                     className="font-mono text-xs font-semibold text-accent hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none rounded"

@@ -5,7 +5,8 @@
 import { prisma } from "./db";
 import { eloUpdate } from "./elo";
 import { GOLD_MAJORITY, GOLD_MIN_N, JUDGE_MIN_GOLD, type Segment } from "./types";
-import type { Finding, Variant, Comparison, Session } from "@prisma/client";
+import { XP, drillElo, levelFor, updateAbility, type LevelInfo } from "./progression";
+import type { Finding, Variant, Comparison, Session, DrillItem } from "@prisma/client";
 
 export type { Finding, Variant, Comparison, Session };
 
@@ -143,16 +144,42 @@ export type VoteInput = {
   userAgent: string | null;
 };
 
+export type VoteResult = {
+  voteCount: number;
+  xp: number;
+  xpGained: { kind: string; amount: number }[];
+  level: LevelInfo;
+  leveledUp: boolean;
+};
+
+/** Top-2 most-starved craft attributes from the newest analysis snapshot. */
+async function getStarvedAttrs(): Promise<Set<string>> {
+  const snap = await prisma.analysisSnapshot.findFirst({ orderBy: { createdAt: "desc" } });
+  if (!snap) return new Set();
+  try {
+    const cov = JSON.parse(snap.coverage) as { starvation?: { attr: string }[] };
+    return new Set((cov.starvation ?? []).slice(0, 2).map((s) => s.attr));
+  } catch {
+    return new Set();
+  }
+}
+
 /**
  * Atomically: log the comparison, apply the Elo update + win/loss counters
- * (skipped for "can't decide"), and bump the session vote count.
- * Returns the new session vote count.
+ * (skipped for "can't decide"), bump the session vote count, and settle XP.
+ *
+ * XP RULES (blinding-critical): every decided, non-repeat public vote earns
+ * the identical base amount regardless of contrast type, so the reward stream
+ * can never fingerprint the hidden fidelity contrast. Bonus kinds (coverage,
+ * frontier, run, daily) are returned as generic labels, never attribute names.
+ * XP is cosmetic — analytics never reads it.
  */
-export async function recordVote(input: VoteInput): Promise<{ voteCount: number }> {
+export async function recordVote(input: VoteInput): Promise<VoteResult> {
   // Gold check (outside the transaction — read-only): does this pair already
   // have a strong consensus among OTHER sessions' clean decided votes?
   let isGold = false;
   let agreesWithConsensus = false;
+  let consensusShare = 0.5;
   if (input.winnerId && !input.isRepeat && !input.lowAttention) {
     const prior = await prisma.comparison.groupBy({
       by: ["winnerId"],
@@ -173,10 +200,30 @@ export async function recordVote(input: VoteInput): Promise<{ voteCount: number 
     if (top && total >= GOLD_MIN_N && top._count._all / total >= GOLD_MAJORITY) {
       isGold = true;
       agreesWithConsensus = top.winnerId === input.winnerId;
+      consensusShare = top._count._all / total;
     }
   }
 
+  // XP context reads (outside the transaction; races here cost at most a
+  // duplicate small bonus, never correctness of the study data).
+  const publicVote = input.deckId === null;
+  const [starved, priorSameContrast, todayVotes] = publicVote
+    ? await Promise.all([
+        getStarvedAttrs(),
+        prisma.comparison.count({
+          where: { sessionId: input.sessionId, contrastAttrs: input.contrastAttrs },
+        }),
+        prisma.comparison.count({
+          where: {
+            sessionId: input.sessionId,
+            createdAt: { gte: new Date(new Date().toISOString().slice(0, 10)) },
+          },
+        }),
+      ])
+    : [new Set<string>(), 1, 1];
+
   return prisma.$transaction(async (tx) => {
+    const before = await tx.session.findUniqueOrThrow({ where: { id: input.sessionId } });
     await tx.comparison.create({
       data: {
         findingId: input.findingId,
@@ -191,6 +238,7 @@ export async function recordVote(input: VoteInput): Promise<{ voteCount: number 
         lowAttention: input.lowAttention,
         isRepeat: input.isRepeat,
         isGold,
+        postDrill: before.drillCount > 0,
         ipHash: input.ipHash,
         userAgent: input.userAgent,
       },
@@ -215,13 +263,39 @@ export async function recordVote(input: VoteInput): Promise<{ voteCount: number 
       ]);
     }
 
+    // XP settlement. Base pay only for decided, non-repeat public votes;
+    // bonus labels are generic on purpose (see function doc).
+    const xpGained: { kind: string; amount: number }[] = [];
+    if (publicVote && input.winnerId && !input.isRepeat) {
+      xpGained.push({ kind: "vote", amount: XP.vote });
+      if (priorSameContrast === 0) xpGained.push({ kind: "first_contrast", amount: XP.firstContrast });
+      const attrs = input.contrastAttrs.split(",").filter(Boolean);
+      if (attrs.length === 1 && starved.has(attrs[0]))
+        xpGained.push({ kind: "frontier", amount: XP.frontier });
+      if ((before.voteCount + 1) % 10 === 0)
+        xpGained.push({ kind: "run_complete", amount: XP.runComplete });
+      if (todayVotes === 0) xpGained.push({ kind: "daily", amount: XP.daily });
+    }
+    const xpTotal = xpGained.reduce((s, e) => s + e.amount, 0);
+    if (xpTotal > 0) {
+      await tx.xpEvent.createMany({
+        data: xpGained.map((e) => ({
+          sessionId: input.sessionId,
+          kind: e.kind,
+          amount: e.amount,
+        })),
+      });
+    }
+
     const session = await tx.session.update({
       where: { id: input.sessionId },
       data: {
         voteCount: { increment: 1 },
+        ...(xpTotal > 0 && { xp: { increment: xpTotal } }),
         ...(isGold && {
           goldCount: { increment: 1 },
           goldAgreement: { increment: agreesWithConsensus ? 1 : 0 },
+          judgeAbility: updateAbility(before.judgeAbility, consensusShare, agreesWithConsensus),
         }),
       },
     });
@@ -231,7 +305,14 @@ export async function recordVote(input: VoteInput): Promise<{ voteCount: number 
         data: { judgeScore: session.goldAgreement / session.goldCount },
       });
     }
-    return { voteCount: session.voteCount };
+    const level = levelFor(session.xp);
+    return {
+      voteCount: session.voteCount,
+      xp: session.xp,
+      xpGained,
+      level,
+      leveledUp: level.level > levelFor(before.xp).level,
+    };
   });
 }
 
@@ -396,4 +477,130 @@ export async function getVariantPair(
   ]);
   if (!a || !b || a.findingId !== b.findingId || a.id === b.id) return null;
   return { a, b };
+}
+
+// ---------------------------------------------------------------------------
+// Run review (learning loop, phase 1)
+
+/** The session's most recent run: its last `take` public-study votes. */
+export async function getLastRunComparisons(
+  sessionId: string,
+  take = 10
+): Promise<ComparisonWithVariants[]> {
+  const rows = await prisma.comparison.findMany({
+    where: { sessionId, deckId: null },
+    include: { variantA: true, variantB: true },
+    orderBy: { createdAt: "desc" },
+    take,
+  });
+  return rows.reverse();
+}
+
+/**
+ * Current consensus on an unordered pair among OTHER sessions' clean decided
+ * votes. Used by the review to grade gold ("calibration") votes with today's
+ * best estimate of the settled read.
+ */
+export async function getPairConsensus(
+  variantAId: string,
+  variantBId: string,
+  excludeSessionId: string
+): Promise<{ majorityWinnerId: string; share: number; n: number } | null> {
+  const prior = await prisma.comparison.groupBy({
+    by: ["winnerId"],
+    where: {
+      winnerId: { not: null },
+      isRepeat: false,
+      lowAttention: false,
+      sessionId: { not: excludeSessionId },
+      OR: [
+        { variantAId, variantBId },
+        { variantAId: variantBId, variantBId: variantAId },
+      ],
+    },
+    _count: { _all: true },
+  });
+  const total = prior.reduce((sum, g) => sum + g._count._all, 0);
+  const top = prior.sort((a, b) => b._count._all - a._count._all)[0];
+  if (!top || total === 0 || !top.winnerId) return null;
+  return { majorityWinnerId: top.winnerId, share: top._count._all / total, n: total };
+}
+
+// ---------------------------------------------------------------------------
+// Overclaim drills (learning loop, phase 3). A separate world from the study:
+// drill items are never served in the voting pool, attempts never touch
+// analytics, and the only bridge is the postDrill stamp on later comparisons
+// (so the fidelity analysis can cut naive vs trained judges).
+
+export type { DrillItem };
+
+/** A random active drill item this session hasn't attempted; null when done. */
+export async function getNextDrillItem(sessionId: string): Promise<{
+  item: DrillItem | null;
+  remaining: number;
+  session: Session | null;
+}> {
+  const [attempted, session] = await Promise.all([
+    prisma.drillAttempt.findMany({ where: { sessionId }, select: { drillItemId: true } }),
+    prisma.session.findUnique({ where: { id: sessionId } }),
+  ]);
+  const seen = attempted.map((a) => a.drillItemId);
+  const pool = await prisma.drillItem.findMany({
+    where: { status: "active", id: { notIn: seen } },
+  });
+  if (pool.length === 0) return { item: null, remaining: 0, session };
+  return {
+    item: pool[Math.floor(Math.random() * pool.length)],
+    remaining: pool.length,
+    session,
+  };
+}
+
+export async function getDrillItem(id: string): Promise<DrillItem | null> {
+  return prisma.drillItem.findUnique({ where: { id } });
+}
+
+export async function hasAttemptedDrill(sessionId: string, drillItemId: string): Promise<boolean> {
+  const n = await prisma.drillAttempt.count({ where: { sessionId, drillItemId } });
+  return n > 0;
+}
+
+/** Atomically: log the attempt, move both Elo ratings, award XP if correct. */
+export async function recordDrillAttempt(input: {
+  sessionId: string;
+  drillItemId: string;
+  correct: boolean;
+  latencyMs: number;
+}): Promise<{ drillRating: number; ratingDelta: number; drillCount: number; xp: number }> {
+  return prisma.$transaction(async (tx) => {
+    const [session, item] = await Promise.all([
+      tx.session.findUniqueOrThrow({ where: { id: input.sessionId } }),
+      tx.drillItem.findUniqueOrThrow({ where: { id: input.drillItemId } }),
+    ]);
+    const next = drillElo(session.drillRating, item.rating, input.correct);
+    await tx.drillAttempt.create({ data: input });
+    await tx.drillItem.update({
+      where: { id: item.id },
+      data: { rating: next.item, attempts: { increment: 1 } },
+    });
+    if (input.correct) {
+      await tx.xpEvent.create({
+        data: { sessionId: input.sessionId, kind: "drill", amount: XP.drill },
+      });
+    }
+    const updated = await tx.session.update({
+      where: { id: input.sessionId },
+      data: {
+        drillRating: next.session,
+        drillCount: { increment: 1 },
+        ...(input.correct && { xp: { increment: XP.drill } }),
+      },
+    });
+    return {
+      drillRating: updated.drillRating,
+      ratingDelta: next.session - session.drillRating,
+      drillCount: updated.drillCount,
+      xp: updated.xp,
+    };
+  });
 }

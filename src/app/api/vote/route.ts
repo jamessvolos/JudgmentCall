@@ -92,7 +92,7 @@ export async function POST(request: Request) {
 
   const latency = Number.isFinite(latencyMs) ? Math.max(0, Math.round(latencyMs)) : 0;
 
-  const { voteCount } = await recordVote({
+  const result = await recordVote({
     sessionId,
     segment: session.segment as Segment,
     findingId: pair.a.findingId,
@@ -108,5 +108,13 @@ export async function POST(request: Request) {
     userAgent: request.headers.get("user-agent")?.slice(0, 256) ?? null,
   });
 
-  return NextResponse.json({ voteCount });
+  // Progression payload is deliberately generic: kinds + amounts only, never
+  // attribute names — the reward stream must not fingerprint any contrast.
+  return NextResponse.json({
+    voteCount: result.voteCount,
+    xp: result.xp,
+    xpGained: result.xpGained,
+    level: result.level,
+    leveledUp: result.leveledUp,
+  });
 }

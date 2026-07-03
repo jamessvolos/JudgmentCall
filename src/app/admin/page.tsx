@@ -114,6 +114,21 @@ export default async function AdminPage({
               </>
             )}
           </p>
+          <p className="mt-3 text-sm tabular-nums">
+            <span className="inline-block w-28 font-semibold">naive judges</span>
+            {o.byTraining.naive.n === 0
+              ? "no data"
+              : `${pct(o.byTraining.naive.overclaimWins / o.byTraining.naive.n)} of ${o.byTraining.naive.n}`}
+            <span className="ml-4 inline-block w-28 font-semibold">post-drill</span>
+            {o.byTraining.trained.n === 0
+              ? "no data"
+              : `${pct(o.byTraining.trained.overclaimWins / o.byTraining.trained.n)} of ${o.byTraining.trained.n}`}
+            <span className="text-muted">
+              {" "}
+              — the training quasi-experiment: drilled judges should pick the faithful telling more
+              often.
+            </span>
+          </p>
           <div className="mt-4 space-y-2">
             {o.bySegment.map((s) => (
               <p key={s.segment} className="text-sm tabular-nums">
