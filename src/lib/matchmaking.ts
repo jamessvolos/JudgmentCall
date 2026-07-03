@@ -12,6 +12,7 @@ import {
   getFindingWithVariants,
   getSeenPairKeys,
   getContrastCounts,
+  getSessionContrastCounts,
   type Finding,
   type Variant,
 } from "./repo";
@@ -77,35 +78,57 @@ function sampleFindingOrder(counts: { findingId: string; count: number }[]): str
   return order;
 }
 
-function pickBest(candidates: CandidatePair[], contrastCounts: Map<string, number>): CandidatePair {
-  // Fewest total comparisons for the contrast → closest Elo → random.
-  // The fidelity contrast (the flagship overclaim experiment) is up-weighted:
-  // its count is halved, so matchmaking keeps preferring it until it has
-  // roughly twice the votes of other contrasts — it has only 1 pair per
-  // finding and needs n>=30 per segment before anything is publishable.
+function pickBest(
+  candidates: CandidatePair[],
+  contrastCounts: Map<string, number>,
+  sessionContrasts: Map<string, number>
+): CandidatePair {
+  // Session variety first (a contrast this session hasn't judged beats one it
+  // has — this is what feeds the personal results card), then global coverage,
+  // then closest Elo, then random.
+  // The fidelity contrast (the flagship overclaim experiment) is up-weighted
+  // globally: its count is halved, so matchmaking keeps preferring it until it
+  // has roughly twice the votes of other contrasts.
   const scored = candidates.map((c) => {
-    const raw = contrastCounts.get(contrastKey(c.diff)) ?? 0;
+    const key = contrastKey(c.diff);
+    const raw = contrastCounts.get(key) ?? 0;
     const isFidelity = c.diff.length === 1 && c.diff[0] === "fidelity";
     return {
       c,
+      sessionSeen: sessionContrasts.get(key) ?? 0,
       coverage: isFidelity ? raw / 2 : raw,
       eloGap: Math.abs(c.a.elo - c.b.elo),
       jitter: Math.random(),
     };
   });
   scored.sort(
-    (x, y) => x.coverage - y.coverage || x.eloGap - y.eloGap || x.jitter - y.jitter
+    (x, y) =>
+      x.sessionSeen - y.sessionSeen ||
+      x.coverage - y.coverage ||
+      x.eloGap - y.eloGap ||
+      x.jitter - y.jitter
   );
   return scored[0].c;
 }
 
 export async function selectPair(sessionId: string): Promise<SelectedPair | null> {
-  const [findingCounts, seen, contrastCounts] = await Promise.all([
+  const [findingCounts, seen, contrastCounts, sessionContrasts] = await Promise.all([
     getFindingComparisonCounts(),
     getSeenPairKeys(sessionId),
     getContrastCounts(),
+    getSessionContrastCounts(sessionId),
   ]);
   if (findingCounts.length === 0) return null;
+
+  // Early-session fidelity cap: fidelity-contrast votes are invisible on the
+  // personal results card (the experiment is blind), so if they dominate a
+  // new session's first votes the 10-vote payoff moment shows almost nothing.
+  // After 2 fidelity pairs, a session sees no more of them until it has cast
+  // 10 votes — the flagship experiment still gets its up-weighted share from
+  // sessions that keep going.
+  const sessionVotes = [...sessionContrasts.values()].reduce((a, b) => a + b, 0);
+  const fidelityVotes = sessionContrasts.get("fidelity") ?? 0;
+  const capFidelity = sessionVotes < 10 && fidelityVotes >= 2;
 
   const findingOrder = sampleFindingOrder(findingCounts);
 
@@ -124,9 +147,13 @@ export async function selectPair(sessionId: string): Promise<SelectedPair | null
       // Prefer single-attribute contrasts, tolerate two, take anything last.
       const singles = available.filter((p) => p.diff.length === 1);
       const doubles = available.filter((p) => p.diff.length === 2);
-      const tier = singles.length > 0 ? singles : doubles.length > 0 ? doubles : available;
+      let tier = singles.length > 0 ? singles : doubles.length > 0 ? doubles : available;
+      if (capFidelity) {
+        const nonFidelity = tier.filter((p) => !(p.diff.length === 1 && p.diff[0] === "fidelity"));
+        if (nonFidelity.length > 0) tier = nonFidelity;
+      }
 
-      const best = pickBest(tier, contrastCounts);
+      const best = pickBest(tier, contrastCounts, sessionContrasts);
 
       // Randomize left/right so position bias doesn't correlate with identity.
       const flip = Math.random() < 0.5;

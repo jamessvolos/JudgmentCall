@@ -30,6 +30,11 @@ export type AttributePreference = {
 export type PersonalResults = {
   voteCount: number;
   decidedSingleContrasts: number;
+  // What this session contributed to the PUBLIC study: decided,
+  // attention-passing, non-repeat, single-craft-contrast votes. "excluded"
+  // deliberately isn't broken down further — a per-reason breakdown would let
+  // a voter infer the hidden experiment's arm.
+  studyContribution: { counted: number; excluded: number };
   preferences: AttributePreference[];
 };
 
@@ -39,6 +44,13 @@ export async function computePersonalResults(sessionId: string): Promise<Persona
   // stats[attribute][value] = { picked, shown }
   const stats = new Map<AttributeKey, Map<string, { picked: number; shown: number }>>();
   let decidedSingleContrasts = 0;
+  let counted = 0;
+
+  for (const c of comparisons) {
+    if (!c.winnerId || c.isRepeat || c.lowAttention) continue;
+    const attrs = c.contrastAttrs.split(",").filter(Boolean);
+    if (attrs.length === 1 && attrs[0] !== "fidelity") counted++;
+  }
 
   for (const c of comparisons) {
     if (!c.winnerId) continue;
@@ -98,6 +110,7 @@ export async function computePersonalResults(sessionId: string): Promise<Persona
   return {
     voteCount: comparisons.length,
     decidedSingleContrasts,
+    studyContribution: { counted, excluded: comparisons.length - counted },
     preferences,
   };
 }

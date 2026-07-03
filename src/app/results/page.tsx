@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { computeAnalytics, MIN_N, type ValuePairStat } from "@/lib/analytics";
+import { YourContribution } from "@/components/YourContribution";
 
 export const dynamic = "force-dynamic";
 
@@ -84,15 +85,16 @@ export default async function ResultsPage() {
         <h1 className="mt-2 text-3xl font-bold tracking-tight">What makes an insight land?</h1>
         <p className="mt-2 text-muted text-sm">
           Live results from {a.totals.countedVotes.toLocaleString()} counted votes across{" "}
-          {a.totals.sessions.toLocaleString()} anonymous sessions. Only decided votes on pairs
-          differing by exactly one craft attribute count; low-attention and repeated pairs are
-          excluded. Win rates carry Wilson 95% intervals and stay hidden until n≥{MIN_N}.
+          {a.totals.votingSessions.toLocaleString()} voting sessions — the tables below sum to
+          exactly this number. Win rates carry Wilson 95% intervals and stay hidden until n≥
+          {MIN_N}. Full inclusion rules in Methods at the bottom.
         </p>
         <p className="mt-3 text-sm">
           <Link href="/" className="font-semibold text-accent hover:underline">
             Cast your own votes →
           </Link>
         </p>
+        <YourContribution />
 
         <section className="mt-8">
           <h2 className="text-lg font-bold">Attribute head-to-heads</h2>
@@ -157,10 +159,53 @@ export default async function ResultsPage() {
           </div>
         </section>
 
-        <p className="mt-10 text-xs text-muted">
-          Methods: anonymous sessions, randomized left/right placement, matchmaking balances
-          contrast coverage. All findings use realistic but fictional data.
-        </p>
+        <section className="mt-10" id="methods">
+          <h2 className="text-lg font-bold">Methods</h2>
+          <div className="mt-2 rounded-2xl border border-card-border bg-card px-5 py-4 text-sm text-muted space-y-3">
+            <p>
+              <strong className="text-foreground">What counts.</strong> A vote counts toward the
+              tables above when it was decided (not &ldquo;can&apos;t decide&rdquo;), the two
+              tellings differed on exactly one craft attribute, the pair was not a repeat for
+              that session, and it took at least 0.8s (a latency floor, not a comprehension
+              check). Everything is still logged; exclusions only affect published statistics.
+            </p>
+            <p>
+              <strong className="text-foreground">Sample composition.</strong>{" "}
+              {a.segmentComposition.length === 0
+                ? "No counted votes yet."
+                : a.segmentComposition
+                    .map((sc) => `${sc.segment}: ${sc.counted}`)
+                    .join(" · ")}{" "}
+              — segments are one-tap self-reports by anonymous sessions; treat cross-segment
+              comparisons accordingly.
+            </p>
+            <p>
+              <strong className="text-foreground">Position check.</strong> Left/right placement is
+              randomized server-side. The left slot has won{" "}
+              {a.positionBias.leftRate === null
+                ? "—"
+                : `${Math.round(a.positionBias.leftRate * 100)}%`}{" "}
+              of {a.positionBias.n.toLocaleString()} decided votes
+              {a.positionBias.interval &&
+                ` (95%: ${pct(a.positionBias.interval.lo)}–${pct(a.positionBias.interval.hi)})`}
+              . An interval excluding 50% would indicate position bias.
+            </p>
+            <p>
+              <strong className="text-foreground">Thresholds.</strong> n≥{MIN_N} before a win rate
+              is shown — a conventional floor for a stable Wilson interval, not a significance
+              claim. These are live descriptive statistics, updated continuously; formal analysis
+              (Bradley–Terry with finding fixed effects, preregistered cuts) is run separately
+              before anything is published as a finding.
+            </p>
+            <p>
+              <strong className="text-foreground">Disclosure.</strong> All findings use realistic
+              but fictional data. A small share of tellings are deliberately written to subtly
+              exceed their underlying data; that contrast is measured as a separate, blinded
+              experiment and reported with its own methods when the sample is defensible —
+              which tellings those are is never revealed while voting.
+            </p>
+          </div>
+        </section>
       </div>
     </main>
   );

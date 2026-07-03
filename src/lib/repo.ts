@@ -66,6 +66,16 @@ export async function getSeenPairKeys(sessionId: string): Promise<Set<string>> {
   return new Set(rows.map((r) => [r.variantAId, r.variantBId].sort().join("|")));
 }
 
+/** This session's comparisons per contrast key — matchmaking serves variety within a session. */
+export async function getSessionContrastCounts(sessionId: string): Promise<Map<string, number>> {
+  const grouped = await prisma.comparison.groupBy({
+    by: ["contrastAttrs"],
+    where: { sessionId },
+    _count: { _all: true },
+  });
+  return new Map(grouped.map((g) => [g.contrastAttrs, g._count._all]));
+}
+
 /** Total comparisons logged per contrast key (e.g. "leadType"), for coverage balancing. */
 export async function getContrastCounts(): Promise<Map<string, number>> {
   const grouped = await prisma.comparison.groupBy({ by: ["contrastAttrs"], _count: { _all: true } });

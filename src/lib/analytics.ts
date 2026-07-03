@@ -12,7 +12,6 @@ import {
   getAnalyticsComparisons,
   getDecidedComparisonSlots,
   getFindingsWithVariantStats,
-  getTotals,
 } from "./repo";
 import { VALUE_LABELS, ATTRIBUTE_LABELS, type AttributeKey, type Segment } from "./types";
 
@@ -68,7 +67,13 @@ function tallyToStats(tally: Tally): ValuePairStat[] {
 }
 
 export type AnalyticsSnapshot = {
-  totals: { comparisons: number; sessions: number; countedVotes: number };
+  // countedVotes = decided, attention-passing, non-repeat votes on single
+  // CRAFT-attribute contrasts — exactly what the tables below sum to, so the
+  // headline can never be used to infer the hidden experiment's sample size
+  // by subtraction. votingSessions = distinct sessions among those votes.
+  totals: { countedVotes: number; votingSessions: number };
+  segmentComposition: { segment: string; counted: number }[];
+  positionBias: { leftWins: number; n: number; leftRate: number | null; interval: Interval | null };
   attributeStats: ValuePairStat[]; // all segments, fidelity excluded
   segmentStats: Partial<Record<Segment, ValuePairStat[]>>; // executive + analyst cuts
   leaderboard: {
@@ -88,20 +93,26 @@ export type OverclaimSnapshot = {
 };
 
 export async function computeAnalytics(): Promise<AnalyticsSnapshot> {
-  const [comparisons, findings, totals] = await Promise.all([
+  const [comparisons, findings, slots] = await Promise.all([
     getAnalyticsComparisons(),
     getFindingsWithVariantStats(),
-    getTotals(),
+    getDecidedComparisonSlots(),
   ]);
 
   const overall: Tally = new Map();
   const perSegment: Partial<Record<Segment, Tally>> = { executive: new Map(), analyst: new Map() };
+  const countedSessions = new Set<string>();
+  const segmentCounts = new Map<string, number>();
+  let countedVotes = 0;
 
   for (const c of comparisons) {
     const attrs = c.contrastAttrs.split(",").filter(Boolean) as AttributeKey[];
     if (attrs.length !== 1) continue;
     const attr = attrs[0];
     if (attr === "fidelity") continue; // admin-only experiment
+    countedVotes++;
+    countedSessions.add(c.sessionId);
+    segmentCounts.set(c.segment, (segmentCounts.get(c.segment) ?? 0) + 1);
 
     const winner = c.winnerId === c.variantAId ? c.variantA : c.variantB;
     const loser = c.winnerId === c.variantAId ? c.variantB : c.variantA;
@@ -117,14 +128,28 @@ export async function computeAnalytics(): Promise<AnalyticsSnapshot> {
     }
   }
 
+  const leftWins = slots.filter((x) => x.winnerId === x.variantAId).length;
   return {
-    totals: { ...totals, countedVotes: comparisons.length },
+    totals: { countedVotes, votingSessions: countedSessions.size },
+    segmentComposition: [...segmentCounts.entries()]
+      .map(([segment, counted]) => ({ segment, counted }))
+      .sort((a, b) => b.counted - a.counted),
+    positionBias: {
+      leftWins,
+      n: slots.length,
+      leftRate: slots.length > 0 ? leftWins / slots.length : null,
+      interval: slots.length > 0 ? wilson(leftWins, slots.length) : null,
+    },
     attributeStats: tallyToStats(overall),
     segmentStats: {
       executive: tallyToStats(perSegment.executive!),
       analyst: tallyToStats(perSegment.analyst!),
     },
+    // Public board: FAITHFUL variants only. The overclaimed plant can win its
+    // head-to-heads — that's the experiment — but the study's own exhibit must
+    // never quote a telling designed to exceed the data.
     leaderboard: findings
+      .map((f) => ({ ...f, variants: f.variants.filter((v) => v.fidelity === "faithful") }))
       .filter((f) => f.variants.length > 0)
       .map((f) => {
         const top = f.variants[0]; // already sorted by elo desc

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Snippet } from "@/components/Snippet";
 import { ResultsCard, type ResultsDto } from "@/components/ResultsCard";
 import { getSessionId, nowMs } from "@/lib/session-client";
-import { RESULTS_AT_VOTES } from "@/lib/types";
+import { RESULTS_AT_VOTES } from "@/lib/client-constants";
 
 type PairDto = {
   finding: {
@@ -21,7 +21,7 @@ type PairDto = {
 };
 
 // How long the picked-card flash stays on screen before the next pair.
-const FLASH_MS = 220;
+const FLASH_MS = 160;
 
 export default function SwipePage() {
   const router = useRouter();
@@ -34,6 +34,9 @@ export default function SwipePage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [liveMessage, setLiveMessage] = useState("");
   const [snippetExpanded, setSnippetExpanded] = useState(false);
+  const [snippetTruncated, setSnippetTruncated] = useState(false);
+  const snippetRef = useRef<HTMLParagraphElement | null>(null);
+  const fastKeyHinted = useRef(false);
   const renderedAt = useRef(0);
   const sessionIdRef = useRef<string | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -57,6 +60,11 @@ export default function SwipePage() {
   }, []);
 
   useEffect(() => {
+    const el = snippetRef.current;
+    setSnippetTruncated(el ? el.scrollHeight > el.clientHeight + 1 : false);
+  }, [pair, snippetExpanded]);
+
+  useEffect(() => {
     const sessionId = getSessionId();
     if (!sessionId) {
       router.replace("/");
@@ -71,7 +79,14 @@ export default function SwipePage() {
   // on-card ordering cues are the A/B-badge bias all over again.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (!pair || submitting || results) return;
+      if (!pair || results) return;
+      if (submitting) {
+        if (!fastKeyHinted.current && ["1", "2", "0", "ArrowLeft", "ArrowRight", "s"].includes(e.key)) {
+          fastKeyHinted.current = true;
+          flashNotice("Next pair is loading — presses land once it's on screen.");
+        }
+        return;
+      }
       if (e.key === "1" || e.key === "ArrowLeft") vote(pair.variantA.id);
       else if (e.key === "2" || e.key === "ArrowRight") vote(pair.variantB.id);
       else if (e.key === "0" || e.key.toLowerCase() === "s") vote(null);
@@ -209,10 +224,18 @@ export default function SwipePage() {
               className="w-full text-left rounded-xl border border-card-border bg-accent-soft/60 px-4 py-3 mb-4 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             >
               <Snippet
+                ref={snippetRef}
                 markdown={pair.finding.contextSnippet}
                 className={`text-sm leading-relaxed ${snippetExpanded ? "" : "line-clamp-3"}`}
               />
-              <p className="mt-1 text-xs text-muted">{pair.finding.sourceLabel}</p>
+              <p className="mt-1 flex items-center justify-between gap-2 text-xs text-muted">
+                <span>{pair.finding.sourceLabel}</span>
+                {(snippetTruncated || snippetExpanded) && (
+                  <span className="shrink-0 font-semibold text-accent">
+                    {snippetExpanded ? "Less ▴" : "Full data ▾"}
+                  </span>
+                )}
+              </p>
             </button>
 
             <p className="text-xs font-medium uppercase tracking-wide text-muted mb-3">

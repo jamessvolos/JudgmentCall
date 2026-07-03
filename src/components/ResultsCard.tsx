@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SEGMENT_LABELS, type Segment } from "@/lib/client-constants";
 
 export type PreferenceDto = {
   attribute: string;
@@ -19,12 +20,6 @@ export type ResultsDto = {
   preferences: PreferenceDto[];
 };
 
-const SEGMENT_LABELS: Record<string, string> = {
-  executive: "Executive",
-  analyst: "Analyst",
-  data_leader: "Data Leader",
-  other: "Reader",
-};
 
 // Persona headline from the two strongest solid preferences. Falls back
 // gracefully while the profile is still forming.
@@ -54,9 +49,11 @@ function personaTitle(preferences: PreferenceDto[]): string {
   const modifier = pool.find((p) => p.attribute !== "leadType");
   const adj = lead ? LEAD_ADJ[lead.value] : undefined;
   const noun = modifier ? MOD_NOUN[modifier.value] : undefined;
-  if (adj && noun) return `The ${adj} ${noun}`;
-  if (adj) return `The ${adj} Reader`;
-  if (noun) return `The ${noun}`;
+  const allHedged = preferences.length > 0 && solid.length === 0;
+  const suffix = allHedged ? " (early read)" : "";
+  if (adj && noun) return `The ${adj} ${noun}${suffix}`;
+  if (adj) return `The ${adj} Reader${suffix}`;
+  if (noun) return `The ${noun}${suffix}`;
   return "The Undecided (so far)";
 }
 
@@ -67,7 +64,7 @@ export function ResultsCard({
   results: ResultsDto;
   onKeepGoing: () => void;
 }) {
-  const [shared, setShared] = useState(false);
+  const [shareState, setShareState] = useState<"idle" | "shared" | "copied">("idle");
   const ordered = [
     ...results.preferences.filter((p) => !p.hedged),
     ...results.preferences.filter((p) => p.hedged),
@@ -85,11 +82,12 @@ export function ResultsCard({
     try {
       if (navigator.share) {
         await navigator.share({ text, url: window.location.origin });
+        setShareState("shared");
       } else {
         await navigator.clipboard.writeText(`${text} ${window.location.origin}`);
+        setShareState("copied");
       }
-      setShared(true);
-      setTimeout(() => setShared(false), 2000);
+      setTimeout(() => setShareState("idle"), 2500);
     } catch {
       // user dismissed the share sheet / clipboard unavailable — no-op
     }
@@ -105,7 +103,7 @@ export function ResultsCard({
           </p>
           <h2 className="mt-1.5 text-3xl font-bold tracking-tight text-balance">{title}</h2>
           <p className="mt-1.5 text-sm text-white/80">
-            {results.voteCount} judgment calls · voting as {SEGMENT_LABELS[results.segment] ?? "Reader"}
+            {results.voteCount} judgment calls · voting as {SEGMENT_LABELS[results.segment as Segment] ?? "Reader"}
           </p>
         </div>
 
@@ -142,8 +140,10 @@ export function ResultsCard({
             </ul>
           )}
           <p className="mt-5 text-[11px] text-muted">
-            Your leanings, not findings — from the {results.decidedSingleContrasts} votes where the
-            two tellings differed on exactly one attribute. · <strong>judgment call</strong>
+            {`Your leanings, not findings — from the ${results.decidedSingleContrasts} ${
+              results.decidedSingleContrasts === 1 ? "vote" : "votes"
+            } where the two tellings differed on exactly one attribute.`}{" "}
+            · <strong>judgment call</strong>
           </p>
         </div>
       </div>
@@ -160,7 +160,11 @@ export function ResultsCard({
           onClick={share}
           className="flex-1 rounded-xl border border-card-border px-4 py-3 text-sm font-semibold transition hover:border-accent hover:text-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         >
-          {shared ? "Shared!" : "Share my taste"}
+          {shareState === "shared"
+            ? "Shared!"
+            : shareState === "copied"
+              ? "Copied — paste anywhere"
+              : "Share my taste"}
         </button>
       </div>
     </div>

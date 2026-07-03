@@ -1,21 +1,28 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { getOrCreateSessionId } from "@/lib/session-client";
-import { SEGMENTS, type Segment } from "@/lib/types";
-
-const SEGMENT_LABELS: Record<Segment, string> = {
-  executive: "Executive",
-  analyst: "Analyst",
-  data_leader: "Data Leader",
-  other: "Other",
-};
+import { useEffect, useState } from "react";
+import { getOrCreateSessionId, getSessionId } from "@/lib/session-client";
+import { SEGMENTS, SEGMENT_LABELS, type Segment } from "@/lib/client-constants";
 
 export default function Landing() {
   const router = useRouter();
   const [pending, setPending] = useState<Segment | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [returning, setReturning] = useState<{ segment: Segment; voteCount: number } | null>(null);
+
+  // Returning visitor: offer to continue instead of a cold start. Progress was
+  // always kept server-side — this just makes that visible.
+  useEffect(() => {
+    const id = getSessionId();
+    if (!id) return;
+    fetch(`/api/results?sessionId=${encodeURIComponent(id)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d && d.voteCount > 0) setReturning({ segment: d.segment, voteCount: d.voteCount });
+      })
+      .catch(() => {});
+  }, []);
 
   async function pick(segment: Segment) {
     if (pending) return;
@@ -57,7 +64,18 @@ export default function Landing() {
           of what makes data stories land. No sign-up.
         </p>
 
-        <p className="mt-10 mb-3 text-sm font-medium text-muted">I mostly read data as a(n)…</p>
+        {returning && (
+          <button
+            onClick={() => pick(returning.segment)}
+            disabled={pending !== null}
+            className="mt-8 w-full rounded-xl bg-accent px-4 py-4 text-base font-semibold text-white shadow-sm transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+          >
+            {`Welcome back — continue as ${SEGMENT_LABELS[returning.segment]} (${returning.voteCount} calls so far)`}
+          </button>
+        )}
+        <p className="mt-10 mb-3 text-sm font-medium text-muted">
+          {returning ? "…or switch roles:" : "I mostly read data as a(n)…"}
+        </p>
         <div className="grid grid-cols-2 gap-3">
           {SEGMENTS.map((segment) => (
             <button

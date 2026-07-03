@@ -8,8 +8,11 @@ export const CAVEAT_PLACEMENTS = ["upfront", "trailing", "omitted"] as const;
 export const QUANTIFICATIONS = ["precise", "rounded", "qualitative"] as const;
 export const SO_WHATS = ["explicit", "implied"] as const;
 export const FIDELITIES = ["faithful", "overclaimed"] as const;
-export const SEGMENTS = ["executive", "analyst", "data_leader", "other"] as const;
 export const DOMAINS = ["earnings", "econ", "sports", "ops"] as const;
+// Segments + RESULTS_AT_VOTES live in client-constants.ts (client-bundle safe)
+// and are re-exported here for server code.
+import { SEGMENTS, type Segment } from "./client-constants";
+export { SEGMENTS, RESULTS_AT_VOTES, type Segment } from "./client-constants";
 
 export type LeadType = (typeof LEAD_TYPES)[number];
 export type LengthBand = (typeof LENGTH_BANDS)[number];
@@ -17,7 +20,6 @@ export type CaveatPlacement = (typeof CAVEAT_PLACEMENTS)[number];
 export type Quantification = (typeof QUANTIFICATIONS)[number];
 export type SoWhat = (typeof SO_WHATS)[number];
 export type Fidelity = (typeof FIDELITIES)[number];
-export type Segment = (typeof SEGMENTS)[number];
 export type Domain = (typeof DOMAINS)[number];
 
 // The craft attributes every variant is tagged with, in comparison order.
@@ -112,9 +114,6 @@ export const LOW_ATTENTION_MS = 800;
 export const MAX_VOTES_PER_MINUTE = 30;
 export const CANT_DECIDE_WINDOW = 5;
 export const CANT_DECIDE_MAX_IN_WINDOW = 2;
-
-// Personal results card unlocks after this many votes.
-export const RESULTS_AT_VOTES = 10;
 
 // Below this many observations for an attribute, the results card hedges.
 export const MIN_OBS_FOR_CLAIM = 3;
