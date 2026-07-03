@@ -42,10 +42,10 @@ export default async function AdminLogin({
           autoFocus
           className="w-full rounded-xl border border-card-border bg-card px-4 py-3 text-sm focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         />
-        <button className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white">
+        <button className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-on-accent">
           Sign in
         </button>
-        {bad && <p className="text-sm text-red-500">Wrong key.</p>}
+        {bad && <p className="text-sm text-danger">Wrong key.</p>}
       </form>
     </main>
   );

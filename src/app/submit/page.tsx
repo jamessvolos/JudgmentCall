@@ -79,11 +79,11 @@ export default function SubmitPage() {
         </label>
         <button
           disabled={busy}
-          className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+          className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-on-accent disabled:opacity-60"
         >
           {busy ? "Creating deck…" : "Create my private deck"}
         </button>
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
         <p className="text-xs text-muted">
           Don&apos;t submit confidential or personal data — anyone with the deck link can read it.
         </p>

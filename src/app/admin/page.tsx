@@ -129,7 +129,7 @@ export default async function AdminPage({
                         ({pct(s.interval.lo)}–{pct(s.interval.hi)})
                       </span>
                     )}
-                    {s.suppressed && <span className="text-red-500"> · below n={MIN_N}</span>}
+                    {s.suppressed && <span className="text-danger"> · below n={MIN_N}</span>}
                   </>
                 )}
               </p>
@@ -241,7 +241,7 @@ export default async function AdminPage({
                 />
               </label>
             ))}
-            <button className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white">
+            <button className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent">
               Save policy
             </button>
           </form>

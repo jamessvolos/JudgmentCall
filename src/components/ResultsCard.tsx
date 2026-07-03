@@ -96,27 +96,49 @@ export function ResultsCard({
 
   return (
     <div>
-      {/* The poster: designed to look intentional in a screenshot. */}
-      <div className="overflow-hidden rounded-3xl border border-card-border bg-card shadow-sm">
-        <div className="bg-gradient-to-br from-accent to-indigo-900 px-6 py-6 text-white">
-          <p className="text-[11px] font-semibold tracking-[0.25em] uppercase text-white/70">
-            My insight taste
+      {/* The poster: a "printed" 4:5-ish card. Theme-stable ink tokens so a
+          screenshot shared from dark mode looks identical to one from light —
+          the poster is print, not UI. */}
+      <div
+        className="poster-in overflow-hidden rounded-[6px] px-6 py-6 shadow-[var(--shadow-lift)]"
+        style={{ background: "var(--poster-bg)", color: "var(--poster-fg)" }}
+      >
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1" style={{ background: "var(--poster-rule)" }} aria-hidden />
+          <p className="masthead" style={{ color: "var(--poster-mut)" }}>
+            Judgment Call
           </p>
-          <h2 className="mt-1.5 text-3xl font-bold tracking-tight text-balance">{title}</h2>
-          <p className="mt-1.5 text-sm text-white/80">
-            {results.voteCount} judgment calls · voting as{" "}
-            {SEGMENT_LABELS[results.segment as Segment] ?? "Reader"}
-            {results.calibrated && (
-              <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
-                Calibrated judge ✓
-              </span>
-            )}
-          </p>
+          <span className="h-px flex-1" style={{ background: "var(--poster-rule)" }} aria-hidden />
         </div>
 
-        <div className="px-6 py-5">
+        <p className="kicker mt-5" style={{ color: "var(--poster-acc)" }}>
+          My insight taste
+        </p>
+        <h2 className="mt-1.5 font-serif font-semibold text-[clamp(1.875rem,8.6vw,2.5rem)] leading-[1.04] text-balance">
+          {title}
+        </h2>
+        <p className="mt-2 font-mono text-xs" style={{ color: "var(--poster-mut)" }}>
+          {results.voteCount} judgment calls · voting as{" "}
+          {SEGMENT_LABELS[results.segment as Segment] ?? "Reader"}
+          {results.calibrated && (
+            <span
+              className="ml-2 rounded-full border px-2 py-0.5 font-semibold"
+              style={{ borderColor: "var(--poster-acc)", color: "var(--poster-acc)" }}
+            >
+              CALIBRATED ✓
+            </span>
+          )}
+        </p>
+
+        <div
+          className="mt-4 border-t-2"
+          style={{ borderColor: "var(--poster-rule)" }}
+          aria-hidden
+        />
+
+        <div className="mt-5">
           {ordered.length === 0 ? (
-            <p className="text-sm text-muted">
+            <p className="text-sm" style={{ color: "var(--poster-mut)" }}>
               No clean reads yet — your pairs so far differed on several attributes at once, or
               ended in &ldquo;can&apos;t decide.&rdquo; Keep going and a profile will emerge.
             </p>
@@ -124,33 +146,52 @@ export function ResultsCard({
             <ul className="space-y-4">
               {ordered.map((p) => (
                 <li key={p.attribute}>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-sm">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-                        {p.attributeLabel}
-                      </span>{" "}
-                      <strong>{p.valueLabel}</strong>
-                    </p>
-                    <p className="text-xs text-muted tabular-nums shrink-0">
-                      {p.picked} of {p.shown}
+                  {/* Dot-leader index line: MONO ATTR · serif value …… n/n */}
+                  <div className="flex items-baseline gap-2">
+                    <span
+                      className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] shrink-0"
+                      style={{ color: "var(--poster-mut)" }}
+                    >
+                      {p.attributeLabel}
+                    </span>
+                    <span className={`font-serif text-base font-semibold ${p.hedged ? "italic" : ""}`}>
+                      {p.valueLabel}
+                    </span>
+                    <span
+                      aria-hidden
+                      className="flex-1 border-b border-dotted translate-y-[-3px]"
+                      style={{ borderColor: "var(--poster-rule)" }}
+                    />
+                    <span
+                      className="font-mono text-xs tabular-nums shrink-0"
+                      style={{ color: "var(--poster-mut)" }}
+                    >
+                      {p.picked}/{p.shown}
                       {p.hedged && " · early"}
-                    </p>
+                    </span>
                   </div>
-                  <div className="mt-1.5 h-1.5 rounded-full bg-card-border/60 overflow-hidden">
+                  <div
+                    className="mt-1.5 h-[3px] overflow-hidden"
+                    style={{ background: "color-mix(in oklab, var(--poster-rule) 45%, var(--poster-bg))" }}
+                  >
                     <div
-                      className={`h-full rounded-full ${p.hedged ? "bg-accent/40" : "bg-accent"}`}
-                      style={{ width: `${(p.picked / p.shown) * 100}%` }}
+                      className="h-full"
+                      style={{
+                        width: `${(p.picked / p.shown) * 100}%`,
+                        background: "var(--poster-acc)",
+                        opacity: p.hedged ? 0.45 : 1,
+                      }}
                     />
                   </div>
                 </li>
               ))}
             </ul>
           )}
-          <p className="mt-5 text-[11px] text-muted">
+          <p className="mt-6 font-mono text-[10px] leading-relaxed" style={{ color: "var(--poster-mut)" }}>
             {`Your leanings, not findings — from the ${results.decidedSingleContrasts} ${
               results.decidedSingleContrasts === 1 ? "vote" : "votes"
             } where the two tellings differed on exactly one attribute.`}{" "}
-            · <strong>judgment call</strong>
+            · <strong style={{ color: "var(--poster-fg)" }}>judgment.call</strong>
           </p>
         </div>
       </div>
@@ -159,13 +200,13 @@ export function ResultsCard({
       <div className="mt-4 flex flex-col sm:flex-row gap-3">
         <button
           onClick={onKeepGoing}
-          className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+          className="flex-1 rounded-card bg-accent px-4 py-3 font-mono text-sm font-semibold text-on-accent transition hover:opacity-90 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         >
           Keep going — sharpen your profile
         </button>
         <button
           onClick={share}
-          className="flex-1 rounded-xl border border-card-border px-4 py-3 text-sm font-semibold transition hover:border-accent hover:text-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+          className="flex-1 rounded-card border border-card-border px-4 py-3 font-mono text-sm font-semibold transition hover:border-rule-strong focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         >
           {shareState === "shared"
             ? "Shared!"

@@ -25,8 +25,8 @@ function ContrastRow({ stat }: { stat: ValuePairStat }) {
           <span className="text-muted"> vs </span>
           <span className="font-semibold">{stat.valueBLabel}</span>
         </p>
-        <p className="text-xs text-muted shrink-0">
-          {stat.suppressed ? `collecting — ${stat.n}/${MIN_N}` : `n=${stat.n}`}
+        <p className="font-mono text-xs text-muted shrink-0">
+          {stat.suppressed ? `COLLECTING — ${stat.n}/${MIN_N}` : `n=${stat.n}`}
         </p>
       </div>
       {stat.suppressed ? (
@@ -82,8 +82,13 @@ export default async function ResultsPage() {
   return (
     <main className="flex-1 px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-2xl">
-        <p className="text-xs font-semibold tracking-[0.2em] uppercase text-accent">Judgment Call</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">What makes an insight land?</h1>
+        <div className="pb-2">
+          <p className="masthead text-ink-strong">Judgment Call</p>
+        </div>
+        <div className="double-rule" aria-hidden />
+        <h1 className="mt-4 font-serif font-semibold text-ink-strong text-3xl sm:text-4xl tracking-tight">
+          What makes an insight land?
+        </h1>
         <p className="mt-2 text-muted text-sm">
           Live results from {a.totals.countedVotes.toLocaleString()} counted votes across{" "}
           {a.totals.votingSessions.toLocaleString()} voting sessions — the tables below sum to
@@ -98,8 +103,8 @@ export default async function ResultsPage() {
         <YourContribution />
 
         <section className="mt-8">
-          <h2 className="text-lg font-bold">Attribute head-to-heads</h2>
-          <div className="mt-2 rounded-2xl border border-card-border bg-card px-5 py-2">
+          <h2 className="kicker text-muted">Attribute head-to-heads</h2>
+          <div className="mt-2 rounded-card border border-card-border bg-card px-5 py-2">
             {a.attributeStats.length === 0 ? (
               <p className="py-4 text-sm text-muted">No counted votes yet.</p>
             ) : (
@@ -111,12 +116,12 @@ export default async function ResultsPage() {
         </section>
 
         <section className="mt-8">
-          <h2 className="text-lg font-bold">Executives vs. analysts</h2>
+          <h2 className="kicker text-muted">Executives vs. analysts</h2>
           <p className="mt-1 text-sm text-muted">
             The disagreement view: what leaders want vs. what analysts write. Appears once both
             segments clear n≥{MIN_N} on a contrast.
           </p>
-          <div className="mt-2 rounded-2xl border border-card-border bg-card px-5 py-2">
+          <div className="mt-2 rounded-card border border-card-border bg-card px-5 py-2">
             {disagreements.length === 0 ? (
               <p className="py-4 text-sm text-muted">
                 Still collecting — no contrast has n≥{MIN_N} in both segments yet.
@@ -142,17 +147,17 @@ export default async function ResultsPage() {
         </section>
 
         <section className="mt-8">
-          <h2 className="text-lg font-bold">Top telling per finding</h2>
+          <h2 className="kicker text-muted">Top telling per finding</h2>
           <p className="mt-1 text-sm text-muted">
             Variants only ever compete within their own finding, so ratings don&apos;t compare
             across findings — no global leaderboard, by design.
           </p>
           <div className="mt-2 space-y-3">
             {a.leaderboard.map((row) => (
-              <div key={row.findingId} className="rounded-2xl border border-card-border bg-card p-4">
+              <div key={row.findingId} className="rounded-card border border-card-border bg-card p-4">
                 <p className="text-xs text-muted">{row.findingTitle}</p>
-                <p className="mt-1 text-sm leading-relaxed">{row.text}</p>
-                <p className="mt-2 text-xs text-muted tabular-nums">
+                <p className="mt-1 font-serif text-[1.0625rem] leading-relaxed text-ink-strong">{row.text}</p>
+                <p className="mt-2 font-mono text-xs text-muted tabular-nums">
                   Elo {Math.round(row.elo)} · {row.wins}W–{row.losses}L
                 </p>
               </div>
@@ -161,12 +166,12 @@ export default async function ResultsPage() {
         </section>
 
         <section className="mt-8">
-          <h2 className="text-lg font-bold">Study log</h2>
+          <h2 className="kicker text-muted">Study log</h2>
           <p className="mt-1 text-sm text-muted">
             Formal analysis runs, newest first — published findings cite a snapshot id so anyone
             can ask for the exact numbers behind a claim.
           </p>
-          <div className="mt-2 rounded-2xl border border-card-border bg-card px-5 py-3 text-xs font-mono text-muted space-y-1">
+          <div className="mt-2 rounded-card border border-card-border bg-card px-5 py-3 text-xs font-mono text-muted space-y-1">
             {snapshots.length === 0 && <p>No analysis runs yet.</p>}
             {snapshots.map((s) => (
               <p key={s.id}>
@@ -177,8 +182,8 @@ export default async function ResultsPage() {
         </section>
 
         <section className="mt-10" id="methods">
-          <h2 className="text-lg font-bold">Methods</h2>
-          <div className="mt-2 rounded-2xl border border-card-border bg-card px-5 py-4 text-sm text-muted space-y-3">
+          <h2 className="kicker text-muted">Methods</h2>
+          <div className="mt-2 rounded-card border-l-[3px] border-rule-strong bg-wash px-5 py-4 text-sm text-muted space-y-3">
             <p>
               <strong className="text-foreground">What counts.</strong> A vote counts toward the
               tables above when it was decided (not &ldquo;can&apos;t decide&rdquo;), the two

@@ -28,7 +28,7 @@ export default async function DeckPage({ params }: { params: Promise<{ slug: str
         {ready ? (
           <Link
             href={`/swipe?deck=${deck.slug}`}
-            className="mt-6 inline-block rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-white"
+            className="mt-6 inline-block rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-on-accent"
           >
             Vote on this deck →
           </Link>

@@ -183,55 +183,57 @@ function SwipeInner() {
           {liveMessage}
         </p>
 
-        {/* Progress header */}
-        <div className="flex items-center justify-between gap-4 mb-5">
-          <p className="text-xs font-semibold tracking-[0.2em] uppercase text-accent">
-            Judgment Call
-          </p>
-          <div className="flex items-center gap-3">
-            {voteCount < RESULTS_AT_VOTES ? (
-              <>
-                <div className="h-2 w-32 rounded-full bg-card-border overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out"
-                    style={{ width: `${progress * 100}%` }}
-                  />
-                </div>
-                <p
-                  className={`text-xs tabular-nums ${oneMore ? "text-accent font-semibold" : "text-muted"}`}
-                >
-                  {oneMore ? "1 more →" : `${voteCount}/${RESULTS_AT_VOTES}`}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-xs text-muted tabular-nums">{voteCount} calls</p>
-                <button
-                  onClick={showResults}
-                  className="text-xs font-semibold text-accent hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none rounded"
-                >
-                  Your results
-                </button>
-              </>
-            )}
+        {/* Folio: masthead + progress, sitting on the double rule. */}
+        <div className="mb-5">
+          <div className="flex items-end justify-between gap-4 pb-2">
+            <p className="masthead text-ink-strong">Judgment Call</p>
+            <div className="flex items-center gap-3">
+              {voteCount < RESULTS_AT_VOTES ? (
+                <>
+                  <div className="h-2 w-32 rounded-full bg-card-border overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out"
+                      style={{ width: `${progress * 100}%` }}
+                    />
+                  </div>
+                  <p
+                    className={`font-mono text-xs tabular-nums ${oneMore ? "text-accent font-semibold" : "text-muted"}`}
+                  >
+                    {oneMore ? "1 more →" : `${voteCount}/${RESULTS_AT_VOTES}`}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-mono text-xs text-muted tabular-nums">{voteCount} calls</p>
+                  <button
+                    onClick={showResults}
+                    className="font-mono text-xs font-semibold text-accent hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none rounded"
+                  >
+                    Your results
+                  </button>
+                </>
+              )}
+            </div>
           </div>
+          <div className="double-rule" aria-hidden />
         </div>
 
         {results ? (
           <ResultsCard results={results} onKeepGoing={keepGoing} />
         ) : pair ? (
           <div key={pair.variantA.id} className="pair-in">
-            {/* Context header */}
+            {/* Context header: the "wire copy" panel. */}
             <button
               onClick={() => setSnippetExpanded((v) => !v)}
-              className="w-full text-left rounded-xl border border-card-border bg-accent-soft/60 px-4 py-3 mb-4 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+              className="w-full text-left rounded-card border-l-[3px] border-rule-strong bg-wash px-4 py-3 mb-4 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             >
+              <p className="kicker text-muted mb-1.5">The finding</p>
               <Snippet
                 ref={snippetRef}
                 markdown={pair.finding.contextSnippet}
                 className={`text-sm leading-relaxed ${snippetExpanded ? "" : "line-clamp-3"}`}
               />
-              <p className="mt-1 flex items-center justify-between gap-2 text-xs text-muted">
+              <p className="mt-1.5 flex items-center justify-between gap-2 font-mono text-xs text-muted">
                 <span>{pair.finding.sourceLabel}</span>
                 {(snippetTruncated || snippetExpanded) && (
                   <span className="shrink-0 font-semibold text-accent">
@@ -241,12 +243,17 @@ function SwipeInner() {
               </p>
             </button>
 
-            <p className="text-xs font-medium uppercase tracking-wide text-muted mb-3">
-              Which telling of this finding is better?
-            </p>
+            <div className="mb-3 flex items-center gap-3" aria-hidden="false">
+              <span className="h-px flex-1 bg-card-border" aria-hidden />
+              <p className="kicker text-muted">Which telling is better?</p>
+              <span className="h-px flex-1 bg-card-border" aria-hidden />
+            </div>
 
             {/* The two cards. No labels: anything beyond position could cue a
                 preference, and position (A = left/top) is logged server-side. */}
+            {/* The two tellings. No labels, no accent, one identical class:
+                anything beyond position could cue a preference, and position
+                (A = left/top) is logged server-side. */}
             <div className="grid gap-3 sm:grid-cols-2">
               {[pair.variantA, pair.variantB].map((variant) => (
                 <button
@@ -254,15 +261,18 @@ function SwipeInner() {
                   onClick={() => vote(variant.id)}
                   disabled={submitting}
                   style={{ touchAction: "manipulation" }}
-                  className={`select-none rounded-2xl border bg-card p-5 text-left shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+                  className={`select-none rounded-card border bg-card p-5 sm:p-6 text-left shadow-[var(--shadow-card)] transition-all duration-200 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
                     pickedId === variant.id
-                      ? "border-accent ring-2 ring-accent bg-accent-soft/40"
+                      ? "border-rule-strong scale-[0.99]"
                       : pickedId
                         ? "border-card-border opacity-40"
-                        : "border-card-border hover:border-accent hover:shadow-md active:scale-[0.99]"
+                        : "border-card-border hover:border-rule-strong hover:shadow-[var(--shadow-lift)] active:scale-[0.99]"
                   }`}
                 >
-                  <p className="text-[17px] leading-relaxed text-pretty">{variant.text}</p>
+                  <span aria-hidden className="mb-3 block h-0.5 w-[34px] bg-rule-strong" />
+                  <p className="font-serif text-[1.1875rem] leading-[1.58] text-ink-strong text-pretty">
+                    {variant.text}
+                  </p>
                 </button>
               ))}
             </div>
@@ -271,37 +281,37 @@ function SwipeInner() {
               <button
                 onClick={() => vote(null)}
                 disabled={submitting}
-                className="min-h-11 rounded-full border border-card-border px-5 py-2.5 text-sm text-muted transition hover:text-foreground hover:border-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60"
+                className="min-h-11 rounded-full border border-card-border px-5 py-2.5 font-mono text-sm text-muted transition hover:text-foreground hover:border-rule-strong focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60"
               >
                 Can&apos;t decide
               </button>
-              <p className="mt-3 hidden sm:block text-xs text-muted">
-                Keyboard: <kbd className="rounded border border-card-border px-1">1</kbd> left ·{" "}
-                <kbd className="rounded border border-card-border px-1">2</kbd> right ·{" "}
-                <kbd className="rounded border border-card-border px-1">0</kbd> skip
+              <p className="mt-3 hidden sm:block font-mono text-xs text-muted">
+                Keyboard: <kbd className="rounded-chip border border-card-border px-1">1</kbd> left ·{" "}
+                <kbd className="rounded-chip border border-card-border px-1">2</kbd> right ·{" "}
+                <kbd className="rounded-chip border border-card-border px-1">0</kbd> skip
               </p>
             </div>
           </div>
         ) : (
           !error && (
             <div aria-hidden className="animate-pulse">
-              <div className="rounded-xl bg-card-border/50 h-20 mb-4" />
+              <div className="rounded-card bg-card-border/50 h-20 mb-4" />
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl bg-card-border/50 h-40" />
-                <div className="rounded-2xl bg-card-border/50 h-40" />
+                <div className="rounded-card bg-card-border/50 h-40" />
+                <div className="rounded-card bg-card-border/50 h-40" />
               </div>
             </div>
           )
         )}
 
         {notice && (
-          <div className="mt-4 rounded-lg bg-accent-soft px-3 py-2 text-center text-sm font-medium text-accent">
+          <div className="mt-4 rounded-card bg-accent-soft px-3 py-2 text-center text-sm font-medium text-accent">
             {notice}
           </div>
         )}
         {error && (
-          <div className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-center">
-            <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+          <div className="mt-4 rounded-card bg-danger/10 px-3 py-2 text-center">
+            <p className="text-sm text-danger">{error}</p>
             {!pair && (
               <button
                 onClick={fetchPair}

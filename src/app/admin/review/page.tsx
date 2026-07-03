@@ -101,7 +101,7 @@ export default async function ReviewPage({
                       <button
                         className={`rounded-lg px-4 py-1.5 text-sm font-semibold ${
                           decision === "approved"
-                            ? "bg-accent text-white"
+                            ? "bg-accent text-on-accent"
                             : "border border-card-border text-muted hover:text-foreground"
                         }`}
                       >

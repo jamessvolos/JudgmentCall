@@ -1,37 +1,80 @@
 @import "tailwindcss";
 
+/* "Desk Edition" tokens (Meridian Type direction): warm paper, ink, hairline
+   rules, one press-blue accent. All OKLCH. The poster tokens are theme-stable
+   on purpose — the poster is "printed", so shares look identical in light and
+   dark. Instrument rule: --accent never appears on or between the two voting
+   cards; card affordance is a --rule → --rule-strong border shift only. */
 :root {
-  --background: #f7f6f3;
-  --foreground: #1c1b18;
-  --card: #ffffff;
-  --card-border: #e4e2dc;
-  --muted: #6f6c64;
-  --accent: #4f46e5;
-  --accent-soft: #eef2ff;
+  --background: oklch(0.972 0.012 90); /* paper */
+  --card: oklch(0.995 0.004 95);
+  --wash: oklch(0.945 0.015 90);
+  --foreground: oklch(0.235 0.015 80); /* ink */
+  --ink-strong: oklch(0.17 0.012 80);
+  --muted: oklch(0.51 0.02 80);
+  --card-border: oklch(0.87 0.015 85); /* rule */
+  --rule-strong: oklch(0.32 0.015 80);
+  --accent: oklch(0.46 0.12 255); /* press blue */
+  --accent-soft: oklch(0.93 0.03 255);
+  --on-accent: oklch(0.985 0.005 95);
+  --danger: oklch(0.52 0.19 27);
+  --shadow-card: 0 1px 0 oklch(0 0 0 / 0.04);
+  --shadow-lift: 0 2px 8px oklch(0 0 0 / 0.07);
+
+  --poster-bg: oklch(0.22 0.015 80);
+  --poster-fg: oklch(0.95 0.012 90);
+  --poster-mut: oklch(0.72 0.015 85);
+  --poster-rule: oklch(0.42 0.015 80);
+  --poster-acc: oklch(0.8 0.09 250);
+
+  --r-card: 4px;
+  --r-chip: 3px;
+
+  --t-fast: 120ms;
+  --t-base: 240ms;
+  --t-slow: 420ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #131313;
-    --foreground: #ececea;
-    --card: #1e1e1e;
-    --card-border: #333330;
-    --muted: #a3a099;
-    --accent: #818cf8;
-    --accent-soft: #26264a;
+    --background: oklch(0.205 0.008 75);
+    --card: oklch(0.245 0.009 75);
+    --wash: oklch(0.27 0.01 80);
+    --foreground: oklch(0.92 0.012 90);
+    --ink-strong: oklch(0.965 0.008 90);
+    --muted: oklch(0.68 0.015 85);
+    --card-border: oklch(0.34 0.012 80);
+    --rule-strong: oklch(0.78 0.012 85);
+    --accent: oklch(0.74 0.1 255);
+    --accent-soft: oklch(0.3 0.045 255);
+    --on-accent: oklch(0.17 0.012 80);
+    --danger: oklch(0.72 0.16 25);
+    --shadow-card: 0 1px 0 oklch(0 0 0 / 0.25);
+    --shadow-lift: 0 2px 8px oklch(0 0 0 / 0.4);
   }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-ink-strong: var(--ink-strong);
   --color-card: var(--card);
+  --color-wash: var(--wash);
   --color-card-border: var(--card-border);
+  --color-rule-strong: var(--rule-strong);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Source Serif 4 Variable", "Iowan Old Style", Palatino, Georgia,
+    serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius-card: var(--r-card);
+  --radius-chip: var(--r-chip);
 }
 
 body {
@@ -40,12 +83,86 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Newspaper-desk signature: a heavy rule over a hairline, used under the
+   masthead and on the poster. */
+.double-rule {
+  border-top: 2px solid var(--rule-strong);
+  position: relative;
+}
+.double-rule::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 3px;
+  border-top: 1px solid var(--rule-strong);
+}
+
+/* Mono all-caps section label. */
+.kicker {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.masthead {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
 /* Pair entrance: tap -> flash -> next pair slides in. */
 @keyframes pair-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
-.pair-in { animation: pair-in 240ms ease-out; }
+.pair-in {
+  animation: pair-in var(--t-base) var(--ease);
+}
+
+/* Poster reveal: fade + rise, ends still. No confetti. */
+@keyframes poster-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.poster-in {
+  animation: poster-in var(--t-slow) var(--ease);
+}
+
+/* Tally ticks fill left-to-right as votes land. */
+@keyframes tick-in {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+.tick-in {
+  animation: tick-in var(--t-fast) var(--ease);
+  transform-origin: bottom;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pair-in { animation: none; }
+  .pair-in,
+  .poster-in,
+  .tick-in {
+    animation: none;
+  }
 }

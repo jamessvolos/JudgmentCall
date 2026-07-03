@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
+    "@fontsource-variable/source-serif-4": "^5.2.9",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@prisma/client": "^6.19.3",
     "next": "16.2.10",
     "prisma": "^6.19.3",

@@ -15,7 +15,7 @@ export function AdminNav({ active }: { active: string }) {
           href={t.href}
           className={`rounded-full px-4 py-1.5 font-semibold ${
             active === t.href
-              ? "bg-accent text-white"
+              ? "bg-accent text-on-accent"
               : "border border-card-border text-muted hover:text-foreground"
           }`}
         >
