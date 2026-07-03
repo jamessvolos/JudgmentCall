@@ -50,7 +50,11 @@ export default function Landing() {
           Two versions of the same insight. Tap the better one.
         </h1>
         <p className="mt-4 text-muted">
-          Ten quick calls, then see what you value in a data story. No sign-up.
+          Ten quick calls, then see what you value in a data story. Your votes feed a{" "}
+          <a href="/results" className="text-accent hover:underline">
+            public study
+          </a>{" "}
+          of what makes data stories land. No sign-up.
         </p>
 
         <p className="mt-10 mb-3 text-sm font-medium text-muted">I mostly read data as a(n)…</p>

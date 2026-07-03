@@ -66,6 +66,21 @@ export default function SwipePage() {
     fetchPair();
   }, [router, fetchPair]);
 
+  // Keyboard voting for desktop (Medium readers): 1/left = left card,
+  // 2/right = right card, 0 or s = can't decide. No per-card number labels —
+  // on-card ordering cues are the A/B-badge bias all over again.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!pair || submitting || results) return;
+      if (e.key === "1" || e.key === "ArrowLeft") vote(pair.variantA.id);
+      else if (e.key === "2" || e.key === "ArrowRight") vote(pair.variantB.id);
+      else if (e.key === "0" || e.key.toLowerCase() === "s") vote(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pair, submitting, results]);
+
   function flashNotice(message: string) {
     setNotice(message);
     if (noticeTimer.current) clearTimeout(noticeTimer.current);
@@ -122,6 +137,9 @@ export default function SwipePage() {
       if (data.voteCount === RESULTS_AT_VOTES) {
         await showResults(); // the milestone interstitial
       } else {
+        if (data.voteCount > RESULTS_AT_VOTES && data.voteCount % 10 === 0) {
+          flashNotice(`${data.voteCount} calls — your profile just got sharper.`);
+        }
         await fetchPair();
       }
     } catch {
@@ -231,6 +249,11 @@ export default function SwipePage() {
               >
                 Can&apos;t decide
               </button>
+              <p className="mt-3 hidden sm:block text-xs text-muted">
+                Keyboard: <kbd className="rounded border border-card-border px-1">1</kbd> left ·{" "}
+                <kbd className="rounded border border-card-border px-1">2</kbd> right ·{" "}
+                <kbd className="rounded border border-card-border px-1">0</kbd> skip
+              </p>
             </div>
           </div>
         ) : (

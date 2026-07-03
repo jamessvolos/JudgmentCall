@@ -189,6 +189,46 @@ export async function hasSeenPair(
   return count > 0;
 }
 
+// ---------------------------------------------------------------------------
+// Analytics reads (public results page + admin)
+
+/**
+ * Decided, attention-passing, non-repeat comparisons with both variants —
+ * the only votes that count toward published stats. Fine to compute in-process
+ * at current scale; revisit with materialized aggregates post-launch.
+ */
+export async function getAnalyticsComparisons(): Promise<ComparisonWithVariants[]> {
+  return prisma.comparison.findMany({
+    where: { winnerId: { not: null }, lowAttention: false, isRepeat: false },
+    include: { variantA: true, variantB: true },
+  });
+}
+
+/** All decided comparisons (incl. low-attention/repeats) for the position-bias monitor. */
+export async function getDecidedComparisonSlots(): Promise<
+  { variantAId: string; winnerId: string | null }[]
+> {
+  return prisma.comparison.findMany({
+    where: { winnerId: { not: null } },
+    select: { variantAId: true, winnerId: true },
+  });
+}
+
+/** Findings with approved variants sorted by Elo, for the per-finding leaderboard. */
+export async function getFindingsWithVariantStats(): Promise<(Finding & { variants: Variant[] })[]> {
+  return prisma.finding.findMany({
+    include: { variants: { where: { status: "approved" }, orderBy: { elo: "desc" } } },
+  });
+}
+
+export async function getTotals(): Promise<{ comparisons: number; sessions: number }> {
+  const [comparisons, sessions] = await Promise.all([
+    prisma.comparison.count(),
+    prisma.session.count(),
+  ]);
+  return { comparisons, sessions };
+}
+
 /** Sanity helper for the vote route: both variants, verified to share a finding. */
 export async function getVariantPair(
   variantAId: string,

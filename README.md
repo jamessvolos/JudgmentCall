@@ -138,6 +138,29 @@ deliberately excluded from the card so the overclaim experiment stays blind.
 9. **"Can't decide" is not yet rate-limited** (spec §2 mentions discouraging overuse) —
    it's logged and Elo-neutral; throttling is deferred to the Sybil/troll pass (spec §9).
 
+## Analytics (`/results`, `/admin`)
+
+- **`/results` (public):** per value-pair attribute win rates from decided,
+  attention-passing, non-repeat, single-attribute-contrast votes, with Wilson 95%
+  intervals. Suppressed below n≥30 — shown honestly as "collecting n/30". Includes the
+  executive-vs-analyst disagreement view and a top-variant-per-finding board (variants
+  never compete across findings, so there is deliberately no global leaderboard).
+- **`/admin?key=$ADMIN_KEY` (private, 404 without the key):** the overclaim experiment
+  (faithful vs. overclaimed head-to-head, segmented, same intervals and suppression)
+  and a position-bias monitor (left-slot win rate — placement is randomized
+  server-side, so deviation from 50% is measurable bias). Set `ADMIN_KEY` in `.env`;
+  change it before any public deploy.
+
+## Integrity rules
+
+- 30 votes/minute/session hard cap (HTTP 429).
+- "Can't decide" throttled: more than 2 undecided of the last 5 forces a pick.
+- Votes under 800 ms are flagged `lowAttention` (kept in Elo, excluded from analytics).
+- Repeated pairs (post-exhaustion) are flagged `isRepeat` and excluded from analytics.
+- Comparisons carry a salted IP hash + user agent for post-hoc sybil forensics;
+  sessions carry referrer/UTM for share-loop attribution.
+- See `docs/ATTRIBUTES.md` for the tagging rubric shared by seeds, generation, and review.
+
 ## Milestone 1 scope
 
 No auth, no API-based variant generation, no admin screens, no public analytics page,
