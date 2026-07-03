@@ -1,7 +1,16 @@
 import { notFound } from "next/navigation";
-import { computeOverclaim, MIN_N } from "@/lib/analytics";
+import { computeOverclaim, computeAnalytics, MIN_N } from "@/lib/analytics";
+import { isAdmin } from "@/lib/admin-auth";
+import { prisma } from "@/lib/db";
+import { AdminNav } from "@/components/AdminNav";
 
 export const dynamic = "force-dynamic";
+
+// Server component; wall-clock read happens per-request, not per-render frame
+// (the purity lint can't see through the direct Date.now() call).
+function weekAgo(): Date {
+  return new Date(Date.now() - 7 * 86400_000);
+}
 
 // Admin-only view (spec §6): the overclaim experiment and integrity monitors.
 // Gated by ADMIN_KEY — /admin?key=... — and 404s otherwise so the route is
@@ -11,20 +20,39 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ key?: string }>;
 }) {
-  const adminKey = process.env.ADMIN_KEY;
   const { key } = await searchParams;
-  if (!adminKey || key !== adminKey) notFound();
+  if (!(await isAdmin(key))) notFound();
 
-  const o = await computeOverclaim();
+  const [o, a, pendingCount, weekVotes, lowJudges] = await Promise.all([
+    computeOverclaim(),
+    computeAnalytics(),
+    prisma.variant.count({ where: { status: "pending" } }),
+    prisma.comparison.count({
+      where: { createdAt: { gte: weekAgo() }, deckId: null },
+    }),
+    prisma.session.count({ where: { judgeScore: { lt: 0.5 }, goldCount: { gte: 3 } } }),
+  ]);
+  const publishable = a.attributeStats.filter((s) => !s.suppressed).length;
   const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 
   return (
     <main className="flex-1 px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-2xl">
-        <p className="text-xs font-semibold tracking-[0.2em] uppercase text-accent">
-          Judgment Call · Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">The overclaim experiment</h1>
+        <AdminNav active="/admin" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          {[
+            { label: "votes / 7d", value: weekVotes },
+            { label: "pending review", value: pendingCount },
+            { label: "publishable contrasts", value: publishable },
+            { label: "low-score judges", value: lowJudges },
+          ].map((x) => (
+            <div key={x.label} className="rounded-2xl border border-card-border bg-card px-3 py-4">
+              <p className="text-2xl font-bold tabular-nums">{x.value}</p>
+              <p className="mt-1 text-xs text-muted">{x.label}</p>
+            </div>
+          ))}
+        </div>
+        <h1 className="mt-8 text-3xl font-bold tracking-tight">The overclaim experiment</h1>
         <p className="mt-2 text-sm text-muted">
           Faithful vs. overclaimed head-to-heads (decided, attention-passing, non-repeat votes
           on fidelity-only contrasts). Does punchy-but-wrong beat accurate-but-hedged? Do not

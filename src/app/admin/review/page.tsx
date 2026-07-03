@@ -2,13 +2,10 @@ import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { ATTRIBUTE_KEYS } from "@/lib/types";
+import { audit, isAdmin } from "@/lib/admin-auth";
+import { AdminNav } from "@/components/AdminNav";
 
 export const dynamic = "force-dynamic";
-
-function checkKey(key: string | undefined): boolean {
-  const adminKey = process.env.ADMIN_KEY;
-  return Boolean(adminKey && key === adminKey);
-}
 
 // The M2 human review gate (spec §4): generated variants arrive as
 // status=pending and are served to voters only after explicit approval here.
@@ -20,15 +17,19 @@ export default async function ReviewPage({
   searchParams: Promise<{ key?: string }>;
 }) {
   const { key } = await searchParams;
-  if (!checkKey(key)) notFound();
+  if (!(await isAdmin(key))) notFound();
 
   async function decide(formData: FormData) {
     "use server";
-    if (!checkKey(String(formData.get("key") ?? ""))) return;
+    if (!(await isAdmin(String(formData.get("key") ?? "") || undefined))) return;
     const id = String(formData.get("id"));
     const decision = String(formData.get("decision"));
+    const reason = String(formData.get("reason") ?? "").slice(0, 300) || undefined;
     if (decision !== "approved" && decision !== "rejected") return;
     await prisma.variant.update({ where: { id }, data: { status: decision } });
+    // Rejection reasons feed the generation prompt as negative exemplars
+    // (recursive learning) — via the audit log, so the loop stays inspectable.
+    await audit(`variant.${decision === "approved" ? "approve" : "reject"}`, id, reason);
     revalidatePath("/admin/review");
   }
 
@@ -41,10 +42,8 @@ export default async function ReviewPage({
   return (
     <main className="flex-1 px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-2xl">
-        <p className="text-xs font-semibold tracking-[0.2em] uppercase text-accent">
-          Judgment Call · Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">Review generated variants</h1>
+        <AdminNav active="/admin/review" />
+        <h1 className="text-3xl font-bold tracking-tight">Review generated variants</h1>
         <p className="mt-2 text-sm text-muted">
           {pending.length} pending. Check text against the truth summary (claims ledger below
           each variant), verify tags against docs/ATTRIBUTES.md, then approve or reject.
@@ -86,12 +85,19 @@ export default async function ReviewPage({
                     </ul>
                   </details>
                 )}
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                   {(["approved", "rejected"] as const).map((decision) => (
-                    <form key={decision} action={decide}>
+                    <form key={decision} action={decide} className="flex items-center gap-2">
                       <input type="hidden" name="id" value={v.id} />
                       <input type="hidden" name="key" value={key} />
                       <input type="hidden" name="decision" value={decision} />
+                      {decision === "rejected" && (
+                        <input
+                          name="reason"
+                          placeholder="why? (feeds generation)"
+                          className="rounded-lg border border-card-border bg-background px-2 py-1.5 text-xs w-44"
+                        />
+                      )}
                       <button
                         className={`rounded-lg px-4 py-1.5 text-sm font-semibold ${
                           decision === "approved"

@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Snippet } from "@/components/Snippet";
 import { ResultsCard, type ResultsDto } from "@/components/ResultsCard";
 import { getSessionId, nowMs } from "@/lib/session-client";
@@ -23,8 +23,9 @@ type PairDto = {
 // How long the picked-card flash stays on screen before the next pair.
 const FLASH_MS = 160;
 
-export default function SwipePage() {
+function SwipeInner() {
   const router = useRouter();
+  const deck = useSearchParams().get("deck");
   const [pair, setPair] = useState<PairDto | null>(null);
   const [voteCount, setVoteCount] = useState(0);
   const [results, setResults] = useState<ResultsDto | null>(null);
@@ -46,7 +47,9 @@ export default function SwipePage() {
     if (!sessionId) return;
     setError(null);
     try {
-      const res = await fetch(`/api/pair?sessionId=${encodeURIComponent(sessionId)}`);
+      const res = await fetch(
+        `/api/pair?sessionId=${encodeURIComponent(sessionId)}${deck ? `&deck=${encodeURIComponent(deck)}` : ""}`
+      );
       if (!res.ok) throw new Error(`pair failed (${res.status})`);
       const data: PairDto = await res.json();
       setPair(data);
@@ -57,7 +60,7 @@ export default function SwipePage() {
     } catch {
       setError("Couldn't load the next pair.");
     }
-  }, []);
+  }, [deck]);
 
   useEffect(() => {
     const el = snippetRef.current;
@@ -311,5 +314,13 @@ export default function SwipePage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function SwipePage() {
+  return (
+    <Suspense fallback={null}>
+      <SwipeInner />
+    </Suspense>
   );
 }

@@ -4,7 +4,7 @@
 
 import { prisma } from "./db";
 import { eloUpdate } from "./elo";
-import type { Segment } from "./types";
+import { GOLD_MAJORITY, GOLD_MIN_N, JUDGE_MIN_GOLD, type Segment } from "./types";
 import type { Finding, Variant, Comparison, Session } from "@prisma/client";
 
 export type { Finding, Variant, Comparison, Session };
@@ -40,8 +40,13 @@ export async function getSession(id: string): Promise<Session | null> {
 // Matchmaking reads
 
 /** All findings with their comparison counts (for fewest-comparisons weighting). */
-export async function getFindingComparisonCounts(): Promise<{ findingId: string; count: number }[]> {
-  const findings = await prisma.finding.findMany({ select: { id: true } });
+export async function getFindingComparisonCounts(
+  deckId: string | null = null
+): Promise<{ findingId: string; count: number }[]> {
+  const findings = await prisma.finding.findMany({
+    where: { deckId, status: { in: ["active", "submitted"] } },
+    select: { id: true },
+  });
   const grouped = await prisma.comparison.groupBy({ by: ["findingId"], _count: { _all: true } });
   const counts = new Map(grouped.map((g) => [g.findingId, g._count._all]));
   return findings.map((f) => ({ findingId: f.id, count: counts.get(f.id) ?? 0 }));
@@ -92,6 +97,7 @@ export type VoteInput = {
   variantAId: string;
   variantBId: string;
   winnerId: string | null; // null = can't decide
+  deckId: string | null;
   contrastAttrs: string;
   latencyMs: number;
   lowAttention: boolean;
@@ -106,6 +112,33 @@ export type VoteInput = {
  * Returns the new session vote count.
  */
 export async function recordVote(input: VoteInput): Promise<{ voteCount: number }> {
+  // Gold check (outside the transaction — read-only): does this pair already
+  // have a strong consensus among OTHER sessions' clean decided votes?
+  let isGold = false;
+  let agreesWithConsensus = false;
+  if (input.winnerId && !input.isRepeat && !input.lowAttention) {
+    const prior = await prisma.comparison.groupBy({
+      by: ["winnerId"],
+      where: {
+        winnerId: { not: null },
+        isRepeat: false,
+        lowAttention: false,
+        sessionId: { not: input.sessionId },
+        OR: [
+          { variantAId: input.variantAId, variantBId: input.variantBId },
+          { variantAId: input.variantBId, variantBId: input.variantAId },
+        ],
+      },
+      _count: { _all: true },
+    });
+    const total = prior.reduce((sum, g) => sum + g._count._all, 0);
+    const top = prior.sort((a, b) => b._count._all - a._count._all)[0];
+    if (top && total >= GOLD_MIN_N && top._count._all / total >= GOLD_MAJORITY) {
+      isGold = true;
+      agreesWithConsensus = top.winnerId === input.winnerId;
+    }
+  }
+
   return prisma.$transaction(async (tx) => {
     await tx.comparison.create({
       data: {
@@ -115,10 +148,12 @@ export async function recordVote(input: VoteInput): Promise<{ voteCount: number 
         winnerId: input.winnerId,
         sessionId: input.sessionId,
         segment: input.segment,
+        deckId: input.deckId,
         contrastAttrs: input.contrastAttrs,
         latencyMs: input.latencyMs,
         lowAttention: input.lowAttention,
         isRepeat: input.isRepeat,
+        isGold,
         ipHash: input.ipHash,
         userAgent: input.userAgent,
       },
@@ -145,8 +180,20 @@ export async function recordVote(input: VoteInput): Promise<{ voteCount: number 
 
     const session = await tx.session.update({
       where: { id: input.sessionId },
-      data: { voteCount: { increment: 1 } },
+      data: {
+        voteCount: { increment: 1 },
+        ...(isGold && {
+          goldCount: { increment: 1 },
+          goldAgreement: { increment: agreesWithConsensus ? 1 : 0 },
+        }),
+      },
     });
+    if (isGold && session.goldCount >= JUDGE_MIN_GOLD) {
+      await tx.session.update({
+        where: { id: input.sessionId },
+        data: { judgeScore: session.goldAgreement / session.goldCount },
+      });
+    }
     return { voteCount: session.voteCount };
   });
 }
@@ -208,8 +255,9 @@ export async function hasSeenPair(
  * at current scale; revisit with materialized aggregates post-launch.
  */
 export async function getAnalyticsComparisons(): Promise<ComparisonWithVariants[]> {
+  // deckId null = the public study; private BYO decks never mix in.
   return prisma.comparison.findMany({
-    where: { winnerId: { not: null }, lowAttention: false, isRepeat: false },
+    where: { winnerId: { not: null }, lowAttention: false, isRepeat: false, deckId: null },
     include: { variantA: true, variantB: true },
   });
 }
@@ -239,14 +287,54 @@ export async function getTotals(): Promise<{ comparisons: number; sessions: numb
   return { comparisons, sessions };
 }
 
+// ---------------------------------------------------------------------------
+// BYO-data decks
+
+export async function getDeckBySlug(slug: string) {
+  return prisma.deck.findUnique({ where: { slug } });
+}
+
+export async function createDeckWithFinding(input: {
+  deckName: string;
+  ownerSessionId: string;
+  finding: {
+    title: string;
+    domain: string;
+    contextSnippet: string;
+    sourceLabel: string;
+    truthSummary: string;
+  };
+}) {
+  const slug = `${input.deckName.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 32).replace(/^-|-$/g, "") || "deck"}-${Math.random().toString(36).slice(2, 8)}`;
+  return prisma.deck.create({
+    data: {
+      slug,
+      name: input.deckName.slice(0, 80),
+      ownerSessionId: input.ownerSessionId,
+      findings: { create: { ...input.finding, status: "submitted" } },
+    },
+    include: { findings: true },
+  });
+}
+
+export async function getDeckWithStats(slug: string) {
+  const deck = await prisma.deck.findUnique({
+    where: { slug },
+    include: { findings: { include: { variants: { where: { status: "approved" } } } } },
+  });
+  if (!deck) return null;
+  const votes = await prisma.comparison.count({ where: { deckId: deck.id } });
+  return { deck, votes };
+}
+
 /** Sanity helper for the vote route: both variants, verified to share a finding. */
 export async function getVariantPair(
   variantAId: string,
   variantBId: string
-): Promise<{ a: Variant; b: Variant } | null> {
+): Promise<{ a: VariantWithFinding; b: VariantWithFinding } | null> {
   const [a, b] = await Promise.all([
-    prisma.variant.findUnique({ where: { id: variantAId } }),
-    prisma.variant.findUnique({ where: { id: variantBId } }),
+    prisma.variant.findUnique({ where: { id: variantAId }, include: { finding: true } }),
+    prisma.variant.findUnique({ where: { id: variantBId }, include: { finding: true } }),
   ]);
   if (!a || !b || a.findingId !== b.findingId || a.id === b.id) return null;
   return { a, b };

@@ -55,7 +55,10 @@ function rotate<T>(values: readonly T[], by: number): T {
  * generated deck — pass a monotonically increasing counter). Deterministic:
  * the same index always yields the same plan, so regeneration is reproducible.
  */
-export function planFinding(seedIndex: number): FindingPlan {
+export function planFinding(
+  seedIndex: number,
+  coverageHints?: Exclude<AttributeKey, "fidelity">[] // starvation-ranked, thinnest first
+): FindingPlan {
   // Rotate the base profile so no attribute value is "always the base".
   const base: AttributeProfile = {
     leadType: rotate(LEAD_TYPES, seedIndex),
@@ -67,9 +70,16 @@ export function planFinding(seedIndex: number): FindingPlan {
   };
 
   // Rotate which attribute gets doubled and which 4 craft attributes are
-  // contrasted this finding (one of the five sits out each time).
-  const doubled = CRAFT_KEYS[seedIndex % CRAFT_KEYS.length];
-  const skipped = CRAFT_KEYS[(seedIndex + 2) % CRAFT_KEYS.length];
+  // contrasted this finding (one of the five sits out each time). When the
+  // analysis job supplies coverage hints, the starved attribute gets doubled
+  // and the best-covered one sits out — learning changes WHICH contrasts we
+  // sample, never which values we prefer to generate.
+  const doubled = coverageHints?.[0] ?? CRAFT_KEYS[seedIndex % CRAFT_KEYS.length];
+  let skipped =
+    coverageHints && coverageHints.length >= 2
+      ? coverageHints[coverageHints.length - 1]
+      : CRAFT_KEYS[(seedIndex + 2) % CRAFT_KEYS.length];
+  if (skipped === doubled) skipped = CRAFT_KEYS.find((k) => k !== doubled)!;
   const singles = CRAFT_KEYS.filter((k) => k !== doubled && k !== skipped);
 
   const plan: FindingPlan = [

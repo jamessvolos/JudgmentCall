@@ -90,6 +90,7 @@ export async function POST(request: Request) {
     sessionId,
     segment: session.segment as Segment,
     findingId: pair.a.findingId,
+    deckId: pair.a.finding.deckId,
     variantAId,
     variantBId,
     winnerId,

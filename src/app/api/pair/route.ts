@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/repo";
+import { getDeckBySlug, getSession } from "@/lib/repo";
 import { selectPair } from "@/lib/matchmaking";
 
 // GET /api/pair?sessionId=... — matchmake the next pair for this session.
@@ -19,7 +19,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "unknown session" }, { status: 404 });
   }
 
-  const pair = await selectPair(sessionId);
+  const deckSlug = searchParams.get("deck");
+  let deckId: string | null = null;
+  if (deckSlug) {
+    const deck = await getDeckBySlug(deckSlug);
+    if (!deck) return NextResponse.json({ error: "unknown deck" }, { status: 404 });
+    deckId = deck.id;
+  }
+  const pair = await selectPair(sessionId, deckId);
   if (!pair) {
     return NextResponse.json({ error: "no pairs available" }, { status: 503 });
   }

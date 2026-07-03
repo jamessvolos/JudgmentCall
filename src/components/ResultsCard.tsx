@@ -15,6 +15,7 @@ export type PreferenceDto = {
 
 export type ResultsDto = {
   segment: string;
+  calibrated?: boolean;
   voteCount: number;
   decidedSingleContrasts: number;
   preferences: PreferenceDto[];
@@ -103,7 +104,13 @@ export function ResultsCard({
           </p>
           <h2 className="mt-1.5 text-3xl font-bold tracking-tight text-balance">{title}</h2>
           <p className="mt-1.5 text-sm text-white/80">
-            {results.voteCount} judgment calls · voting as {SEGMENT_LABELS[results.segment as Segment] ?? "Reader"}
+            {results.voteCount} judgment calls · voting as{" "}
+            {SEGMENT_LABELS[results.segment as Segment] ?? "Reader"}
+            {results.calibrated && (
+              <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
+                Calibrated judge ✓
+              </span>
+            )}
           </p>
         </div>
 

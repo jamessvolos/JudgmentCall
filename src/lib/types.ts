@@ -117,3 +117,10 @@ export const CANT_DECIDE_MAX_IN_WINDOW = 2;
 
 // Below this many observations for an attribute, the results card hedges.
 export const MIN_OBS_FOR_CLAIM = 3;
+
+// Judge scoring (ROADMAP §2): a vote is "gold" when the pair already has a
+// strong consensus among OTHER sessions; agreement with that consensus is the
+// judge-quality signal. Re-weights analysis only — never gates voting.
+export const GOLD_MIN_N = 20;
+export const GOLD_MAJORITY = 0.8;
+export const JUDGE_MIN_GOLD = 3;

@@ -111,9 +111,12 @@ function pickBest(
   return scored[0].c;
 }
 
-export async function selectPair(sessionId: string): Promise<SelectedPair | null> {
+export async function selectPair(
+  sessionId: string,
+  deckId: string | null = null
+): Promise<SelectedPair | null> {
   const [findingCounts, seen, contrastCounts, sessionContrasts] = await Promise.all([
-    getFindingComparisonCounts(),
+    getFindingComparisonCounts(deckId),
     getSeenPairKeys(sessionId),
     getContrastCounts(),
     getSessionContrastCounts(sessionId),

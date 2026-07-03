@@ -20,6 +20,9 @@ model Finding {
   contextSnippet String // markdown, shown in the swipe header
   sourceLabel    String
   truthSummary   String // ground-truth claim every faithful variant must respect
+  status         String       @default("active") // active | submitted | retired
+  deck           Deck?        @relation(fields: [deckId], references: [id])
+  deckId         String? // null = public pool; set = private BYO deck
   variants       Variant[]
   comparisons    Comparison[]
 }
@@ -70,6 +73,8 @@ model Comparison {
   latencyMs    Int
   lowAttention Boolean  @default(false) // latencyMs < 800; included in Elo, excludable in analytics
   isRepeat     Boolean  @default(false) // session saw this pair before (exhaustion fallback); non-independent, exclude from analytics
+  isGold       Boolean  @default(false) // pair had a strong prior consensus when this vote was cast (judge scoring)
+  deckId       String? // BYO-data deck scope; null = the public study
   ipHash       String? // salted SHA-256 of client IP — sybil forensics only, never reversible
   userAgent    String?
   createdAt    DateTime @default(now())
@@ -84,6 +89,44 @@ model Session {
   referrer    String? // document.referrer at landing, for share-loop attribution
   utmSource   String? // ?utm_source= at landing
   voteCount   Int          @default(0)
+  // Judge quality (ROADMAP §2): agreement with strong-consensus "gold" pairs.
+  // Re-weights analysis only — never gates voting, never trains generation.
+  goldCount     Int    @default(0)
+  goldAgreement Int    @default(0)
+  judgeScore    Float? // goldAgreement/goldCount once goldCount >= 3
   createdAt   DateTime     @default(now())
   comparisons Comparison[]
+  decks       Deck[]
+}
+
+// BYO-data deck (ROADMAP §3): a private pool of findings owned by the session
+// that submitted them. Deck votes never mix into the public study.
+model Deck {
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  name           String
+  owner          Session   @relation(fields: [ownerSessionId], references: [id])
+  ownerSessionId String
+  visibility     String    @default("private") // private | public (public = promoted to the pool)
+  createdAt      DateTime  @default(now())
+  findings       Finding[]
+}
+
+// Admin paper trail (ROADMAP §4): every consequential admin action.
+model AuditEvent {
+  id        String   @id @default(cuid())
+  actor     String // "admin" (single-operator for now)
+  action    String // e.g. variant.approve, variant.reject, finding.retire
+  subject   String // id of the thing acted on
+  detail    String? // e.g. rejection reason — feeds generation negative exemplars
+  createdAt DateTime @default(now())
+}
+
+// Recursive-learning snapshots (ROADMAP §1): one row per analysis run.
+model AnalysisSnapshot {
+  id           String   @id @default(cuid())
+  method       String // e.g. "logistic-diff-v1"
+  coefficients String // JSON: per attribute-value effect + intervals, per segment
+  coverage     String // JSON: value-pair n per segment, starvation ranking
+  createdAt    DateTime @default(now())
 }

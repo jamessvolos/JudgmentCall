@@ -2,7 +2,8 @@
  * M2 variant generation pipeline (spec §4).
  *
  * Usage:
- *   npx tsx scripts/generate.ts findings.json
+ *   npx tsx scripts/generate.ts findings.json    # generate from a JSON file
+ *   npx tsx scripts/generate.ts --submitted      # generate for BYO submissions awaiting variants
  *
  * findings.json: [{ title, domain, contextSnippet, sourceLabel, truthSummary }, ...]
  *
@@ -99,6 +100,20 @@ const OUTPUT_SCHEMA = {
 
 async function buildSystemPrompt(): Promise<string> {
   const rubric = readFileSync("docs/ATTRIBUTES.md", "utf8");
+  // Recursive learning: recent human rejection reasons become negative
+  // exemplars. Versioned implicitly — every run's prompt reflects the current
+  // audit trail, and the regression gate replays the golden set against it.
+  const rejections = await prisma.auditEvent.findMany({
+    where: { action: "variant.reject", detail: { not: null } },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+  const negatives =
+    rejections.length > 0
+      ? `\nREVIEWER REJECTIONS TO AVOID (from the human gate):\n${rejections
+          .map((r) => `- ${r.detail}`)
+          .join("\n")}\n`
+      : "";
   // Few-shot: two seed findings whose variants are the gold standard (5 shows
   // upfront caveats + qualitative quantification; 8 shows the token-caveat
   // overclaim). Pulled from the DB so the examples never drift from the data.
@@ -137,6 +152,7 @@ A word is any whitespace-separated token containing a letter or digit ("$2.84B" 
 SELF-CHECK
 For each variant, before the entailment verdict, list every factual claim with the exact supporting phrase from TRUTH_SUMMARY or CONTEXT_SNIPPET. If a claim lacks support, rewrite the variant (faithful) or record it as "OVERCLAIM: <device>" (overclaimed only). entailment is "entailed" for faithful variants, "exceeds" for the overclaimed one.
 
+${negatives}
 ${fewShot}`;
 }
 
@@ -172,8 +188,24 @@ async function callModel(system: string, messages: Anthropic.MessageParam[]) {
   return JSON.parse(text.text).variants as GeneratedVariant[];
 }
 
-async function generateFinding(finding: InputFinding, seedIndex: number): Promise<void> {
-  const plan = planFinding(seedIndex);
+async function latestCoverageHints() {
+  const snap = await prisma.analysisSnapshot.findFirst({ orderBy: { createdAt: "desc" } });
+  if (!snap) return undefined;
+  try {
+    const starvation = JSON.parse(snap.coverage).starvation as { attr: string }[];
+    return starvation.map((x) => x.attr) as Parameters<typeof planFinding>[1];
+  } catch {
+    return undefined;
+  }
+}
+
+async function generateFinding(
+  finding: InputFinding,
+  seedIndex: number,
+  existingFindingId?: string
+): Promise<void> {
+  const hints = await latestCoverageHints();
+  const plan = planFinding(seedIndex, hints);
   const system = await buildSystemPrompt();
   const messages: Anthropic.MessageParam[] = [
     { role: "user", content: buildUserPrompt(finding, plan) },
@@ -200,6 +232,21 @@ async function generateFinding(finding: InputFinding, seedIndex: number): Promis
     return;
   }
 
+  const variantRows = (vs: GeneratedVariant[]) =>
+    vs.map((v) => ({
+      text: v.text,
+      ...v.tags,
+      status: "pending" as const,
+      source: "generated" as const,
+      selfCheck: JSON.stringify({ claims: v.claims, entailment: v.entailment, lints: result.lints }),
+    }));
+  if (existingFindingId) {
+    await prisma.variant.createMany({
+      data: variantRows(variants).map((v) => ({ ...v, findingId: existingFindingId })),
+    });
+    console.log(`  written as pending on existing finding (${result.lints.length} lints)`);
+    return;
+  }
   await prisma.finding.create({
     data: {
       title: finding.title,
@@ -222,13 +269,26 @@ async function generateFinding(finding: InputFinding, seedIndex: number): Promis
 }
 
 async function main() {
-  const path = process.argv[2];
-  if (!path) {
-    console.error("usage: npx tsx scripts/generate.ts findings.json");
+  const arg = process.argv[2];
+  if (!arg) {
+    console.error("usage: npx tsx scripts/generate.ts <findings.json | --submitted>");
     process.exit(1);
   }
-  const findings: InputFinding[] = JSON.parse(readFileSync(path, "utf8"));
   const existing = await prisma.finding.count();
+  if (arg === "--submitted") {
+    // BYO submissions awaiting variants (deck findings with none yet).
+    const submitted = await prisma.finding.findMany({
+      where: { status: "submitted", variants: { none: {} } },
+    });
+    console.log(`${submitted.length} submitted finding(s) awaiting variants`);
+    for (let i = 0; i < submitted.length; i++) {
+      const f = submitted[i];
+      console.log(`Generating: ${f.title}`);
+      await generateFinding(f, existing + i, f.id);
+    }
+    return;
+  }
+  const findings: InputFinding[] = JSON.parse(readFileSync(arg, "utf8"));
   for (let i = 0; i < findings.length; i++) {
     console.log(`Generating: ${findings[i].title}`);
     await generateFinding(findings[i], existing + i);

@@ -16,5 +16,7 @@ export async function GET(request: Request) {
   }
 
   const results = await computePersonalResults(sessionId);
-  return NextResponse.json({ segment: session.segment, ...results });
+  const calibrated =
+    session.goldCount >= 3 && session.judgeScore !== null && session.judgeScore >= 0.8;
+  return NextResponse.json({ segment: session.segment, calibrated, ...results });
 }
