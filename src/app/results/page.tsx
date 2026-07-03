@@ -14,49 +14,81 @@ function pct(x: number): string {
   return `${Math.round(x * 100)}%`;
 }
 
-// One value-pair contrast: a labeled bar with the Wilson interval drawn as a
-// darker band, or an honest "collecting n/30" state while suppressed.
+// One value-pair contrast, drawn as a caliper gauge (Atelier Nul direction):
+// a ticked 0–100% scale with a strong 50% null line, the Wilson interval as
+// a bracket, and the point estimate as a filled marker. Color is earned by
+// n≥30 — suppressed rows are ink-only with a hatched collection bar, so a
+// reader can never mistake "collecting" for "measured".
 function ContrastRow({ stat }: { stat: ValuePairStat }) {
+  const clears =
+    !stat.suppressed && stat.interval !== null && (stat.interval.lo > 0.5 || stat.interval.hi < 0.5);
   return (
-    <div className="py-3 border-b border-card-border last:border-b-0">
+    <div className="py-3.5 border-b border-card-border last:border-b-0">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <p>
           <span className="font-semibold">{stat.valueALabel}</span>
           <span className="text-muted"> vs </span>
           <span className="font-semibold">{stat.valueBLabel}</span>
         </p>
-        <p className="font-mono text-xs text-muted shrink-0">
+        <p className="font-mono text-xs text-muted shrink-0 tabular-nums">
           {stat.suppressed ? `COLLECTING — ${stat.n}/${MIN_N}` : `n=${stat.n}`}
         </p>
       </div>
       {stat.suppressed ? (
-        <div className="mt-2 h-2.5 rounded-full bg-card-border/60 overflow-hidden">
+        <div
+          className="mt-2.5 h-2.5 rounded-[2px] overflow-hidden"
+          style={{
+            background:
+              "repeating-linear-gradient(-45deg, var(--card-border), var(--card-border) 3px, transparent 3px, transparent 7px)",
+          }}
+        >
           <div
             className="h-full bg-card-border"
             style={{ width: `${(stat.n / MIN_N) * 100}%` }}
+            title={`Collecting: ${stat.n} of ${MIN_N} votes before this rate is shown`}
           />
         </div>
       ) : (
         <>
-          <div className="relative mt-2 h-2.5 rounded-full bg-card-border/60 overflow-hidden">
-            <div className="absolute inset-y-0 left-0 bg-accent/80" style={{ width: pct(stat.rateA!) }} />
+          {/* The gauge: track, quarter ticks, 50% null line, Wilson bracket, point. */}
+          <div className="relative mt-2.5 h-7" aria-hidden>
+            <div className="absolute left-0 right-0 top-1/2 h-px bg-card-border" />
+            {[0, 25, 75, 100].map((t) => (
+              <div
+                key={t}
+                className="absolute top-1/2 h-2 w-px -translate-y-1/2 bg-card-border"
+                style={{ left: `${t}%` }}
+              />
+            ))}
+            <div className="absolute left-1/2 top-1/2 h-4 w-px -translate-y-1/2 bg-rule-strong" />
             {stat.interval && (
               <div
-                className="absolute inset-y-0 bg-accent"
+                className="absolute top-1/2 h-2.5 -translate-y-1/2 border-x-2 border-t-2 border-accent"
                 style={{
                   left: pct(stat.interval.lo),
                   width: `${Math.max(1, Math.round((stat.interval.hi - stat.interval.lo) * 100))}%`,
-                  opacity: 0.45,
                 }}
                 title={`95% interval: ${pct(stat.interval.lo)}–${pct(stat.interval.hi)}`}
               />
             )}
-            <div className="absolute inset-y-0 left-1/2 w-px bg-foreground/30" />
+            <div
+              className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent"
+              style={{ left: pct(stat.rateA!) }}
+            />
           </div>
-          <p className="mt-1 text-xs text-muted">
-            {stat.valueALabel} wins {pct(stat.rateA!)} ({pct(stat.interval!.lo)}–
-            {pct(stat.interval!.hi)} at 95%)
-          </p>
+          <div className="mt-1 flex items-center justify-between gap-3">
+            <p className="font-mono text-xs text-muted tabular-nums">
+              {stat.valueALabel} wins {pct(stat.rateA!)} ({pct(stat.interval!.lo)}–
+              {pct(stat.interval!.hi)} at 95%)
+            </p>
+            <span
+              className={`shrink-0 rounded-chip border px-1.5 py-px font-mono text-[10px] font-semibold tracking-[0.14em] ${
+                clears ? "border-accent text-accent" : "border-card-border text-muted"
+              }`}
+            >
+              {clears ? "INTERVAL CLEARS 50" : "STRADDLES 50"}
+            </span>
+          </div>
         </>
       )}
     </div>

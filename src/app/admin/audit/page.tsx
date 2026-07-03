@@ -18,7 +18,7 @@ export default async function AuditPage({
     <main className="flex-1 px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-2xl">
         <AdminNav active="/admin/audit" />
-        <h1 className="text-3xl font-bold tracking-tight">Audit log</h1>
+        <h1 className="font-serif font-semibold text-ink-strong text-3xl tracking-tight">Audit log</h1>
         <p className="mt-1 text-sm text-muted">
           The study&apos;s paper trail — every consequential admin action, newest first.
         </p>

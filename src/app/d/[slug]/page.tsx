@@ -16,10 +16,10 @@ export default async function DeckPage({ params }: { params: Promise<{ slug: str
   return (
     <main className="flex-1 px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-2xl">
-        <p className="text-xs font-semibold tracking-[0.2em] uppercase text-accent">
-          Judgment Call · Private deck
-        </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">{deck.name}</h1>
+        <p className="kicker text-muted">Judgment Call · Private deck</p>
+        <h1 className="mt-2 font-serif font-semibold text-ink-strong text-3xl tracking-tight">
+          {deck.name}
+        </h1>
         <p className="mt-2 text-sm text-muted">
           {deck.findings.length} finding{deck.findings.length === 1 ? "" : "s"} ·{" "}
           {votes} vote{votes === 1 ? "" : "s"} · votes on this deck stay out of the public study.
@@ -28,12 +28,12 @@ export default async function DeckPage({ params }: { params: Promise<{ slug: str
         {ready ? (
           <Link
             href={`/swipe?deck=${deck.slug}`}
-            className="mt-6 inline-block rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-on-accent"
+            className="mt-6 inline-block rounded-card bg-accent px-6 py-3 text-sm font-semibold text-on-accent"
           >
             Vote on this deck →
           </Link>
         ) : (
-          <div className="mt-6 rounded-2xl border border-card-border bg-card p-5 text-sm text-muted">
+          <div className="mt-6 rounded-card border border-card-border bg-card p-5 text-sm text-muted">
             <p className="font-semibold text-foreground">Variants are being prepared.</p>
             <p className="mt-1">
               The generation pipeline writes six tellings of each finding, and a reviewer checks
@@ -43,15 +43,22 @@ export default async function DeckPage({ params }: { params: Promise<{ slug: str
           </div>
         )}
 
-        {/* Progress toward a defensible read */}
+        {/* Progress toward a defensible read: hatched until earned, like the
+            public results page — color arrives with the data. */}
         <div className="mt-4">
-          <div className="h-2 w-full max-w-xs rounded-full bg-card-border overflow-hidden">
+          <div
+            className="h-2.5 w-full max-w-xs rounded-[2px] overflow-hidden"
+            style={{
+              background:
+                "repeating-linear-gradient(-45deg, var(--card-border), var(--card-border) 3px, transparent 3px, transparent 7px)",
+            }}
+          >
             <div
-              className="h-full rounded-full bg-accent"
+              className={votes < 30 ? "h-full bg-card-border" : "h-full bg-accent"}
               style={{ width: `${Math.min(100, (votes / 30) * 100)}%` }}
             />
           </div>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 font-mono text-xs text-muted tabular-nums">
             {votes < 30
               ? `${votes}/30 votes — invite ${Math.max(1, Math.ceil((30 - votes) / 10))} more people (~10 votes each) for a defensible read.`
               : "30+ votes — win rates below are worth reading."}
@@ -63,7 +70,7 @@ export default async function DeckPage({ params }: { params: Promise<{ slug: str
             const rated = [...f.variants].sort((x, y) => y.elo - x.elo);
             const top = rated[0];
             return (
-              <div key={f.id} className="rounded-2xl border border-card-border bg-card p-4 text-sm">
+              <div key={f.id} className="rounded-card border border-card-border bg-card p-4 text-sm">
                 <p className="font-semibold">{f.title}</p>
                 <p className="mt-1 text-xs text-muted">
                   {f.variants.length} approved variant{f.variants.length === 1 ? "" : "s"} ·{" "}

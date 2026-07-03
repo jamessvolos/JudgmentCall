@@ -45,7 +45,7 @@ export default function SubmitPage() {
         <p className="text-xs font-semibold tracking-[0.2em] uppercase text-accent">
           Judgment Call · Bring your own data
         </p>
-        <h1 className="text-3xl font-bold tracking-tight">Run this on your numbers</h1>
+        <h1 className="font-serif font-semibold text-ink-strong text-3xl tracking-tight">Run this on your numbers</h1>
         <p className="text-sm text-muted">
           Submit one finding and get a private deck: six tellings of your fact, reviewed before
           anyone votes, scoped to a link only you share. Your deck&apos;s votes never enter the
@@ -61,7 +61,7 @@ export default function SubmitPage() {
               placeholder={f.ph}
               value={values[f.name] ?? ""}
               onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-              className="mt-1 w-full rounded-xl border border-card-border bg-card px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+              className="mt-1 w-full rounded-card border border-card-border bg-card px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             />
           </label>
         ))}
@@ -70,7 +70,7 @@ export default function SubmitPage() {
           <select
             value={values.domain}
             onChange={(e) => setValues((v) => ({ ...v, domain: e.target.value }))}
-            className="mt-1 w-full rounded-xl border border-card-border bg-card px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-card border border-card-border bg-card px-3 py-2 text-sm"
           >
             {["earnings", "econ", "sports", "ops"].map((d) => (
               <option key={d} value={d}>{d}</option>
@@ -79,7 +79,7 @@ export default function SubmitPage() {
         </label>
         <button
           disabled={busy}
-          className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-on-accent disabled:opacity-60"
+          className="w-full rounded-card bg-accent px-4 py-3 text-sm font-semibold text-on-accent disabled:opacity-60"
         >
           {busy ? "Creating deck…" : "Create my private deck"}
         </button>

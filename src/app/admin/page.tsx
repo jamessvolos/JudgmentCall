@@ -66,15 +66,15 @@ export default async function AdminPage({
             { label: "publishable contrasts", value: publishable },
             { label: "low-score judges", value: lowJudges },
           ].map((x) => (
-            <div key={x.label} className="rounded-2xl border border-card-border bg-card px-3 py-4">
+            <div key={x.label} className="rounded-card border border-card-border bg-card px-3 py-4">
               <p className="text-2xl font-bold tabular-nums">{x.value}</p>
               <p className="mt-1 text-xs text-muted">{x.label}</p>
             </div>
           ))}
         </div>
         {/* Votes/day time series */}
-        <section className="mt-6 rounded-2xl border border-card-border bg-card p-5">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
+        <section className="mt-6 rounded-card border border-card-border bg-card p-5">
+          <h2 className="kicker text-muted">
             Public-study votes / day (14d)
           </h2>
           <div className="mt-3 flex items-end gap-1 h-20">
@@ -90,15 +90,15 @@ export default async function AdminPage({
           </div>
         </section>
 
-        <h1 className="mt-8 text-3xl font-bold tracking-tight">The overclaim experiment</h1>
+        <h1 className="mt-8 font-serif font-semibold text-ink-strong text-3xl tracking-tight">The overclaim experiment</h1>
         <p className="mt-2 text-sm text-muted">
           Faithful vs. overclaimed head-to-heads (decided, attention-passing, non-repeat votes
           on fidelity-only contrasts). Does punchy-but-wrong beat accurate-but-hedged? Do not
           publish below n≥{MIN_N} per reported segment.
         </p>
 
-        <section className="mt-6 rounded-2xl border border-card-border bg-card p-5">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">Overall</h2>
+        <section className="mt-6 rounded-card border border-card-border bg-card p-5">
+          <h2 className="kicker text-muted">Overall</h2>
           <p className="mt-2 text-2xl font-bold">
             {o.overall.n === 0 ? (
               "no data yet"
@@ -137,8 +137,8 @@ export default async function AdminPage({
           </div>
         </section>
 
-        <section className="mt-6 rounded-2xl border border-card-border bg-card p-5">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
+        <section className="mt-6 rounded-card border border-card-border bg-card p-5">
+          <h2 className="kicker text-muted">
             Position-bias monitor
           </h2>
           <p className="mt-2 text-sm">
@@ -156,8 +156,8 @@ export default async function AdminPage({
           </p>
         </section>
         {/* Judge-quality panel */}
-        <section className="mt-6 rounded-2xl border border-card-border bg-card p-5">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">Judge quality</h2>
+        <section className="mt-6 rounded-card border border-card-border bg-card p-5">
+          <h2 className="kicker text-muted">Judge quality</h2>
           <p className="mt-2 text-sm">
             Overclaim rate weighted by judge score:{" "}
             <strong>
@@ -177,8 +177,8 @@ export default async function AdminPage({
         </section>
 
         {/* Coverage heatmap */}
-        <section className="mt-6 rounded-2xl border border-card-border bg-card p-5 overflow-x-auto">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
+        <section className="mt-6 rounded-card border border-card-border bg-card p-5 overflow-x-auto">
+          <h2 className="kicker text-muted">
             Coverage heatmap (n / {MIN_N} per segment)
           </h2>
           <table className="mt-3 w-full text-xs">
@@ -218,8 +218,8 @@ export default async function AdminPage({
         </section>
 
         {/* Serving policy editor */}
-        <section className="mt-6 rounded-2xl border border-card-border bg-card p-5">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
+        <section className="mt-6 rounded-card border border-card-border bg-card p-5">
+          <h2 className="kicker text-muted">
             Serving policy <span className="normal-case font-normal">(audited; replay-check with scripts/replay.ts before big changes)</span>
           </h2>
           <form action={updatePolicy} className="mt-3 flex flex-wrap items-end gap-3 text-sm">

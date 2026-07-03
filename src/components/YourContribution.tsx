@@ -53,7 +53,7 @@ export function YourContribution() {
     .filter(Boolean) as { label: string; you: number; crowd: number }[];
   const { counted, excluded } = data.studyContribution;
   return (
-    <div className="mt-4 rounded-xl border border-card-border bg-accent-soft/60 px-4 py-3 text-sm">
+    <div className="mt-4 rounded-card border-l-[3px] border-rule-strong bg-wash px-4 py-3 text-sm">
       <strong>Your contribution:</strong> {data.voteCount}{" "}
       {data.voteCount === 1 ? "call" : "calls"} cast · {counted} counted toward the study
       {excluded > 0 && (

@@ -43,7 +43,7 @@ export default async function ReviewPage({
     <main className="flex-1 px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-2xl">
         <AdminNav active="/admin/review" />
-        <h1 className="text-3xl font-bold tracking-tight">Review generated variants</h1>
+        <h1 className="font-serif font-semibold text-ink-strong text-3xl tracking-tight">Review generated variants</h1>
         <p className="mt-2 text-sm text-muted">
           {pending.length} pending. Check text against the truth summary (claims ledger below
           each variant), verify tags against docs/ATTRIBUTES.md, then approve or reject.
@@ -54,7 +54,7 @@ export default async function ReviewPage({
           {pending.map((v) => {
             const selfCheck = v.selfCheck ? JSON.parse(v.selfCheck) : null;
             return (
-              <div key={v.id} className="rounded-2xl border border-card-border bg-card p-5">
+              <div key={v.id} className="rounded-card border border-card-border bg-card p-5">
                 <p className="text-xs text-muted">
                   {v.finding.title} · truth: {v.finding.truthSummary}
                 </p>
