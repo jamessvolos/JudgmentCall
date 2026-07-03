@@ -101,7 +101,19 @@ export async function GET(request: Request) {
         consensus.majorityWinnerId === c.winnerId;
       goldTotal++;
       if (matched) goldMatched++;
-      calls.push({ ...base, tag: matched ? "CALIBRATION — MATCHED" : "CALIBRATION — MISSED" });
+      calls.push({
+        ...base,
+        tag: matched ? "CALIBRATION — MATCHED" : "CALIBRATION — MISSED",
+        // Settled reads may carry crowd position too (same caliper as taste
+        // tags): your side's share of the room on this pair.
+        crowd: consensus
+          ? {
+              yourPickShare:
+                consensus.majorityWinnerId === c.winnerId ? consensus.share : 1 - consensus.share,
+              n: consensus.n,
+            }
+          : null,
+      });
       continue;
     }
 
