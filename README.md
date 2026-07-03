@@ -184,6 +184,34 @@ where the text, tags, claims ledger, and lints are reviewed side by side. The
 fidelity contrast is up-weighted in matchmaking (its coverage count is halved) so
 the flagship overclaim experiment reaches publishable sample sizes first.
 
+## Learning loop (review, progression, drills)
+
+Chess.com-style feedback, adapted to a blinded preference study:
+
+- **Run review** (`/review`): after each run of 10, every call is tagged — `WITH THE
+  ROOM` / `CONTRARIAN` / `SPLIT ROOM` on contrasts already public at n≥30,
+  `CALIBRATION — MATCHED/MISSED` on gold pairs (settled consensus), and one
+  indistinguishable `STILL COLLECTING` state for everything else. Suppressed craft
+  contrasts, multi-attribute pairs, and every fidelity pair collapse into that same
+  state, so review feedback can never fingerprint the hidden experiment. Taste tags
+  are never right/wrong — grading craft preference would train conformity into the
+  data being measured.
+- **Progression**: an auditable `XpEvent` ledger. Every decided vote earns identical
+  base XP regardless of contrast type (blinding); bonuses reward coverage (first
+  contrast, frontier cells from the latest analysis snapshot), cadence (run complete,
+  first of the day), and drills. Levels: Stringer → Desk Assistant → Beat Reporter →
+  Section Editor → Managing Editor → Editor-in-Chief. XP is cosmetic — analytics
+  never reads it, and there is deliberately no reward for agreeing with the crowd.
+- **Skill**: `Session.judgeAbility` is a Rasch-style rating updated per gold vote
+  against the pair's consensus-margin difficulty (matching a 65/35 lean earns more
+  than a 95/5 landslide). `/drill` is the "spot the overclaim" training room —
+  purpose-built items (never served in the voting pool), immediate feedback with a
+  claims-ledger explanation naming the overclaim device, and a separate Elo rating
+  for judge and item. The only bridge back to the study is the `postDrill` stamp on
+  later comparisons, which gives the fidelity analysis a naive-vs-trained cut
+  (`/admin`) — "does training judges reduce the overclaim win rate?" is itself a
+  publishable finding.
+
 ## Releasing v1
 
 Judgment Call ships as a **website**, not a native app: the audience arrives from a
