@@ -20,8 +20,33 @@ type PairDto = {
   voteCount: number;
 };
 
-// How long the picked-card flash stays on screen before the next pair.
-const FLASH_MS = 160;
+// How long the picked-card stamp stays on screen before the next pair.
+// (Volthaus choreography: press → stamp lands ~250ms → next pair rises.)
+const FLASH_MS = 380;
+
+// Ten tally marks; the newest pops, the 10th beckons at 9/10.
+function TallyMeter({ voteCount, total }: { voteCount: number; total: number }) {
+  const oneMore = voteCount === total - 1;
+  return (
+    <div className="flex items-end gap-[3px] h-4" aria-hidden>
+      {Array.from({ length: total }, (_, i) => {
+        const filled = i < voteCount;
+        const newest = i === voteCount - 1;
+        const beckoning = oneMore && i === total - 1;
+        return (
+          <span
+            key={i}
+            className={`w-[3px] rounded-[1px] ${
+              filled
+                ? `h-4 bg-rule-strong ${newest ? "notch-pop" : ""}`
+                : `h-3 bg-card-border ${beckoning ? "tick-beckon bg-rule-strong" : ""}`
+            }`}
+          />
+        );
+      })}
+    </div>
+  );
+}
 
 function SwipeInner() {
   const router = useRouter();
@@ -173,7 +198,6 @@ function SwipeInner() {
     fetchPair();
   }
 
-  const progress = Math.min(voteCount / RESULTS_AT_VOTES, 1);
   const oneMore = voteCount === RESULTS_AT_VOTES - 1;
 
   return (
@@ -190,12 +214,7 @@ function SwipeInner() {
             <div className="flex items-center gap-3">
               {voteCount < RESULTS_AT_VOTES ? (
                 <>
-                  <div className="h-2 w-32 rounded-full bg-card-border overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out"
-                      style={{ width: `${progress * 100}%` }}
-                    />
-                  </div>
+                  <TallyMeter voteCount={voteCount} total={RESULTS_AT_VOTES} />
                   <p
                     className={`font-mono text-xs tabular-nums ${oneMore ? "text-accent font-semibold" : "text-muted"}`}
                   >
@@ -261,7 +280,7 @@ function SwipeInner() {
                   onClick={() => vote(variant.id)}
                   disabled={submitting}
                   style={{ touchAction: "manipulation" }}
-                  className={`select-none rounded-card border bg-card p-5 sm:p-6 text-left shadow-[var(--shadow-card)] transition-all duration-200 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+                  className={`relative select-none rounded-card border bg-card p-5 sm:p-6 text-left shadow-[var(--shadow-card)] transition-all duration-200 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
                     pickedId === variant.id
                       ? "border-rule-strong scale-[0.99]"
                       : pickedId
@@ -273,6 +292,14 @@ function SwipeInner() {
                   <p className="font-serif text-[1.1875rem] leading-[1.58] text-ink-strong text-pretty">
                     {variant.text}
                   </p>
+                  {pickedId === variant.id && (
+                    <span
+                      aria-hidden
+                      className="stamp-in absolute right-3 top-3 rounded-chip border-2 border-rule-strong px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-[0.18em] text-rule-strong"
+                    >
+                      LOGGED
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
