@@ -15,11 +15,20 @@ export type ComparisonWithVariants = Comparison & { variantA: Variant; variantB:
 // ---------------------------------------------------------------------------
 // Sessions
 
-export async function upsertSession(id: string, segment: Segment): Promise<Session> {
+export async function upsertSession(
+  id: string,
+  segment: Segment,
+  funnel?: { referrer?: string | null; utmSource?: string | null }
+): Promise<Session> {
   return prisma.session.upsert({
     where: { id },
-    create: { id, segment },
-    update: { segment }, // re-picking a segment on the landing page just retags
+    create: {
+      id,
+      segment,
+      referrer: funnel?.referrer ?? null,
+      utmSource: funnel?.utmSource ?? null,
+    },
+    update: { segment }, // re-picking a segment just retags; funnel fields keep first-touch values
   });
 }
 
@@ -41,7 +50,11 @@ export async function getFindingComparisonCounts(): Promise<{ findingId: string;
 export async function getFindingWithVariants(
   findingId: string
 ): Promise<(Finding & { variants: Variant[] }) | null> {
-  return prisma.finding.findUnique({ where: { id: findingId }, include: { variants: true } });
+  // Only approved variants are ever served (M2 review gate; seeds default approved).
+  return prisma.finding.findUnique({
+    where: { id: findingId },
+    include: { variants: { where: { status: "approved" } } },
+  });
 }
 
 /** Unordered pair keys ("idA|idB", ids sorted) this session has already been shown. */
@@ -72,6 +85,9 @@ export type VoteInput = {
   contrastAttrs: string;
   latencyMs: number;
   lowAttention: boolean;
+  isRepeat: boolean;
+  ipHash: string | null;
+  userAgent: string | null;
 };
 
 /**
@@ -92,6 +108,9 @@ export async function recordVote(input: VoteInput): Promise<{ voteCount: number 
         contrastAttrs: input.contrastAttrs,
         latencyMs: input.latencyMs,
         lowAttention: input.lowAttention,
+        isRepeat: input.isRepeat,
+        ipHash: input.ipHash,
+        userAgent: input.userAgent,
       },
     });
 
@@ -132,6 +151,42 @@ export async function getSessionComparisons(sessionId: string): Promise<Comparis
     include: { variantA: true, variantB: true },
     orderBy: { createdAt: "asc" },
   });
+}
+
+/** Integrity reads for the vote route: rate limit + can't-decide throttle. */
+export async function getRecentVoteStats(
+  sessionId: string,
+  windowSize: number
+): Promise<{ votesLastMinute: number; recentWinners: (string | null)[] }> {
+  const oneMinuteAgo = new Date(Date.now() - 60_000);
+  const [votesLastMinute, recent] = await Promise.all([
+    prisma.comparison.count({ where: { sessionId, createdAt: { gte: oneMinuteAgo } } }),
+    prisma.comparison.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: "desc" },
+      take: windowSize,
+      select: { winnerId: true },
+    }),
+  ]);
+  return { votesLastMinute, recentWinners: recent.map((r) => r.winnerId) };
+}
+
+/** Has this session already voted on this (unordered) pair? */
+export async function hasSeenPair(
+  sessionId: string,
+  variantAId: string,
+  variantBId: string
+): Promise<boolean> {
+  const count = await prisma.comparison.count({
+    where: {
+      sessionId,
+      OR: [
+        { variantAId, variantBId },
+        { variantAId: variantBId, variantBId: variantAId },
+      ],
+    },
+  });
+  return count > 0;
 }
 
 /** Sanity helper for the vote route: both variants, verified to share a finding. */

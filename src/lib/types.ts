@@ -82,9 +82,36 @@ export const VALUE_LABELS: Record<string, string> = {
   overclaimed: "punchy-but-overclaimed",
 };
 
+export const VARIANT_STATUSES = ["pending", "approved", "rejected"] as const;
+export type VariantStatus = (typeof VARIANT_STATUSES)[number];
+export const VARIANT_SOURCES = ["seed", "generated"] as const;
+export type VariantSource = (typeof VARIANT_SOURCES)[number];
+
+// ---------------------------------------------------------------------------
+// Canonical tokenization for length bands. Seed validation, the M2 generation
+// validator, and the admin screen MUST all use these — divergent word counting
+// is the #1 source of spurious tag mismatches.
+
+/** A word is any whitespace-separated token containing a letter or digit ("$2.84B" is one word). */
+export function wordCount(text: string): number {
+  return text.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length;
+}
+
+/** short <20 words, medium 20–45, long >45. */
+export function bandFor(words: number): LengthBand {
+  return words < 20 ? "short" : words <= 45 ? "medium" : "long";
+}
+
 // Votes faster than this are flagged lowAttention (still counted in Elo,
 // excludable in analytics later).
 export const LOW_ATTENTION_MS = 800;
+
+// Integrity limits (spec §9): hard cap on vote rate per session, and a
+// "can't decide" throttle — more than 2 of the last 5 votes undecided forces
+// a pick on the next one.
+export const MAX_VOTES_PER_MINUTE = 30;
+export const CANT_DECIDE_WINDOW = 5;
+export const CANT_DECIDE_MAX_IN_WINDOW = 2;
 
 // Personal results card unlocks after this many votes.
 export const RESULTS_AT_VOTES = 10;

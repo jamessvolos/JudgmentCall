@@ -35,6 +35,10 @@ model Variant {
   quantification  String // precise | rounded | qualitative
   soWhat          String // explicit | implied
   fidelity        String  @default("faithful") // faithful | overclaimed (hidden experiment flag)
+  status          String  @default("approved") // pending | approved | rejected (M2 review gate; only approved is served)
+  source          String  @default("seed") // seed | generated
+  version         Int     @default(1) // variant text is immutable once voted on; edits create a new version
+  selfCheck       String? // JSON claims ledger from the generation self-check (M2)
   elo             Float   @default(1200)
   wins            Int     @default(0)
   losses          Int     @default(0)
@@ -56,12 +60,18 @@ model Comparison {
   variantBId   String
   winner       Variant? @relation("winner", fields: [winnerId], references: [id])
   winnerId     String? // null = "can't decide"
+  // POSITION INVARIANT: variantA is ALWAYS rendered left (desktop) / top (mobile).
+  // The server randomizes which variant lands in slot A, so position bias is
+  // measurable as variantA's overall win rate vs 50%.
   session      Session  @relation(fields: [sessionId], references: [id])
   sessionId    String
   segment      String // denormalized from session for easy analytics cuts
   contrastAttrs String // comma-joined sorted attribute keys the pair differed on, e.g. "leadType"
   latencyMs    Int
   lowAttention Boolean  @default(false) // latencyMs < 800; included in Elo, excludable in analytics
+  isRepeat     Boolean  @default(false) // session saw this pair before (exhaustion fallback); non-independent, exclude from analytics
+  ipHash       String? // salted SHA-256 of client IP — sybil forensics only, never reversible
+  userAgent    String?
   createdAt    DateTime @default(now())
 
   @@index([sessionId])
@@ -71,6 +81,8 @@ model Comparison {
 model Session {
   id          String       @id // client-generated UUID (localStorage)
   segment     String // executive | analyst | data_leader | other
+  referrer    String? // document.referrer at landing, for share-loop attribution
+  utmSource   String? // ?utm_source= at landing
   voteCount   Int          @default(0)
   createdAt   DateTime     @default(now())
   comparisons Comparison[]

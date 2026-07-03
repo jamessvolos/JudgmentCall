@@ -42,6 +42,7 @@ export async function computePersonalResults(sessionId: string): Promise<Persona
 
   for (const c of comparisons) {
     if (!c.winnerId) continue;
+    if (c.isRepeat) continue; // non-independent — the session already judged this pair
     const attrs = c.contrastAttrs.split(",").filter(Boolean) as AttributeKey[];
     if (attrs.length !== 1) continue;
     const attr = attrs[0];

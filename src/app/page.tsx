@@ -25,7 +25,12 @@ export default function Landing() {
       const res = await fetch("/api/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: getOrCreateSessionId(), segment }),
+        body: JSON.stringify({
+          sessionId: getOrCreateSessionId(),
+          segment,
+          referrer: document.referrer || null,
+          utmSource: new URLSearchParams(window.location.search).get("utm_source"),
+        }),
       });
       if (!res.ok) throw new Error(`session failed (${res.status})`);
       router.push("/swipe");

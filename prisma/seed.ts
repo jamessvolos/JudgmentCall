@@ -19,6 +19,14 @@
 import { PrismaClient } from "@prisma/client";
 import {
   ATTRIBUTE_KEYS,
+  CAVEAT_PLACEMENTS,
+  FIDELITIES,
+  LEAD_TYPES,
+  LENGTH_BANDS,
+  QUANTIFICATIONS,
+  SO_WHATS,
+  bandFor,
+  wordCount,
   type AttributeProfile,
   type Domain,
 } from "../src/lib/types";
@@ -226,7 +234,7 @@ const findings: SeedFinding[] = [
       },
       {
         // Δ caveatPlacement
-        text: "Gross margin fell nearly two points to about 31% in Q4 on markdowns and freight, yet EPS of roughly $1.40 still beat guidance. Focus pricing reviews on markdown depth, since freight costs are largely outside merchandising's control.",
+        text: "Gross margin fell nearly two points to about 31% in Q4 on markdowns and freight, yet EPS of roughly $1.40 still beat guidance. Focus pricing reviews on markdown depth, and track whether freight costs keep climbing next quarter.",
         leadType: "number_first",
         lengthBand: "medium",
         caveatPlacement: "omitted",
@@ -625,10 +633,20 @@ const findings: SeedFinding[] = [
 
 // ---------------------------------------------------------------------------
 // Tag validation — the tags are the product; fail loudly if any are wrong.
+// Shared with the M2 generation validator: same rules, same tokenization
+// (wordCount/bandFor live in src/lib/types.ts).
 
-function wordCount(text: string): number {
-  // Count alphanumeric tokens; standalone punctuation (em-dashes etc.) doesn't count.
-  return text.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length;
+const ENUMS: Record<(typeof ATTRIBUTE_KEYS)[number], readonly string[]> = {
+  leadType: LEAD_TYPES,
+  lengthBand: LENGTH_BANDS,
+  caveatPlacement: CAVEAT_PLACEMENTS,
+  quantification: QUANTIFICATIONS,
+  soWhat: SO_WHATS,
+  fidelity: FIDELITIES,
+};
+
+function profileKey(v: AttributeProfile): string {
+  return ATTRIBUTE_KEYS.map((k) => v[k]).join("|");
 }
 
 function validate(): void {
@@ -637,16 +655,39 @@ function validate(): void {
     if (f.variants.length !== 6) {
       errors.push(`${f.title}: expected 6 variants, got ${f.variants.length}`);
     }
-    const overclaims = f.variants.filter((v) => v.fidelity === "overclaimed").length;
-    if (overclaims !== 1) {
-      errors.push(`${f.title}: expected exactly 1 overclaimed variant, got ${overclaims}`);
+    const overclaims = f.variants.filter((v) => v.fidelity === "overclaimed");
+    if (overclaims.length !== 1) {
+      errors.push(`${f.title}: expected exactly 1 overclaimed variant, got ${overclaims.length}`);
+    }
+    // The overclaimed variant must pair with some faithful variant on a
+    // fidelity-ONLY contrast — that head-to-head is the flagship experiment.
+    for (const oc of overclaims) {
+      const hasCleanPair = f.variants.some(
+        (v) =>
+          v.fidelity === "faithful" &&
+          ATTRIBUTE_KEYS.filter((k) => v[k] !== oc[k]).length === 1
+      );
+      if (!hasCleanPair) {
+        errors.push(`${f.title}: overclaimed variant has no fidelity-only contrast pair`);
+      }
+    }
+    // No two variants may share a full attribute profile.
+    const profiles = new Set<string>();
+    for (const v of f.variants) {
+      const key = profileKey(v);
+      if (profiles.has(key)) errors.push(`${f.title}: duplicate attribute profile ${key}`);
+      profiles.add(key);
     }
     f.variants.forEach((v, i) => {
+      for (const k of ATTRIBUTE_KEYS) {
+        if (!ENUMS[k].includes(v[k])) {
+          errors.push(`${f.title} variant ${i + 1}: invalid ${k} value "${v[k]}"`);
+        }
+      }
       const words = wordCount(v.text);
-      const band = words < 20 ? "short" : words <= 45 ? "medium" : "long";
-      if (band !== v.lengthBand) {
+      if (bandFor(words) !== v.lengthBand) {
         errors.push(
-          `${f.title} variant ${i + 1}: tagged ${v.lengthBand} but has ${words} words (${band})`
+          `${f.title} variant ${i + 1}: tagged ${v.lengthBand} but has ${words} words (${bandFor(words)})`
         );
       }
     });

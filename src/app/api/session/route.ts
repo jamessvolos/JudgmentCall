@@ -8,6 +8,8 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const sessionId = body?.sessionId;
   const segment = body?.segment;
+  const referrer = typeof body?.referrer === "string" ? body.referrer.slice(0, 256) : null;
+  const utmSource = typeof body?.utmSource === "string" ? body.utmSource.slice(0, 64) : null;
 
   if (typeof sessionId !== "string" || sessionId.length < 8 || sessionId.length > 64) {
     return NextResponse.json({ error: "invalid sessionId" }, { status: 400 });
@@ -16,7 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid segment" }, { status: 400 });
   }
 
-  const session = await upsertSession(sessionId, segment);
+  const session = await upsertSession(sessionId, segment, { referrer, utmSource });
   return NextResponse.json({
     sessionId: session.id,
     segment: session.segment,
