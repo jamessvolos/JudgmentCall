@@ -7,13 +7,15 @@ import {
   hasSeenPair,
   recordVote,
 } from "@/lib/repo";
-import { contrastKey } from "@/lib/matchmaking";
+import { contrastKey, selectPair, serializePair } from "@/lib/matchmaking";
+import { levelFor } from "@/lib/progression";
 import {
   attributeDiff,
   CANT_DECIDE_MAX_IN_WINDOW,
   CANT_DECIDE_WINDOW,
   LOW_ATTENTION_MS,
   MAX_VOTES_PER_MINUTE,
+  RESULTS_AT_VOTES,
   type AttributeProfile,
   type Segment,
 } from "@/lib/types";
@@ -45,13 +47,14 @@ function hashIp(request: Request): string | null {
 //   rejected with code "cant_decide_throttled" (the client asks for a pick).
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  const { sessionId, variantAId, variantBId, winnerId, latencyMs } = body ?? {};
+  const { sessionId, variantAId, variantBId, winnerId, latencyMs, clientVoteId } = body ?? {};
 
   if (
     typeof sessionId !== "string" ||
     typeof variantAId !== "string" ||
     typeof variantBId !== "string" ||
-    (winnerId !== null && winnerId !== variantAId && winnerId !== variantBId)
+    (winnerId !== null && winnerId !== variantAId && winnerId !== variantBId) ||
+    (clientVoteId !== undefined && clientVoteId !== null && typeof clientVoteId !== "string")
   ) {
     return NextResponse.json({ error: "invalid vote payload" }, { status: 400 });
   }
@@ -92,21 +95,62 @@ export async function POST(request: Request) {
 
   const latency = Number.isFinite(latencyMs) ? Math.max(0, Math.round(latencyMs)) : 0;
 
-  const result = await recordVote({
-    sessionId,
-    segment: session.segment as Segment,
-    findingId: pair.a.findingId,
-    deckId: pair.a.finding.deckId,
-    variantAId,
-    variantBId,
-    winnerId,
-    contrastAttrs,
-    latencyMs: latency,
-    lowAttention: latency < LOW_ATTENTION_MS,
-    isRepeat,
-    ipHash: hashIp(request),
-    userAgent: request.headers.get("user-agent")?.slice(0, 256) ?? null,
-  });
+  let result;
+  try {
+    result = await recordVote({
+      sessionId,
+      segment: session.segment as Segment,
+      findingId: pair.a.findingId,
+      deckId: pair.a.finding.deckId,
+      variantAId,
+      variantBId,
+      winnerId,
+      contrastAttrs,
+      latencyMs: latency,
+      lowAttention: latency < LOW_ATTENTION_MS,
+      isRepeat,
+      ipHash: hashIp(request),
+      userAgent: request.headers.get("user-agent")?.slice(0, 256) ?? null,
+      clientVoteId: typeof clientVoteId === "string" ? clientVoteId : null,
+    });
+  } catch (e) {
+    // A retried or double-tapped vote carries the same clientVoteId; the
+    // unique index rejects the second insert (P2002) and the whole settle
+    // rolls back. Return the session's current state so the client advances
+    // exactly once — no double Elo, no double XP, no second row.
+    if (e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002") {
+      const s = await getSession(sessionId);
+      const nextPair =
+        s && s.voteCount !== RESULTS_AT_VOTES
+          ? await selectPair(sessionId, pair.a.finding.deckId).then((p) =>
+              p ? serializePair(p, s.voteCount) : null
+            )
+          : null;
+      return NextResponse.json({
+        voteCount: s?.voteCount ?? 0,
+        xp: s?.xp ?? 0,
+        xpGained: [],
+        level: levelFor(s?.xp ?? 0),
+        leveledUp: false,
+        duplicate: true,
+        nextPair,
+      });
+    }
+    throw e;
+  }
+
+  // Inline the next pair so the hot loop is ONE round-trip, not two: the vote
+  // records the current pair (so the no-repeat matchmaker won't re-serve it),
+  // then the same handler matchmakes the next one. Skipped only at the 10-vote
+  // milestone, where the client shows the results interstitial instead of a
+  // pair. Selection is identical to /api/pair (same serializer) — no blinding
+  // surface changes, tags still never ship.
+  const nextPair =
+    result.voteCount === RESULTS_AT_VOTES
+      ? null
+      : await selectPair(sessionId, pair.a.finding.deckId).then((p) =>
+          p ? serializePair(p, result.voteCount) : null
+        );
 
   // Progression payload is deliberately generic: kinds + amounts only, never
   // attribute names — the reward stream must not fingerprint any contrast.
@@ -116,5 +160,6 @@ export async function POST(request: Request) {
     xpGained: result.xpGained,
     level: result.level,
     leveledUp: result.leveledUp,
+    nextPair,
   });
 }

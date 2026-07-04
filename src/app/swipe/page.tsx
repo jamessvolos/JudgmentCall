@@ -68,8 +68,26 @@ function SwipeInner() {
   const snippetRef = useRef<HTMLParagraphElement | null>(null);
   const fastKeyHinted = useRef(false);
   const renderedAt = useRef(0);
+  const voteIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Swap a matchmade pair into view. Used both by the cold GET (fetchPair) and
+  // by the pair returned inline on the vote response (the hot path), so the
+  // two entry points render identically.
+  const applyPair = useCallback((data: PairDto) => {
+    withViewTransition(() => {
+      setPair(data);
+      setPickedId(null);
+      setSnippetExpanded(false);
+      setVoteCount(data.voteCount);
+    });
+    renderedAt.current = nowMs();
+    // Fresh idempotency key per rendered pair: a retry or double-tap of THIS
+    // pair carries the same id, so the server settles it exactly once.
+    voteIdRef.current =
+      typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${renderedAt.current}`;
+  }, []);
 
   const fetchPair = useCallback(async () => {
     const sessionId = sessionIdRef.current;
@@ -81,17 +99,11 @@ function SwipeInner() {
       );
       if (!res.ok) throw new Error(`pair failed (${res.status})`);
       const data: PairDto = await res.json();
-      withViewTransition(() => {
-        setPair(data);
-        setPickedId(null);
-        setSnippetExpanded(false);
-        setVoteCount(data.voteCount);
-      });
-      renderedAt.current = nowMs();
+      applyPair(data);
     } catch {
       setError("Couldn't load the next pair.");
     }
-  }, [deck]);
+  }, [deck, applyPair]);
 
   useEffect(() => {
     const el = snippetRef.current;
@@ -155,6 +167,11 @@ function SwipeInner() {
     setSubmitting(true);
     setError(null);
     if (winnerId) setPickedId(winnerId);
+    // Start the stamp-dwell timer NOW, in parallel with the vote round-trip,
+    // so the LOGGED animation hides the network latency instead of running
+    // after it. Perceived gap tap→next pair becomes max(flash, network), not
+    // their sum.
+    const flash = winnerId ? new Promise((r) => setTimeout(r, FLASH_MS)) : null;
     const latencyMs = Math.round(nowMs() - renderedAt.current);
     try {
       const res = await fetch("/api/vote", {
@@ -166,6 +183,7 @@ function SwipeInner() {
           variantBId: pair.variantB.id,
           winnerId,
           latencyMs,
+          clientVoteId: voteIdRef.current,
         }),
       });
       if (res.status === 429) {
@@ -182,8 +200,9 @@ function SwipeInner() {
       const data = await res.json();
       setVoteCount(data.voteCount);
       setLiveMessage(`Vote saved. ${data.voteCount} votes so far.`);
-      // Let the confirmation flash land before the pair swaps.
-      if (winnerId) await new Promise((r) => setTimeout(r, FLASH_MS));
+      // Await whatever remains of the stamp dwell (usually already elapsed,
+      // since it ran alongside the request) before the pair swaps.
+      if (flash) await flash;
       if (data.voteCount === RESULTS_AT_VOTES) {
         await showResults(); // the milestone interstitial
       } else {
@@ -195,7 +214,10 @@ function SwipeInner() {
         } else if (data.voteCount > RESULTS_AT_VOTES && data.voteCount % 10 === 0) {
           flashNotice(`${data.voteCount} calls — run complete. Review it from your results.`);
         }
-        await fetchPair();
+        // The vote response already carries the next pair (one round-trip for
+        // the whole loop); fall back to a cold fetch only if it didn't.
+        if (data.nextPair) applyPair(data.nextPair as PairDto);
+        else await fetchPair();
       }
     } catch {
       setPickedId(null);

@@ -82,6 +82,7 @@ model Comparison {
   deckId       String? // BYO-data deck scope; null = the public study
   ipHash       String? // salted SHA-256 of client IP — sybil forensics only, never reversible
   userAgent    String?
+  clientVoteId String?  @unique // uuid stamped per pair render; makes a retried/double-tapped vote a server-side no-op
   createdAt    DateTime @default(now())
 
   @@index([sessionId])

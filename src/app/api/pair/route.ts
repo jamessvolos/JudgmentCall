@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDeckBySlug, getSession } from "@/lib/repo";
-import { selectPair } from "@/lib/matchmaking";
+import { selectPair, serializePair } from "@/lib/matchmaking";
 
 // GET /api/pair?sessionId=... — matchmake the next pair for this session.
 //
@@ -31,17 +31,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "no pairs available" }, { status: 503 });
   }
 
-  return NextResponse.json({
-    finding: {
-      id: pair.finding.id,
-      title: pair.finding.title,
-      domain: pair.finding.domain,
-      contextSnippet: pair.finding.contextSnippet,
-      sourceLabel: pair.finding.sourceLabel,
-      sourceUrl: pair.finding.sourceUrl,
-    },
-    variantA: { id: pair.variantA.id, text: pair.variantA.text },
-    variantB: { id: pair.variantB.id, text: pair.variantB.text },
-    voteCount: session.voteCount,
-  });
+  return NextResponse.json(serializePair(pair, session.voteCount));
 }

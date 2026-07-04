@@ -31,6 +31,39 @@ export function pairKey(idA: string, idB: string): string {
   return [idA, idB].sort().join("|");
 }
 
+// The client-facing pair shape — ONLY id + text per variant (tags, and above
+// all the hidden fidelity flag, never reach the client). Shared by /api/pair
+// and the inline next-pair on /api/vote so the two can never diverge.
+export type PairDto = {
+  finding: {
+    id: string;
+    title: string;
+    domain: string;
+    contextSnippet: string;
+    sourceLabel: string;
+    sourceUrl: string | null;
+  };
+  variantA: { id: string; text: string };
+  variantB: { id: string; text: string };
+  voteCount: number;
+};
+
+export function serializePair(pair: SelectedPair, voteCount: number): PairDto {
+  return {
+    finding: {
+      id: pair.finding.id,
+      title: pair.finding.title,
+      domain: pair.finding.domain,
+      contextSnippet: pair.finding.contextSnippet,
+      sourceLabel: pair.finding.sourceLabel,
+      sourceUrl: pair.finding.sourceUrl,
+    },
+    variantA: { id: pair.variantA.id, text: pair.variantA.text },
+    variantB: { id: pair.variantB.id, text: pair.variantB.text },
+    voteCount,
+  };
+}
+
 export function contrastKey(attrs: AttributeKey[]): string {
   return [...attrs].sort().join(",");
 }

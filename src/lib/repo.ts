@@ -191,6 +191,7 @@ export type VoteInput = {
   isRepeat: boolean;
   ipHash: string | null;
   userAgent: string | null;
+  clientVoteId: string | null; // per-render uuid; a duplicate insert (retry/double-tap) is rejected by the unique index
 };
 
 export type VoteResult = {
@@ -290,10 +291,14 @@ export async function recordVote(input: VoteInput): Promise<VoteResult> {
         postDrill: before.drillCount > 0,
         ipHash: input.ipHash,
         userAgent: input.userAgent,
+        clientVoteId: input.clientVoteId,
       },
     });
 
-    if (input.winnerId) {
+    // Repeats are non-independent (exhaustion fallback or a double-tap) — they
+    // are logged for the seen-set but must not move ratings, matching their
+    // exclusion from analytics and XP. Only clean decided votes touch Elo.
+    if (input.winnerId && !input.isRepeat) {
       const loserId = input.winnerId === input.variantAId ? input.variantBId : input.variantAId;
       const [winner, loser] = await Promise.all([
         tx.variant.findUniqueOrThrow({ where: { id: input.winnerId } }),
