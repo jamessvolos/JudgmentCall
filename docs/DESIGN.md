@@ -54,6 +54,42 @@ section label), `.double-rule` (2px + offset 1px — the signature mark).
 - **Dot-leader index lines** (poster): mono attr · serif value · dotted
   leader · `n/n`.
 
+## The alive layer (2026-07 direction shift)
+
+The Desk Edition's information design stays; its *atmosphere* got voltage.
+Three additions, all environmental, none allowed near an instrument:
+
+- **Night desk palette**: dark mode drops warm paper for a deep cool blue
+  (`oklch(0.168 0.016 265)` field) with an electric accent — same rules,
+  higher contrast. Light mode remains paper.
+- **Grain** (`body::after`): one static SVG-noise sheet at 5–7% opacity over
+  every page, so flat fills read as stock. Static by design; hidden in print.
+- **Aurora** (`.aurora`): three blurred light fields drifting on a 26s
+  pendulum behind the landing hero. This is the ONE sanctioned loop in the
+  system — it is weather, not signal. It never appears on `/swipe`, `/drill`,
+  `/review`, `/results` or any surface carrying data, and it dies under
+  reduced-motion (static gradient remains) and in print.
+- **Gradient ink** (`.ink-gradient`): display type only (the hero's key
+  phrase) — never body copy, never a number.
+- **CTA glow** (`.cta-glow`): the one primary action per page may glow;
+  nothing else does.
+
+This direction is provisional: the target reference (jamessvolos.com/about)
+is unreachable from the build environment — tune against it when available.
+
+## The House View (opinionated by design)
+
+The desk registers one dated call per craft contrast in
+`src/lib/house-view.ts` (13 total). Calls are frozen once made — changing one
+requires a new dated entry. `/results#house-view` renders each beside its
+caliper with the room's live verdict (`ROOM CONCURS` accent / `ROOM
+OVERRULES` danger / `TOO CLOSE TO CALL` / `JURY'S OUT` muted). In run review
+the desk appears only on calls that already carry a published crowd tag
+(blinding: no new payload classes), speaks in first person ("THE DESK
+CONCURS." / "YOU OVERRULED THE DESK — …"), and is always framed as
+concurrence, never correctness. Craft only — the desk has no stance on the
+hidden experiment, ever.
+
 ## Motion (all CSS, all behind `prefers-reduced-motion`)
 
 Tokens: `--t-fast` 120ms (hovers, ticks) · `--t-base` 240ms (entrances) ·

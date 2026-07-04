@@ -13,12 +13,14 @@ type ReviewCall = {
   excluded: boolean;
   tag: string;
   crowd: { yourPickShare: number; n: number } | null;
+  desk: { pick: string; agreed: boolean; line: string } | null;
 };
 
 type ReviewDto = {
   runSize: number;
   calls: ReviewCall[];
   accuracy: { matched: number; total: number } | null;
+  deskAlignment: { agreed: number; total: number } | null;
   divergence: {
     attributeLabel: string;
     valueLabel: string;
@@ -26,6 +28,7 @@ type ReviewDto = {
     segment: number;
     segmentN: number;
     lesson: string;
+    desk: { pickLabel: string; line: string; youAgree: boolean } | null;
   } | null;
   learned: { valueALabel: string; valueBLabel: string; rateA: number; n: number }[];
   minN: number;
@@ -41,6 +44,15 @@ type ReviewDto = {
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const frame = (i: number, total: number) =>
   `${String(i + 1).padStart(2, "0")}/${String(total).padStart(2, "0")}`;
+
+// Editorial voice on the chips. API tag values are the contract (logic keys
+// off them); this map is purely how the desk says them out loud.
+const TAG_DISPLAY: Record<string, string> = {
+  "WITH THE ROOM": "WITH THE ROOM",
+  CONTRARIAN: "AGAINST THE GRAIN",
+  "SPLIT ROOM": "HUNG JURY",
+  "STILL COLLECTING": "JURY'S STILL OUT",
+};
 
 // The room caliper: same grammar as /results — ticked 0–100% scale, strong
 // 50% null line, Wilson bracket, point at your pick's share of the room.
@@ -96,7 +108,7 @@ function VerdictStamp({ matched }: { matched: boolean }) {
         matched ? "border-accent text-accent" : "border-danger text-danger"
       }`}
     >
-      {matched ? "MATCHED" : "MISSED"}
+      {matched ? "SHARP CALL" : "BLOWN CALL"}
     </span>
   );
 }
@@ -176,17 +188,18 @@ export default function ReviewPage() {
           <>
             <div className="rise" style={{ "--i": 0 } as React.CSSProperties}>
               <h1 className="mt-4 font-serif font-semibold text-ink-strong text-3xl tracking-tight text-balance">
-                Your last {data.runSize === 1 ? "call" : `${data.runSize} calls`}, reviewed
+                Your last {data.runSize === 1 ? "call" : `${data.runSize} calls`}, on the record
               </h1>
               <p className="mt-2 text-sm text-muted">
-                Taste, not test — craft calls have no right answer. Calibration checks are the
-                exception: those pairs have a settled read.
+                Craft calls have no right answer — that&apos;s the study. But nothing here is
+                neutral: settled reads get graded, the room weighs in where it has ruled, and the
+                desk&apos;s own calls are on the record for you to overrule.
               </p>
             </div>
 
-            {/* The instrument bar: calibration tally + standing. */}
+            {/* The instrument bar: calibration tally + desk alignment + standing. */}
             <div
-              className="rise mt-5 rounded-card border border-card-border bg-card grid grid-cols-1 divide-y sm:grid-cols-2 sm:divide-x sm:divide-y-0 divide-card-border"
+              className="rise mt-5 rounded-card border border-card-border bg-card grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0 divide-card-border"
               style={{ "--i": 1 } as React.CSSProperties}
             >
               <div className="px-4 py-3">
@@ -229,6 +242,32 @@ export default function ReviewPage() {
                   </p>
                 )}
               </div>
+              {/* Desk alignment is concurrence, not correctness — ink, no
+                  accent, no danger. The desk is an opinion you can overrule. */}
+              <div className="px-4 py-3">
+                <p className="kicker text-muted">Vs. the desk</p>
+                {data.deskAlignment ? (
+                  <>
+                    <p className="mt-1.5 font-mono text-2xl font-semibold tabular-nums">
+                      {data.deskAlignment.agreed}/{data.deskAlignment.total}
+                    </p>
+                    <p className="mt-1 font-mono text-[0.6875rem] text-muted">
+                      {data.deskAlignment.agreed === data.deskAlignment.total
+                        ? "sided with the desk on every ruled call"
+                        : data.deskAlignment.agreed === 0
+                          ? "overruled the desk every time — noted"
+                          : "calls where you sided with the desk"}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-1.5 font-mono text-[0.6875rem] text-muted">
+                    The desk has its calls on record — the room hasn&apos;t ruled on yours yet.{" "}
+                    <Link href="/results#house-view" className="text-accent hover:underline">
+                      Read them →
+                    </Link>
+                  </p>
+                )}
+              </div>
               {/* Standing stays ink on purpose: XP rewards volume and coverage,
                   never judgment — press blue is reserved for graded surfaces. */}
               <div className="px-4 py-3">
@@ -253,8 +292,8 @@ export default function ReviewPage() {
               className="rise mt-2 font-mono text-[0.6875rem] text-muted"
               style={{ "--i": 2 } as React.CSSProperties}
             >
-              dot = your pick&apos;s share of the room · 50% line = split · hatched = still
-              collecting · stamps are graded
+              dot = your pick&apos;s share of the room · 50% line = split · hatched = jury&apos;s
+              still out · stamps are graded
             </p>
 
             {/* Keepers: the calls that carry information. */}
@@ -277,7 +316,7 @@ export default function ReviewPage() {
                       <VerdictStamp matched={call.tag.endsWith("MATCHED")} />
                     ) : (
                       <span className="rounded-chip border border-rule-strong px-1.5 py-px font-mono text-[10px] font-semibold tracking-[0.14em] text-ink-strong">
-                        {call.tag}
+                        {TAG_DISPLAY[call.tag] ?? call.tag}
                       </span>
                     )}
                   </div>
@@ -295,6 +334,27 @@ export default function ReviewPage() {
                       caption={`your pick · ${pct(call.crowd.yourPickShare)} of room · ${"n="}${call.crowd.n}`}
                     />
                   )}
+                  {/* The desk talks back — one line, only where it has a
+                      registered call. It defends itself when overruled and
+                      keeps it short when you agree. */}
+                  {call.desk && (
+                    <p className="mt-2 font-mono text-[0.6875rem] leading-relaxed text-muted">
+                      {call.desk.agreed ? (
+                        <>
+                          <span className="font-semibold tracking-[0.14em] text-ink-strong">
+                            THE DESK CONCURS.
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-semibold tracking-[0.14em] text-ink-strong">
+                            YOU OVERRULED THE DESK
+                          </span>{" "}
+                          <span className="font-sans italic">— &ldquo;{call.desk.line}&rdquo;</span>
+                        </>
+                      )}
+                    </p>
+                  )}
                 </div>
               ))}
 
@@ -308,7 +368,7 @@ export default function ReviewPage() {
                       {frame(i, data.runSize)}
                     </p>
                     <span className="rounded-chip border border-card-border px-1.5 py-px font-mono text-[10px] font-semibold tracking-[0.14em] text-muted">
-                      STILL COLLECTING
+                      JURY&apos;S STILL OUT
                     </span>
                   </div>
                   <p className="mt-2 font-serif text-[0.9375rem] leading-relaxed text-ink-strong line-clamp-2 text-pretty">
@@ -332,8 +392,8 @@ export default function ReviewPage() {
                     <p key={i} className="py-2.5 font-mono text-xs text-muted tabular-nums">
                       {String(i + 1).padStart(2, "0")} ·{" "}
                       {call.tag === "PASSED"
-                        ? "PASSED — logged, no read"
-                        : "EXCLUDED — under 0.8s or a repeat"}
+                        ? "NO CALL — you passed; logged, not judged"
+                        : "OFF THE RECORD — under 0.8s or a repeat"}
                     </p>
                   ))}
                 </div>
@@ -356,6 +416,22 @@ export default function ReviewPage() {
                 <p className="mt-2 text-sm leading-relaxed text-muted text-pretty">
                   {data.divergence.lesson}
                 </p>
+                {data.divergence.desk && (
+                  <p className="mt-2 text-sm leading-relaxed text-pretty">
+                    <span className="font-mono text-[10px] font-semibold tracking-[0.14em] text-ink-strong">
+                      FOR THE RECORD:{" "}
+                    </span>
+                    the desk&apos;s registered call here is{" "}
+                    <strong>{data.divergence.desk.pickLabel}</strong>
+                    <span className="text-muted">
+                      {" "}
+                      — &ldquo;{data.divergence.desk.line}&rdquo;{" "}
+                      {data.divergence.desk.youAgree
+                        ? "You and the desk are aligned; it's your segment that's out of step."
+                        : "You're overruling the desk on this one. One of you is early."}
+                    </span>
+                  </p>
+                )}
               </section>
             )}
 
@@ -393,6 +469,10 @@ export default function ReviewPage() {
                   {p.drillRating !== null && (
                     <span className="text-muted"> · rating {p.drillRating}</span>
                   )}
+                </Link>
+                <span className="text-muted"> · </span>
+                <Link href="/results#house-view" className="text-accent hover:underline">
+                  The desk&apos;s 13 calls, on the record
                 </Link>
               </p>
             </div>

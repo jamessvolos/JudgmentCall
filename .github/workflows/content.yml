@@ -9,8 +9,8 @@ on:
   workflow_dispatch:
     inputs:
       sec_ciks:
-        description: "Space-separated SEC CIKs to ingest (default: Apple, Microsoft, Alphabet)"
-        default: "0000320193 0000789019 0001652044"
+        description: "Space-separated SEC CIKs to ingest (default: Apple, Microsoft, Alphabet, NVIDIA, Amazon, Walmart)"
+        default: "0000320193 0000789019 0001652044 0001045810 0001018724 0000104169"
       fred_series:
         description: "Space-separated FRED series (needs FRED_API_KEY secret)"
         default: "CPIAUCSL UNRATE FEDFUNDS"

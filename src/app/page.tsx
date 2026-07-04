@@ -56,7 +56,8 @@ export default function Landing() {
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-center px-5 py-12 sm:px-8">
+    <main className="relative flex-1 flex flex-col items-center justify-center overflow-hidden px-5 py-12 sm:px-8">
+      <div className="aurora" aria-hidden />
       <div className="w-full max-w-md text-center">
         {/* Masthead: hairline — wordmark — hairline, over the double rule. */}
         <div className="flex items-center gap-3 mb-1">
@@ -72,7 +73,8 @@ export default function Landing() {
         </p>
 
         <h1 className="font-serif font-semibold text-ink-strong text-[clamp(2.125rem,6vw,3.625rem)] leading-[1.06] tracking-[-0.015em] text-balance">
-          Two tellings of the same finding. <em>You make the call.</em>
+          Two tellings of the same finding.{" "}
+          <em className="ink-gradient">You make the call.</em>
         </h1>
         <p className="mt-4 font-serif text-lg leading-[1.55] text-muted">
           Ten quick calls, then see what you value in a data story. Your votes feed a{" "}
@@ -82,14 +84,21 @@ export default function Landing() {
           >
             public study
           </a>{" "}
-          of what makes data stories land.
+          of what makes data stories land — and the desk has{" "}
+          <a
+            href="/results#house-view"
+            className="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
+          >
+            13 calls of its own
+          </a>{" "}
+          on the record for the room to overrule.
         </p>
 
         {returning && (
           <button
             onClick={() => pick(returning.segment)}
             disabled={pending !== null}
-            className="mt-8 w-full rounded-card bg-accent px-4 py-4 text-base font-semibold text-on-accent shadow-[var(--shadow-card)] transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+            className="cta-glow mt-8 w-full rounded-card bg-accent px-4 py-4 text-base font-semibold text-on-accent active:scale-[0.98] disabled:opacity-60"
           >
             {`Welcome back — continue as ${SEGMENT_LABELS[returning.segment]} (${returning.voteCount} calls so far)`}
           </button>

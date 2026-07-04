@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { computeAnalytics, MIN_N, type ValuePairStat } from "@/lib/analytics";
+import { stanceFor } from "@/lib/house-view";
 import { LESSONS } from "@/lib/lessons";
 import { judgeRank, levelFor } from "@/lib/progression";
 import { computePersonalResults } from "@/lib/results";
 import { getLastRunComparisons, getPairConsensus, getSession } from "@/lib/repo";
-import { GOLD_MAJORITY, GOLD_MIN_N, type AttributeKey, type Segment } from "@/lib/types";
+import {
+  GOLD_MAJORITY,
+  GOLD_MIN_N,
+  VALUE_LABELS,
+  type AttributeKey,
+  type Segment,
+} from "@/lib/types";
 
 // GET /api/review?sessionId=... — the "match review" for the session's most
 // recent run (its last 10 public-study votes).
@@ -20,9 +27,16 @@ import { GOLD_MAJORITY, GOLD_MIN_N, type AttributeKey, type Segment } from "@/li
 //   majority, which the voter can never see again (no-repeat rule), and the
 //   label class contains both craft and fidelity golds, so it separates
 //   nothing.
+// - Desk (House View) data attaches ONLY to calls that already carry a
+//   published crowd tag — the same class, no new partition. Attaching it to
+//   every craft single would split STILL COLLECTING into "has a desk view"
+//   (suppressed craft) vs "doesn't" (fidelity + multi-attr), and a reader who
+//   can spot multi-attribute pairs by eye could then isolate fidelity pairs.
 // - Taste framing throughout: WITH THE ROOM / CONTRARIAN, never right/wrong —
 //   craft preference has no correct answer, and grading it would train
-//   conformity into the very data this product measures.
+//   conformity into the very data this product measures. The desk's stance is
+//   an opinion on the record, not an answer key — "agreed" with it is styled
+//   as concurrence, never as correctness.
 
 type ReviewCall = {
   yourText: string | null; // null = passed ("can't decide")
@@ -39,6 +53,9 @@ type ReviewCall = {
     | "PASSED"
     | "EXCLUDED";
   crowd: { yourPickShare: number; n: number } | null;
+  // The desk's registered call on this contrast, and whether the voter sided
+  // with it. Only ever set alongside a published crowd tag (see blinding).
+  desk: { pick: string; agreed: boolean; line: string } | null;
 };
 
 function statFor(
@@ -79,6 +96,7 @@ export async function GET(request: Request) {
       decided,
       excluded,
       crowd: null as ReviewCall["crowd"],
+      desk: null as ReviewCall["desk"],
     };
 
     if (!decided) {
@@ -126,7 +144,15 @@ export async function GET(request: Request) {
         const yourPickShare = winner[attr] === stat.valueA ? stat.rateA : 1 - stat.rateA;
         const tag =
           yourPickShare > 0.55 ? "WITH THE ROOM" : yourPickShare < 0.45 ? "CONTRARIAN" : "SPLIT ROOM";
-        calls.push({ ...base, tag, crowd: { yourPickShare, n: stat.n } });
+        const stance = stanceFor(attr, stat.valueA, stat.valueB);
+        calls.push({
+          ...base,
+          tag,
+          crowd: { yourPickShare, n: stat.n },
+          desk: stance
+            ? { pick: stance.pick, agreed: winner[attr] === stance.pick, line: stance.line }
+            : null,
+        });
         continue;
       }
     }
@@ -143,6 +169,7 @@ export async function GET(request: Request) {
     segment: number;
     segmentN: number;
     lesson: string;
+    desk: { pickLabel: string; line: string; youAgree: boolean } | null;
   } | null = null;
   for (const p of personal.preferences ?? []) {
     if (p.hedged) continue;
@@ -156,6 +183,7 @@ export async function GET(request: Request) {
     if (!divergence || gap > Math.abs(divergence.you - divergence.segment)) {
       const lesson = LESSONS[p.attribute as AttributeKey];
       if (!lesson) continue;
+      const stance = stanceFor(p.attribute, stat.valueA, stat.valueB);
       divergence = {
         attributeLabel: p.attributeLabel,
         valueLabel: p.valueLabel,
@@ -163,6 +191,15 @@ export async function GET(request: Request) {
         segment: segShare,
         segmentN: stat.n,
         lesson,
+        // Segment stats are already public, so quoting the desk here adds no
+        // new class — just voice.
+        desk: stance
+          ? {
+              pickLabel: VALUE_LABELS[stance.pick] ?? stance.pick,
+              line: stance.line,
+              youAgree: p.value === stance.pick,
+            }
+          : null,
       };
     }
   }
@@ -180,11 +217,18 @@ export async function GET(request: Request) {
       n: s.n,
     }));
 
+  // You vs the desk, counted over the same published calls that carry desk
+  // markers — never over unpublished contrasts (see blinding note above).
+  const deskCalls = calls.filter((c) => c.desk !== null);
   return NextResponse.json({
     runSize: run.length,
     calls,
     // Run accuracy needs >=3 calibration votes before it says anything.
     accuracy: goldTotal >= 3 ? { matched: goldMatched, total: goldTotal } : null,
+    deskAlignment:
+      deskCalls.length > 0
+        ? { agreed: deskCalls.filter((c) => c.desk!.agreed).length, total: deskCalls.length }
+        : null,
     divergence,
     learned,
     minN: MIN_N,

@@ -41,8 +41,21 @@ export async function getSession(id: string): Promise<Session | null> {
 // Matchmaking reads
 
 /** All findings with their comparison counts (for fewest-comparisons weighting). */
-export type ServingConfig = { fidelityBoost: number; earlyFidelityCap: number; capUntilVotes: number };
-export const DEFAULT_SERVING: ServingConfig = { fidelityBoost: 2, earlyFidelityCap: 2, capUntilVotes: 10 };
+export type ServingConfig = {
+  fidelityBoost: number;
+  earlyFidelityCap: number;
+  capUntilVotes: number;
+  // Findings with a real public source (sourceUrl) are favored this many times
+  // over fictional seeds — the serving pool shifts to real data as fast as the
+  // human review gate clears it, without dead-ending when only seeds exist.
+  realBoost: number;
+};
+export const DEFAULT_SERVING: ServingConfig = {
+  fidelityBoost: 2,
+  earlyFidelityCap: 2,
+  capUntilVotes: 10,
+  realBoost: 3,
+};
 
 export async function getServingConfig(): Promise<ServingConfig> {
   const row = await prisma.servingPolicy.findUnique({ where: { id: "default" } });
@@ -76,18 +89,22 @@ export async function getDeckComparisonsCsv(deckId: string) {
 
 export async function getFindingComparisonCounts(
   deckId: string | null = null
-): Promise<{ findingId: string; count: number }[]> {
+): Promise<{ findingId: string; count: number; real: boolean }[]> {
   const findings = await prisma.finding.findMany({
     where: {
       deckId,
       status: { in: ["active", "submitted"] },
       OR: [{ staleAfter: null }, { staleAfter: { gte: new Date() } }],
     },
-    select: { id: true },
+    select: { id: true, sourceUrl: true },
   });
   const grouped = await prisma.comparison.groupBy({ by: ["findingId"], _count: { _all: true } });
   const counts = new Map(grouped.map((g) => [g.findingId, g._count._all]));
-  return findings.map((f) => ({ findingId: f.id, count: counts.get(f.id) ?? 0 }));
+  return findings.map((f) => ({
+    findingId: f.id,
+    count: counts.get(f.id) ?? 0,
+    real: f.sourceUrl !== null,
+  }));
 }
 
 export async function getFindingWithVariants(

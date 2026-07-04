@@ -21,6 +21,9 @@ export function SiteFooter() {
           <Link href="/drill" className="hover:text-foreground hover:underline">
             Train
           </Link>
+          <Link href="/results#house-view" className="hover:text-foreground hover:underline">
+            House View
+          </Link>
           <Link href="/submit" className="hover:text-foreground hover:underline">
             Bring your data
           </Link>

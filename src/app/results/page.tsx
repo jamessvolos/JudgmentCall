@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { computeAnalytics, MIN_N, type ValuePairStat } from "@/lib/analytics";
+import { HOUSE_VIEW, stanceFor, type HouseStance } from "@/lib/house-view";
 import { getAnalysisSnapshots } from "@/lib/repo";
+import { ATTRIBUTE_LABELS, VALUE_LABELS } from "@/lib/types";
 import { YourContribution } from "@/components/YourContribution";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +16,35 @@ function pct(x: number): string {
   return `${Math.round(x * 100)}%`;
 }
 
+// The room's live verdict on a desk stance. "Concurs"/"overrules" only when
+// the Wilson interval clears the 50% null — the desk doesn't get to claim a
+// win (or dodge a loss) on a coin-flip estimate.
+type DeskVerdict = "ROOM CONCURS" | "ROOM OVERRULES" | "TOO CLOSE TO CALL" | "JURY'S OUT";
+function deskVerdict(stat: ValuePairStat | undefined, stance: HouseStance): DeskVerdict {
+  if (!stat || stat.suppressed || stat.rateA === null || stat.interval === null)
+    return "JURY'S OUT";
+  const clears = stat.interval.lo > 0.5 || stat.interval.hi < 0.5;
+  if (!clears) return "TOO CLOSE TO CALL";
+  const roomPick = stat.rateA > 0.5 ? stat.valueA : stat.valueB;
+  return roomPick === stance.pick ? "ROOM CONCURS" : "ROOM OVERRULES";
+}
+
+function DeskVerdictChip({ verdict }: { verdict: DeskVerdict }) {
+  const tone =
+    verdict === "ROOM CONCURS"
+      ? "border-accent text-accent"
+      : verdict === "ROOM OVERRULES"
+        ? "border-danger text-danger"
+        : "border-card-border text-muted";
+  return (
+    <span
+      className={`shrink-0 rounded-chip border px-1.5 py-px font-mono text-[10px] font-semibold tracking-[0.14em] ${tone}`}
+    >
+      {verdict}
+    </span>
+  );
+}
+
 // One value-pair contrast, drawn as a caliper gauge (Atelier Nul direction):
 // a ticked 0–100% scale with a strong 50% null line, the Wilson interval as
 // a bracket, and the point estimate as a filled marker. Color is earned by
@@ -22,6 +53,7 @@ function pct(x: number): string {
 function ContrastRow({ stat }: { stat: ValuePairStat }) {
   const clears =
     !stat.suppressed && stat.interval !== null && (stat.interval.lo > 0.5 || stat.interval.hi < 0.5);
+  const stance = stanceFor(stat.attribute, stat.valueA, stat.valueB);
   // Stable anchor so articles can deep-link one contrast: /results#leadType-a-b
   const anchor = `${stat.attribute}-${stat.valueA}-${stat.valueB}`.replace(/[^a-zA-Z0-9_-]/g, "");
   return (
@@ -95,6 +127,19 @@ function ContrastRow({ stat }: { stat: ValuePairStat }) {
           </div>
         </>
       )}
+      {stance && (
+        <div className="mt-2.5 flex items-start justify-between gap-3 border-l-2 border-rule-strong pl-3">
+          <p className="text-[0.8125rem] leading-snug text-muted">
+            <span className="font-mono text-[10px] font-semibold tracking-[0.14em] text-ink-strong">
+              THE DESK&apos;S CALL:{" "}
+            </span>
+            <strong className="text-foreground">{VALUE_LABELS[stance.pick] ?? stance.pick}</strong>
+            {" — "}
+            <em className="font-serif">&ldquo;{stance.line}&rdquo;</em>
+          </p>
+          <DeskVerdictChip verdict={deskVerdict(stat, stance)} />
+        </div>
+      )}
     </div>
   );
 }
@@ -153,16 +198,71 @@ export default async function ResultsPage({
         </p>
         <YourContribution />
 
+        {(() => {
+          // The desk's scoreboard: every stance graded against the live tables.
+          const graded = HOUSE_VIEW.map((h) => ({
+            h,
+            verdict: deskVerdict(
+              a.attributeStats.find(
+                (s) => s.attribute === h.attribute && s.valueA === h.valueA && s.valueB === h.valueB
+              ),
+              h
+            ),
+          }));
+          const concurs = graded.filter((g) => g.verdict === "ROOM CONCURS").length;
+          const overruled = graded.filter((g) => g.verdict === "ROOM OVERRULES").length;
+          const open = graded.length - concurs - overruled;
+          return (
+            <section className="mt-8 scroll-mt-6" id="house-view">
+              <h2 className="kicker text-muted">The House View</h2>
+              <div className="mt-2 rounded-card border-l-[3px] border-rule-strong bg-wash px-5 py-4">
+                <p className="text-sm leading-relaxed text-pretty">
+                  This study is not neutral. On {HOUSE_VIEW[0].registered} the desk put{" "}
+                  {HOUSE_VIEW.length} calls on the record — one per craft contrast, written before
+                  the data and frozen since (changing one requires a new dated entry; the old line
+                  stays in the git history). Each call is printed beside its caliper below, and the
+                  room is free to overrule us in public.
+                </p>
+                <p className="mt-3 font-mono text-xs text-muted tabular-nums">
+                  standing: room concurs {concurs} · room overrules {overruled} · still open {open}{" "}
+                  of {HOUSE_VIEW.length}
+                </p>
+              </div>
+            </section>
+          );
+        })()}
+
         <section className="mt-8">
           <h2 className="kicker text-muted">Attribute head-to-heads</h2>
           <div className="mt-2 rounded-card border border-card-border bg-card px-5 py-2">
-            {a.attributeStats.length === 0 ? (
-              <p className="py-4 text-sm text-muted">No counted votes yet.</p>
-            ) : (
-              a.attributeStats.map((s) => (
-                <ContrastRow key={`${s.attribute}:${s.valueA}|${s.valueB}`} stat={s} />
-              ))
-            )}
+            {/* Every desk-covered contrast renders from vote zero — un-voted
+                pairs show an empty collecting bar under the desk's call, so
+                the page states its opinions before it has its data. */}
+            {[
+              ...a.attributeStats,
+              ...HOUSE_VIEW.filter(
+                (h) =>
+                  !a.attributeStats.some(
+                    (s) => s.attribute === h.attribute && s.valueA === h.valueA && s.valueB === h.valueB
+                  )
+              ).map(
+                (h): ValuePairStat => ({
+                  attribute: h.attribute,
+                  attributeLabel: ATTRIBUTE_LABELS[h.attribute],
+                  valueA: h.valueA,
+                  valueB: h.valueB,
+                  valueALabel: VALUE_LABELS[h.valueA] ?? h.valueA,
+                  valueBLabel: VALUE_LABELS[h.valueB] ?? h.valueB,
+                  winsA: 0,
+                  n: 0,
+                  rateA: null,
+                  interval: null,
+                  suppressed: true,
+                })
+              ),
+            ].map((s) => (
+              <ContrastRow key={`${s.attribute}:${s.valueA}|${s.valueB}`} stat={s} />
+            ))}
           </div>
         </section>
 

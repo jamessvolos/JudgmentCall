@@ -33,11 +33,36 @@ export default async function ReviewPage({
     revalidatePath("/admin/review");
   }
 
+  // Bulk clear for one finding: same review standard, one click after the
+  // read-through. Rejects still go one at a time — a rejection needs a reason
+  // (it feeds generation), so it can never be bulk.
+  async function approveFinding(formData: FormData) {
+    "use server";
+    if (!(await isAdmin(String(formData.get("key") ?? "") || undefined))) return;
+    const findingId = String(formData.get("findingId"));
+    const ids = await prisma.variant.findMany({
+      where: { findingId, status: "pending" },
+      select: { id: true },
+    });
+    for (const { id } of ids) {
+      await prisma.variant.update({ where: { id }, data: { status: "approved" } });
+      await audit("variant.approve", id, "bulk: finding approved after read-through");
+    }
+    revalidatePath("/admin/review");
+  }
+
   const pending = await prisma.variant.findMany({
     where: { status: "pending" },
     include: { finding: true },
     orderBy: [{ findingId: "asc" }, { id: "asc" }],
   });
+  // One truth panel per finding, variants judged against it in place.
+  const groups = new Map<string, { finding: (typeof pending)[number]["finding"]; variants: typeof pending }>();
+  for (const v of pending) {
+    const g = groups.get(v.findingId) ?? { finding: v.finding, variants: [] as typeof pending };
+    g.variants.push(v);
+    groups.set(v.findingId, g);
+  }
 
   return (
     <main className="flex-1 px-4 py-8 sm:py-12">
@@ -50,15 +75,33 @@ export default async function ReviewPage({
           Only approved variants are ever served to voters.
         </p>
 
-        <div className="mt-6 space-y-4">
-          {pending.map((v) => {
+        <div className="mt-6 space-y-8">
+          {[...groups.values()].map(({ finding, variants }) => (
+            <section key={finding.id}>
+              {/* The truth panel: read once, judge everything below against it. */}
+              <div className="rounded-card border-l-[3px] border-rule-strong bg-wash px-4 py-3">
+                <p className="text-sm font-semibold">{finding.title}</p>
+                <p className="mt-1 text-sm leading-relaxed">{finding.truthSummary}</p>
+                <p className="mt-1.5 font-mono text-xs text-muted">
+                  {finding.sourceLabel}
+                  {finding.sourceUrl && (
+                    <>
+                      {" · "}
+                      <a href={finding.sourceUrl} className="underline" target="_blank" rel="noreferrer">
+                        source
+                      </a>
+                    </>
+                  )}
+                  {" · "}
+                  {variants.length} pending
+                </p>
+              </div>
+              <div className="mt-3 space-y-3">
+                {variants.map((v) => {
             const selfCheck = v.selfCheck ? JSON.parse(v.selfCheck) : null;
             return (
               <div key={v.id} className="rounded-card border border-card-border bg-card p-5">
-                <p className="text-xs text-muted">
-                  {v.finding.title} · truth: {v.finding.truthSummary}
-                </p>
-                <p className="mt-2 text-[15px] leading-relaxed">{v.text}</p>
+                <p className="text-[15px] leading-relaxed">{v.text}</p>
                 <p className="mt-2 text-xs font-mono text-muted">
                   {ATTRIBUTE_KEYS.map((k) => `${k}=${v[k]}`).join("  ")}
                 </p>
@@ -112,7 +155,17 @@ export default async function ReviewPage({
                 </div>
               </div>
             );
-          })}
+                })}
+              </div>
+              <form action={approveFinding} className="mt-3">
+                <input type="hidden" name="findingId" value={finding.id} />
+                <input type="hidden" name="key" value={key} />
+                <button className="w-full rounded-card border border-card-border bg-card px-4 py-2.5 font-mono text-sm font-semibold text-foreground transition hover:border-rule-strong">
+                  Approve all {variants.length} above — read them first
+                </button>
+              </form>
+            </section>
+          ))}
           {pending.length === 0 && (
             <p className="text-sm text-muted">
               Nothing pending. Run <code>npx tsx scripts/generate.ts findings.json</code> to

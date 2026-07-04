@@ -48,6 +48,7 @@ export default async function AdminPage({
       fidelityBoost: Number(formData.get("fidelityBoost")) || 2,
       earlyFidelityCap: Number(formData.get("earlyFidelityCap")) || 2,
       capUntilVotes: Number(formData.get("capUntilVotes")) || 10,
+      realBoost: Number(formData.get("realBoost")) || 3,
     };
     await setServingConfig(config);
     await audit("policy.update", "serving", JSON.stringify(config));
@@ -307,6 +308,7 @@ export default async function AdminPage({
               { name: "fidelityBoost", label: "fidelity boost", value: policy.fidelityBoost },
               { name: "earlyFidelityCap", label: "early fidelity cap", value: policy.earlyFidelityCap },
               { name: "capUntilVotes", label: "cap until votes", value: policy.capUntilVotes },
+              { name: "realBoost", label: "real-data boost", value: policy.realBoost },
             ].map((f) => (
               <label key={f.name} className="block">
                 <span className="text-xs text-muted">{f.label}</span>

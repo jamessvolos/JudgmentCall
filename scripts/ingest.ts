@@ -53,12 +53,32 @@ async function edgar(cik: string): Promise<Draft> {
   const [latest, prev] = [annual[0], annual.find((x) => x.end < annual[0].end && x.fy === annual[0].fy - 1) ?? annual[1]];
   const pct = (((latest.val - prev.val) / prev.val) * 100).toFixed(1);
   const b = (v: number) => `$${(v / 1e9).toFixed(2)}B`;
+
+  // Net income for the same fiscal periods, when filed — margin is pure
+  // arithmetic on two filed values, so it's fair game for the truth summary.
+  const niFacts = data.facts?.["us-gaap"]?.NetIncomeLoss;
+  const niAnnual = niFacts
+    ? (niFacts.units["USD"] as { end: string; val: number; form: string }[]).filter(
+        (x) => x.form === "10-K"
+      )
+    : [];
+  const ni = niAnnual.find((x) => x.end === latest.end);
+  const niPrev = niAnnual.find((x) => x.end === prev.end);
+  const margin = ni ? ((ni.val / latest.val) * 100).toFixed(1) : null;
+  const marginPrev = niPrev ? ((niPrev.val / prev.val) * 100).toFixed(1) : null;
+  const niSnippet = ni ? ` · net income ${b(ni.val)}${margin ? ` (${margin}% margin)` : ""}` : "";
+  const niTruth = ni
+    ? ` Net income for the same year was ${b(ni.val)} — a ${margin}% net margin${
+        niPrev && marginPrev ? `, versus ${b(niPrev.val)} (${marginPrev}%) the prior year` : ""
+      }.`
+    : "";
+
   return {
     title: `${data.entityName}: annual revenue`,
     domain: "earnings",
-    contextSnippet: `**${data.entityName} revenue (10-K):** ${b(latest.val)} (FY end ${latest.end}) · prior year ${b(prev.val)} (${pct}% change)`,
+    contextSnippet: `**${data.entityName} revenue (10-K):** ${b(latest.val)} (FY end ${latest.end}) · prior year ${b(prev.val)} (${pct}% change)${niSnippet}`,
     sourceLabel: `SEC EDGAR 10-K filings, retrieved ${new Date().toISOString().slice(0, 10)}`,
-    truthSummary: `${data.entityName} reported annual revenue of ${b(latest.val)} for the fiscal year ending ${latest.end}, versus ${b(prev.val)} the prior year — a ${pct}% change. Revenue alone; says nothing about margins, causes, or future performance.`,
+    truthSummary: `${data.entityName} reported annual revenue of ${b(latest.val)} for the fiscal year ending ${latest.end}, versus ${b(prev.val)} the prior year — a ${pct}% change.${niTruth} Filed figures only; says nothing about causes or future performance.`,
     sourceUrl: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${padded}`,
   };
 }

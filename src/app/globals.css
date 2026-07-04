@@ -27,6 +27,18 @@
   --poster-rule: oklch(0.42 0.015 80);
   --poster-acc: oklch(0.8 0.09 250);
 
+  /* Alive layer: ambient light + texture. --grad-pop is the second hue of the
+     gradient ink (violet against press blue); --glow/--glow-strong back the
+     primary CTA; the aurora trio feeds the landing's weather field. All of it
+     lives OUTSIDE instruments — calipers, tally, voting cards never glow. */
+  --grad-pop: oklch(0.5 0.17 305);
+  --glow: 0 4px 22px oklch(0.46 0.12 255 / 0.25);
+  --glow-strong: 0 6px 34px oklch(0.46 0.12 255 / 0.4);
+  --aurora-a: oklch(0.88 0.07 255 / 0.55);
+  --aurora-b: oklch(0.92 0.06 60 / 0.5);
+  --aurora-c: oklch(0.88 0.08 310 / 0.4);
+  --grain-opacity: 0.05;
+
   --r-card: 4px;
   --r-chip: 3px;
 
@@ -38,22 +50,33 @@
   --ease: cubic-bezier(0.2, 0, 0, 1);
 }
 
+/* Night desk: dark mode drops the warm-paper metaphor for a deep, cool
+   newsroom-at-2am blue — same rules, higher voltage. The accent turns
+   electric because it can afford to against a near-black field. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: oklch(0.205 0.008 75);
-    --card: oklch(0.245 0.009 75);
-    --wash: oklch(0.27 0.01 80);
-    --foreground: oklch(0.92 0.012 90);
-    --ink-strong: oklch(0.965 0.008 90);
-    --muted: oklch(0.68 0.015 85);
-    --card-border: oklch(0.34 0.012 80);
-    --rule-strong: oklch(0.78 0.012 85);
-    --accent: oklch(0.74 0.1 255);
-    --accent-soft: oklch(0.3 0.045 255);
-    --on-accent: oklch(0.17 0.012 80);
-    --danger: oklch(0.72 0.16 25);
-    --shadow-card: 0 1px 0 oklch(0 0 0 / 0.25);
-    --shadow-lift: 0 2px 8px oklch(0 0 0 / 0.4);
+    --background: oklch(0.168 0.016 265);
+    --card: oklch(0.208 0.018 264);
+    --wash: oklch(0.238 0.02 263);
+    --foreground: oklch(0.92 0.012 255);
+    --ink-strong: oklch(0.97 0.008 255);
+    --muted: oklch(0.67 0.022 258);
+    --card-border: oklch(0.315 0.024 262);
+    --rule-strong: oklch(0.79 0.018 256);
+    --accent: oklch(0.76 0.135 252);
+    --accent-soft: oklch(0.29 0.06 255);
+    --on-accent: oklch(0.15 0.02 262);
+    --danger: oklch(0.72 0.17 22);
+    --shadow-card: 0 1px 0 oklch(0 0 0 / 0.35);
+    --shadow-lift: 0 2px 10px oklch(0 0 0 / 0.5);
+
+    --grad-pop: oklch(0.76 0.16 305);
+    --glow: 0 4px 26px oklch(0.76 0.135 252 / 0.32);
+    --glow-strong: 0 6px 40px oklch(0.76 0.135 252 / 0.5);
+    --aurora-a: oklch(0.45 0.13 262 / 0.4);
+    --aurora-b: oklch(0.4 0.1 310 / 0.32);
+    --aurora-c: oklch(0.42 0.09 210 / 0.3);
+    --grain-opacity: 0.07;
   }
 }
 
@@ -83,6 +106,68 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/* Film grain: one static SVG-noise sheet over everything, so flat digital
+   fills read as printed stock. Static by design (no shimmer), invisible to
+   pointers, absent from print. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* The aurora: ambient weather behind the landing hero — three soft light
+   fields drifting on a ~26s pendulum. The ONE sanctioned loop in the system
+   (documented in DESIGN.md): it's environment, not signal; it never appears
+   on an instrument surface or beside a voting pair, and it dies under
+   prefers-reduced-motion (leaving the static gradient) and in print. */
+@keyframes aurora-drift {
+  from {
+    transform: translate3d(-2.5%, -1.5%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2.5%, 2%, 0) scale(1.06);
+  }
+}
+.aurora {
+  position: absolute;
+  inset: -22% -12%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 45% at 22% 18%, var(--aurora-a), transparent 70%),
+    radial-gradient(42% 50% at 80% 28%, var(--aurora-b), transparent 70%),
+    radial-gradient(50% 55% at 55% 88%, var(--aurora-c), transparent 72%);
+  filter: blur(52px);
+  animation: aurora-drift 26s ease-in-out infinite alternate;
+}
+
+/* Gradient ink: display-type only (the landing hero's key phrase). Never on
+   body copy, never on numbers — data stays in one honest color. */
+.ink-gradient {
+  background: linear-gradient(94deg, var(--ink-strong) 8%, var(--accent) 52%, var(--grad-pop) 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Primary CTA glow — earned light on the one action that matters per page. */
+.cta-glow {
+  box-shadow: var(--glow);
+  transition:
+    box-shadow var(--t-base) var(--ease),
+    transform var(--t-base) var(--ease),
+    opacity var(--t-base) var(--ease);
+}
+.cta-glow:hover {
+  box-shadow: var(--glow-strong);
+  transform: translateY(-1px);
 }
 
 /* Newspaper-desk signature: a heavy rule over a hairline, used under the
@@ -320,6 +405,10 @@ body:has(main[data-embed]) footer {
   body {
     background: white;
   }
+  body::after,
+  .aurora {
+    display: none;
+  }
   .poster-print {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
@@ -346,9 +435,13 @@ body:has(main[data-embed]) footer {
   .rule-draw {
     animation: none;
   }
+  .aurora {
+    animation: none;
+  }
   .verdict-culprit,
   .clear-back,
-  .count {
+  .count,
+  .cta-glow {
     transition: none;
   }
   ::view-transition-group(*),
