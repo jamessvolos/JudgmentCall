@@ -61,19 +61,24 @@ export default function Landing() {
 
   return (
     <main className="relative flex-1 flex flex-col items-center justify-center px-5 py-12 sm:px-8">
-      <div className="w-full max-w-md text-center">
+      {/* On desktop the hero headline breaks wide (max-w-2xl) so the display
+          type reads as frontier, not a mobile column stranded on a wide field;
+          the masthead/prose stay at max-w-xl and the controls at max-w-md, so
+          the H1 is the one wide element and the room fills without stretching
+          the intimate parts. */}
+      <div className="w-full max-w-md sm:max-w-2xl text-center">
         {/* Masthead: hairline — wordmark — hairline, over the double rule. */}
         <div
-          className="hero-line flex items-center gap-3 mb-1"
+          className="hero-line flex items-center gap-3 mb-1 sm:max-w-xl sm:mx-auto"
           style={{ "--i": 0 } as React.CSSProperties}
         >
           <span className="h-px flex-1 bg-rule-strong/40" aria-hidden />
           <p className="masthead text-ink-strong">Judgment Call</p>
           <span className="h-px flex-1 bg-rule-strong/40" aria-hidden />
         </div>
-        <div className="hero-line double-rule" style={{ "--i": 0 } as React.CSSProperties} aria-hidden />
+        <div className="hero-line double-rule sm:max-w-xl sm:mx-auto" style={{ "--i": 0 } as React.CSSProperties} aria-hidden />
         <p
-          className="hero-line mt-3 mb-8 font-mono text-[0.75rem] text-muted tabular-nums text-pretty"
+          className="hero-line mt-3 mb-8 font-mono text-[0.75rem] text-muted tabular-nums text-pretty sm:max-w-xl sm:mx-auto"
           style={{ "--i": 1 } as React.CSSProperties}
         >
           {totals && totals.countedVotes > 0 ? (
@@ -104,7 +109,7 @@ export default function Landing() {
           <em className="not-italic text-muted">You make the call.</em>
         </h1>
         <p
-          className="hero-line mt-5 font-sans text-lg leading-[1.55] text-muted"
+          className="hero-line mt-5 font-sans text-lg leading-[1.55] text-muted sm:max-w-xl sm:mx-auto"
           style={{ "--i": 3 } as React.CSSProperties}
         >
           Ten quick calls, then see what you value in a data story. Your votes feed a{" "}
@@ -128,15 +133,15 @@ export default function Landing() {
           <button
             onClick={() => pick(returning.segment)}
             disabled={pending !== null}
-            className="cta-glow mt-8 w-full rounded-card bg-accent px-4 py-4 text-base font-semibold text-on-accent active:scale-[0.98] disabled:opacity-60"
+            className="cta-glow mt-8 w-full sm:max-w-md sm:mx-auto block rounded-card bg-accent px-4 py-4 text-base font-semibold text-on-accent active:scale-[0.98] disabled:opacity-60"
           >
             {`Welcome back — continue as ${SEGMENT_LABELS[returning.segment]} (${returning.voteCount} calls so far)`}
           </button>
         )}
-        <p className="mt-10 mb-3 kicker text-muted">
+        <p className="mt-10 mb-3 kicker text-muted sm:max-w-md sm:mx-auto">
           {returning ? "…or switch roles" : "I mostly read data as a(n)…"}
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:max-w-md sm:mx-auto">
           {SEGMENTS.map((segment, i) => (
             <button
               key={segment}
