@@ -139,6 +139,12 @@ export default async function Image() {
         )}
       </div>
     ),
-    { ...size, fonts: await ogFonts() }
+    {
+      ...size,
+      fonts: await ogFonts(),
+      // Social scrapers refetch this constantly; a 5-minute shared cache keeps
+      // it off the analytics path while staying fresh enough for a live card.
+      headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+    }
   );
 }

@@ -48,14 +48,15 @@ The remaining full scans (`getAnalyticsComparisons`, `getContrastCounts`,
 
 ## Wave 3 — Vote-path latency & integrity
 
-- Collapse the vote settle (comparison insert, Elo update, XP events,
-  gold marking, session counters, tallies) into a single
-  `prisma.$transaction` — one round-trip to Neon instead of a sequence,
-  and a crash can no longer half-settle a vote.
-- Idempotency: client sends a `voteToken` (pair key + counter); retries
-  and double-taps become no-ops server-side instead of relying on UI
-  disabling.
-- Per-route timing: a 3-line wrapper logs `route, ms, sessionId-hash` on
+- Vote settle is ALREADY a single `prisma.$transaction` (comparison
+  insert, Elo, XP events, gold marking, session counters) — a crash can't
+  half-settle. ✅ (pre-existing; verified.)
+- Idempotency: client sends a `clientVoteId` (uuid per pair render);
+  server dedupes on a nullable unique column so retries and double-taps
+  become no-ops instead of a second Elo application. Also stop applying
+  Elo on `isRepeat` votes — repeats are non-independent and should not
+  move ratings (they already earn no XP and are excluded from analytics).
+- Per-route timing: a small wrapper logs `route, ms, sessionId-hash` on
   every API response so p95s are readable from Vercel logs before and
   after each wave.
 
@@ -73,8 +74,11 @@ The remaining full scans (`getAnalyticsComparisons`, `getContrastCounts`,
 
 ## Wave 5 — Scale & operations
 
-- Region pinning: deploy functions in `iad1` (Neon is us-east-1) so every
-  DB round-trip is single-digit ms; verify with route timings.
+- Region pinning: `vercel.json` pins functions to `iad1` (Neon is
+  us-east-1) so every DB round-trip is single-digit ms. ✅
+- CDN caching for public read surfaces: `/api/crowd` (s-maxage=60) and the
+  OG images (results 5 min, brand 1 day, profile 1 hr) carry
+  `stale-while-revalidate` — all eventually-consistent by design. ✅
 - Connection discipline: singleton Prisma client (done) + Neon pooled
   connection string for serverless; alarm if connection count nears the
   plan limit.
@@ -85,6 +89,6 @@ The remaining full scans (`getAnalyticsComparisons`, `getContrastCounts`,
 - Load test: `scripts/loadtest.ts` (autocannon) hitting /api/pair + vote
   at 50 rps in CI-adjacent runs; budget: p95 < 300ms at 50 rps on the
   hobby tier.
-- CDN caching for the public read surfaces: `/api/crowd` and OG images
-  get `s-maxage=60, stale-while-revalidate` — they are already
-  eventually-consistent by design.
+- Connection pooling: confirm the Neon connection string is the pooled
+  (`-pooler`) endpoint for serverless, and alarm before the plan's
+  connection ceiling.

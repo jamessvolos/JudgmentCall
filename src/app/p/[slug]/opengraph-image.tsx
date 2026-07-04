@@ -92,6 +92,11 @@ export default async function Image({ params }: { params: Promise<{ slug: string
         </div>
       </div>
     ),
-    { ...size, fonts: await ogFonts() }
+    {
+      ...size,
+      fonts: await ogFonts(),
+      // A published poster is immutable per slug — cache it hard (perf wave 5).
+      headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
+    }
   );
 }

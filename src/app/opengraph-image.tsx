@@ -65,6 +65,11 @@ export default async function Image() {
         </div>
       </div>
     ),
-    { ...size, fonts: await ogFonts() }
+    {
+      ...size,
+      fonts: await ogFonts(),
+      // Static brand card — cache hard at the edge (perf wave 5).
+      headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" },
+    }
   );
 }
