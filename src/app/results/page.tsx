@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { computeAnalytics, MIN_N, type ValuePairStat } from "@/lib/analytics";
+import { computeAnalyticsCached, MIN_N, type ValuePairStat } from "@/lib/analytics";
 import { HOUSE_VIEW, stanceFor, type HouseStance } from "@/lib/house-view";
 import { getAnalysisSnapshots } from "@/lib/repo";
 import { ATTRIBUTE_LABELS, VALUE_LABELS } from "@/lib/types";
@@ -152,7 +152,7 @@ export default async function ResultsPage({
   // Embed mode (?embed=1): chrome-less for iframes in articles — masthead and
   // colophon drop away (body:has() rule in globals.css), content stays whole.
   const embed = (await searchParams).embed === "1";
-  const [a, snapshots] = await Promise.all([computeAnalytics(), getAnalysisSnapshots(5)]);
+  const [a, snapshots] = await Promise.all([computeAnalyticsCached(), getAnalysisSnapshots(5)]);
   const exec = a.segmentStats.executive ?? [];
   const analyst = a.segmentStats.analyst ?? [];
   // Disagreement view: pairs where both segments have unsuppressed data.

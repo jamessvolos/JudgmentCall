@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { computeAnalytics, MIN_N, type ValuePairStat } from "@/lib/analytics";
+import { computeAnalyticsCached, MIN_N, type ValuePairStat } from "@/lib/analytics";
 import { stanceFor } from "@/lib/house-view";
 import { LESSONS } from "@/lib/lessons";
 import { judgeRank, levelFor } from "@/lib/progression";
@@ -77,9 +77,20 @@ export async function GET(request: Request) {
 
   const [run, analytics, personal] = await Promise.all([
     getLastRunComparisons(sessionId, 10),
-    computeAnalytics(),
+    computeAnalyticsCached(),
     computePersonalResults(sessionId),
   ]);
+
+  // Consensus for every gold call in one parallel burst instead of one
+  // awaited query per gold inside the loop (perf wave 1).
+  const goldConsensus = new Map<string, Awaited<ReturnType<typeof getPairConsensus>>>();
+  await Promise.all(
+    run
+      .filter((c) => c.isGold && c.winnerId !== null && !c.isRepeat && !c.lowAttention)
+      .map(async (c) => {
+        goldConsensus.set(c.id, await getPairConsensus(c.variantAId, c.variantBId, sessionId));
+      })
+  );
 
   const calls: ReviewCall[] = [];
   let goldTotal = 0;
@@ -111,7 +122,7 @@ export async function GET(request: Request) {
     // Calibration votes: graded against today's consensus (more data than at
     // vote time). isGold was set when the vote was cast.
     if (c.isGold) {
-      const consensus = await getPairConsensus(c.variantAId, c.variantBId, sessionId);
+      const consensus = goldConsensus.get(c.id) ?? null;
       const matched =
         consensus !== null &&
         consensus.n >= GOLD_MIN_N &&

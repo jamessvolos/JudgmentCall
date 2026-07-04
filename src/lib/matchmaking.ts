@@ -9,7 +9,7 @@
 
 import {
   getFindingComparisonCounts,
-  getFindingWithVariants,
+  getFindingsWithVariantsByIds,
   getSeenPairKeys,
   getContrastCounts,
   getSessionContrastCounts,
@@ -168,12 +168,15 @@ export async function selectPair(
   const capFidelity = early && fidelityVotes >= policy.earlyFidelityCap;
 
   const findingOrder = sampleFindingOrder(findingCounts, policy.realBoost);
+  // One round-trip for every candidate's approved variants — the walk below
+  // is then pure memory (perf wave 1: kills the per-finding query chain).
+  const findingsById = await getFindingsWithVariantsByIds(findingOrder);
 
   // Two passes: first excluding pairs this session has seen, then (only if the
   // whole pool is exhausted) allowing repeats.
   for (const allowRepeats of [false, true]) {
     for (const findingId of findingOrder) {
-      const finding = await getFindingWithVariants(findingId);
+      const finding = findingsById.get(findingId);
       if (!finding || finding.variants.length < 2) continue;
 
       const available = enumeratePairs(finding.variants).filter(

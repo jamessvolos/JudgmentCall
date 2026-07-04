@@ -10,6 +10,7 @@
 
 import {
   getAnalyticsComparisons,
+  getAnalyticsVersion,
   getDecidedComparisonSlots,
   getFindingsWithVariantStats,
   getJudgeScores,
@@ -105,6 +106,21 @@ export type OverclaimSnapshot = {
   bySegment: { segment: string; overclaimWins: number; n: number; interval: Interval | null; suppressed: boolean }[];
   positionBias: { leftWins: number; n: number; leftRate: number | null; interval: Interval | null };
 };
+
+// Read-path economics (perf wave 1): computeAnalytics scans every comparison,
+// and /results, /api/review, /api/crowd and the OG image all want it per
+// request. Memoize per server instance, keyed by getAnalyticsVersion() —
+// freshness is exact (any new vote or approval changes the key), not
+// TTL-approximate, and a cold serverless instance simply recomputes once.
+let memo: { key: string; snap: AnalyticsSnapshot } | null = null;
+
+export async function computeAnalyticsCached(): Promise<AnalyticsSnapshot> {
+  const key = await getAnalyticsVersion();
+  if (memo?.key === key) return memo.snap;
+  const snap = await computeAnalytics();
+  memo = { key, snap };
+  return snap;
+}
 
 export async function computeAnalytics(): Promise<AnalyticsSnapshot> {
   const [comparisons, findings, slots] = await Promise.all([

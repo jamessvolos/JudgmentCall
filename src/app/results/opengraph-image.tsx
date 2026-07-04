@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { computeAnalytics } from "@/lib/analytics";
+import { computeAnalyticsCached } from "@/lib/analytics";
 import { OG, OG_SIZE, OgMasthead, ogFonts } from "@/lib/og";
 
 // Live social card for the public results page: headline totals plus the
@@ -10,7 +10,7 @@ export const contentType = "image/png";
 export const alt = "Judgment Call — live results: what makes an insight land?";
 
 export default async function Image() {
-  const a = await computeAnalytics();
+  const a = await computeAnalyticsCached();
   const top = a.attributeStats.find((s) => !s.suppressed && s.rateA !== null);
 
   return new ImageResponse(

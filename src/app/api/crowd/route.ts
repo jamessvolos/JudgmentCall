@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { computeAnalytics } from "@/lib/analytics";
+import { computeAnalyticsCached } from "@/lib/analytics";
 
 // Public, unsuppressed crowd win rates — powers "your taste vs the crowd".
 export async function GET() {
-  const a = await computeAnalytics();
+  const a = await computeAnalyticsCached();
   return NextResponse.json({
     totals: a.totals, // same public headline numbers as /results
     stats: a.attributeStats

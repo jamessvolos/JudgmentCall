@@ -54,6 +54,7 @@ model Variant {
   comparisonsWon Comparison[] @relation("winner")
 
   @@index([findingId])
+  @@index([status]) // review queue + approved-serving filters
 }
 
 model Comparison {
@@ -85,6 +86,8 @@ model Comparison {
 
   @@index([sessionId])
   @@index([findingId])
+  @@index([contrastAttrs]) // coverage balancing groupBy
+  @@index([createdAt]) // votes/day series, latest-run reads, freshness keys
 }
 
 model Session {

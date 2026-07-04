@@ -75,6 +75,23 @@ export async function setServingConfig(config: ServingConfig): Promise<void> {
   });
 }
 
+/**
+ * Cheap freshness key for cached analytics: changes whenever a comparison is
+ * logged or a variant clears review — the two events that can move any
+ * published number. Three indexed point queries instead of a full-table scan.
+ */
+export async function getAnalyticsVersion(): Promise<string> {
+  const [comparisons, latest, approved] = await Promise.all([
+    prisma.comparison.count(),
+    prisma.comparison.findFirst({
+      orderBy: { createdAt: "desc" },
+      select: { id: true, createdAt: true },
+    }),
+    prisma.variant.count({ where: { status: "approved" } }),
+  ]);
+  return `${comparisons}:${latest?.createdAt.getTime() ?? 0}:${latest?.id ?? ""}:${approved}`;
+}
+
 export async function getAnalysisSnapshots(take = 20) {
   return prisma.analysisSnapshot.findMany({ orderBy: { createdAt: "desc" }, take });
 }
@@ -115,6 +132,21 @@ export async function getFindingWithVariants(
     where: { id: findingId },
     include: { variants: { where: { status: "approved" } } },
   });
+}
+
+/**
+ * Batch form of the above for matchmaking: the selection loop walks findings
+ * in sampled order until one yields a pair, and fetching them one-by-one made
+ * the worst case (small pools, well-covered sessions) one query per finding.
+ */
+export async function getFindingsWithVariantsByIds(
+  ids: string[]
+): Promise<Map<string, Finding & { variants: Variant[] }>> {
+  const rows = await prisma.finding.findMany({
+    where: { id: { in: ids } },
+    include: { variants: { where: { status: "approved" } } },
+  });
+  return new Map(rows.map((f) => [f.id, f]));
 }
 
 /** Unordered pair keys ("idA|idB", ids sorted) this session has already been shown. */
