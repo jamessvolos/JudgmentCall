@@ -1,0 +1,56 @@
+# CI gate — runs on every push so the invariants are enforced automatically,
+# not by remembering to grep. Hermetic: uses a throwaway SQLite DB (the base
+# schema's provider), needs NO secrets. Prod deploys still run on Postgres via
+# deploy.yml; this only type-checks, lints, tests, builds, and guards the bundle.
+name: CI
+
+on:
+  push:
+    branches: ["claude/**", "main"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Throwaway local SQLite — the build statically prerenders the results OG
+      # image, which reads analytics, so a real (empty) DB must exist.
+      DATABASE_URL: "file:./ci.db"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Prisma generate + empty schema
+        run: |
+          npx prisma generate --schema prisma/schema.prisma
+          npx prisma db push --skip-generate --schema prisma/schema.prisma
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Offline unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Bundle guard (blinding + no server SDKs + drill-only teaching)
+        run: bash scripts/bundle-guard.sh

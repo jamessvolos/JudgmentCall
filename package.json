@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "tsx scripts/ingest-parse.test.ts && tsx scripts/teaching.test.ts && tsx scripts/generate-fatal.test.ts",
+    "guard": "bash scripts/bundle-guard.sh",
     "postinstall": "prisma generate",
     "analyze": "tsx scripts/analyze.ts",
     "digest": "tsx scripts/digest.ts",

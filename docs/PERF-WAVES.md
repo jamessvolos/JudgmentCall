@@ -114,8 +114,23 @@ re-derive it.
   landing preloads exactly the two Geist faces; all three families paint
   (incl. serif italic on the desk quotes); build + lint clean. IBM Plex Mono
   remains OG-only.
-- Bundle audit: `@next/bundle-analyzer` in CI; admin routes already
-  split; keep the swipe route's first-load JS under 120KB gzipped.
+- Bundle audit ✅: measured (gzipped first-load JS, served chunks) — every
+  route clusters at ~185–190KB, with the spread between routes only ~5KB, i.e.
+  almost all of it is the shared React 19 + Next 16 (App Router, Turbopack)
+  runtime; the biggest single chunk is react-dom (~69KB). The app's OWN
+  per-route code is small (~12KB). No leaked heavy dependency (no Prisma,
+  Anthropic SDK, or chart lib in any client chunk). The original "<120KB"
+  target predates this framework baseline and isn't reachable without dropping
+  React/Next — so the meaningful budget is the *route delta* (keep app code
+  small), not the absolute floor. Rather than track a number by hand, the
+  invariants are now GUARDED automatically: `scripts/bundle-guard.sh`
+  (run via `npm run guard` after a build) fails on (1) any study fidelity tag
+  in a client chunk — the flagship blinding invariant, previously a manual
+  grep, (2) any server-only SDK/ingest host in a client chunk, (3) teaching
+  vocab reachable from a non-drill route. Wired into `.github/workflows/ci.yml`
+  (new): every push runs tsc + lint + the offline unit tests (`npm test`) +
+  build + the guard, hermetically on a throwaway SQLite DB (no secrets). This
+  turns every manual per-round check into an enforced gate.
 
 ## Wave 5 — Scale & operations
 
