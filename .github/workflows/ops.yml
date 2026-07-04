@@ -1,0 +1,62 @@
+# Daily production ops: scripts/analyze.ts (writes an AnalysisSnapshot — the
+# public Study Log entry + the starvation ranking that steers matchmaking and
+# frontier XP) and scripts/digest.ts (ops summary; POSTs to
+# DIGEST_WEBHOOK_URL if that secret is set, otherwise just logs).
+#
+# Cron runs from the default branch, so this file lives on main but checks
+# out the app branch. Requires the DATABASE_URL repo secret.
+name: Daily ops
+
+on:
+  schedule:
+    - cron: "17 9 * * *" # 09:17 UTC daily — off the top of the hour
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops
+  cancel-in-progress: false
+
+jobs:
+  ops:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Guard — secrets present
+        env:
+          D: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$D" ]; then
+            echo "::error::Missing repo secret DATABASE_URL."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/judgment-call-spec-r02iib
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Generate Postgres client
+        run: |
+          sed 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma > prisma/postgres/schema.prisma
+          npx prisma generate --schema prisma/postgres/schema.prisma
+
+      - name: Analyze (writes AnalysisSnapshot)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx tsx scripts/analyze.ts
+
+      - name: Digest
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIGEST_WEBHOOK_URL: ${{ secrets.DIGEST_WEBHOOK_URL }}
+        run: npx tsx scripts/digest.ts
