@@ -120,3 +120,19 @@ that keeps it from the study is absolute:
   generation credits). Blinding held: `teaching.ts` is imported server-side via
   `repo.ts` (Prisma-bound, never client) + the drill client only; the bundle
   guard enforces it.
+- **2026-07-04** — Curriculum, part 2: **family-diverse ordering**.
+  `getNextDrillItem` (`repo.ts`) no longer picks uniformly at random — it
+  prefers a pool item whose overclaim family the session hasn't faced yet
+  (random within that preferred set), implementing mastery-model bullet 1
+  ("cover all families before repeating one"). Because the current six items
+  already span all five families, a partial session now touches distinct
+  families before any repeat — directly countering the "learned one family, not
+  the skill" failure the charter warns about. No schema change, no deeper pool,
+  no new credits: it reuses `overclaimFamily` (already imported server-side for
+  `getDrillFamilyProgress`) to classify each attempted + candidate item's device
+  at read time. This covers *unseen* families only; it deliberately does **not**
+  yet steer toward a learner's *missed* (weak) families, and difficulty
+  escalation stays deferred — both still want a deeper pool (with one item per
+  family except extrapolation's two, there is no within-family ladder to climb).
+  Blinding held: change is entirely inside `getNextDrillItem`; the `/api/drill`
+  response shape is untouched and no fidelity vocabulary leaves the server.

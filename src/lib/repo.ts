@@ -610,23 +610,41 @@ export async function getPairConsensus(
 
 export type { DrillItem };
 
-/** A random active drill item this session hasn't attempted; null when done. */
+/** Next active drill item this session hasn't attempted, chosen family-diverse:
+ *  an overclaim family the learner hasn't faced yet is preferred over one they
+ *  already have (TEACHING.md mastery model, bullet 1 — "cover all families
+ *  before repeating one"), random within the preferred set; null when done.
+ *  Server-only: overclaimFamily (fidelity vocabulary) never reaches a client
+ *  bundle through repo.ts (Prisma-bound, guard-enforced). */
 export async function getNextDrillItem(sessionId: string): Promise<{
   item: DrillItem | null;
   remaining: number;
   session: Session | null;
 }> {
-  const [attempted, session] = await Promise.all([
-    prisma.drillAttempt.findMany({ where: { sessionId }, select: { drillItemId: true } }),
+  const [attempts, session] = await Promise.all([
+    prisma.drillAttempt.findMany({
+      where: { sessionId },
+      select: { drillItemId: true, item: { select: { device: true } } },
+    }),
     prisma.session.findUnique({ where: { id: sessionId } }),
   ]);
-  const seen = attempted.map((a) => a.drillItemId);
+  const seen = attempts.map((a) => a.drillItemId);
   const pool = await prisma.drillItem.findMany({
     where: { status: "active", id: { notIn: seen } },
   });
   if (pool.length === 0) return { item: null, remaining: 0, session };
+
+  // Prefer an item whose overclaim family the learner hasn't faced yet, so a
+  // short session touches distinct families before any repeat (mastery-model
+  // bullet 1). Falls back to the full pool once every family has been seen, or
+  // when only one family remains. This covers *unseen* families; steering
+  // toward a learner's *missed* families + difficulty escalation still wait on
+  // a deeper item pool (see TEACHING.md).
+  const faced = new Set(attempts.map((a) => overclaimFamily(a.item.device).id));
+  const fresh = pool.filter((it) => !faced.has(overclaimFamily(it.device).id));
+  const choices = fresh.length > 0 ? fresh : pool;
   return {
-    item: pool[Math.floor(Math.random() * pool.length)],
+    item: choices[Math.floor(Math.random() * choices.length)],
     remaining: pool.length,
     session,
   };
