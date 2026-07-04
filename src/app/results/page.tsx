@@ -3,6 +3,7 @@ import { computeAnalyticsCached, MIN_N, type ValuePairStat } from "@/lib/analyti
 import { HOUSE_VIEW, stanceFor, type HouseStance } from "@/lib/house-view";
 import { getAnalysisSnapshots } from "@/lib/repo";
 import { ATTRIBUTE_LABELS, VALUE_LABELS } from "@/lib/types";
+import { CountUp } from "@/components/CountUp";
 import { YourContribution } from "@/components/YourContribution";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +59,7 @@ function ContrastRow({ stat }: { stat: ValuePairStat }) {
   // Stable anchor so articles can deep-link one contrast: /results#leadType-a-b
   const anchor = `${stat.attribute}-${stat.valueA}-${stat.valueB}`.replace(/[^a-zA-Z0-9_-]/g, "");
   return (
-    <div id={anchor} className="group scroll-mt-6 py-3.5 border-b border-card-border last:border-b-0">
+    <div id={anchor} className="card-reveal group scroll-mt-6 py-3.5 border-b border-card-border last:border-b-0">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <p>
           <a href={`#${anchor}`} className="hover:underline decoration-card-border underline-offset-2">
@@ -188,13 +189,13 @@ export default async function ResultsPage({
         <dl className="mt-5 flex flex-wrap items-end gap-x-8 gap-y-3 border-t border-rule-strong/40 pt-4">
           <div>
             <dd className="font-mono text-3xl sm:text-4xl font-semibold tabular-nums text-ink-strong leading-none">
-              {a.totals.countedVotes.toLocaleString()}
+              <CountUp value={a.totals.countedVotes} />
             </dd>
             <dt className="mt-1.5 kicker text-muted">counted votes</dt>
           </div>
           <div>
             <dd className="font-mono text-3xl sm:text-4xl font-semibold tabular-nums text-ink-strong leading-none">
-              {a.totals.votingSessions.toLocaleString()}
+              <CountUp value={a.totals.votingSessions} />
             </dd>
             <dt className="mt-1.5 kicker text-muted">voting sessions</dt>
           </div>
