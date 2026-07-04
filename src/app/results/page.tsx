@@ -30,6 +30,23 @@ function deskVerdict(stat: ValuePairStat | undefined, stance: HouseStance): Desk
   return roomPick === stance.pick ? "ROOM CONCURS" : "ROOM OVERRULES";
 }
 
+// §02 order: how firmly the room has SETTLED each call, not how many votes it
+// happened to draw. Tier 0 = resolved (Wilson interval clears the 50% null),
+// ranked by how far it clears; tier 1 = sampled but still straddling 50 (most
+// data first); tier 2 = every suppressed / un-voted row — one contiguous,
+// undifferentiated block (the uniform collecting state, now guaranteed to the
+// bottom rather than trailing by accident of turnout). Reads only published
+// craft rate/interval/n — no fidelity, no new information channel.
+function decisionRank(s: ValuePairStat): 0 | 1 | 2 {
+  if (s.suppressed || s.interval === null) return 2;
+  return s.interval.lo > 0.5 || s.interval.hi < 0.5 ? 0 : 1;
+}
+function clearance(s: ValuePairStat): number {
+  // How far the interval clears the null (0 for a straddler); self-penalizes
+  // small samples, whose wide Wilson bracket barely clears.
+  return s.interval ? Math.max(s.interval.lo - 0.5, 0.5 - s.interval.hi, 0) : 0;
+}
+
 // The desk's verdict is a margin note, not an instrument reading — un-boxed so
 // the one boxed pill per row stays the caliper's statistical verdict. Keeps the
 // accent/danger color semantics.
@@ -264,10 +281,16 @@ export default async function ResultsPage({
 
         <section className="card-reveal mt-8">
           <h2 className="kicker text-muted"><span className="text-ink-strong">02</span> · Attribute head-to-heads</h2>
+          <p className="mt-1 text-sm text-muted">
+            Ranked by how firmly the room has settled each call — decided contrasts lead,
+            still-collecting pairs trail.
+          </p>
           <div className="mt-2 rounded-card border border-card-border bg-card px-5 py-2">
             {/* Every desk-covered contrast renders from vote zero — un-voted
                 pairs show an empty collecting bar under the desk's call, so
-                the page states its opinions before it has its data. */}
+                the page states its opinions before it has its data. Ordered by
+                decisiveness (see decisionRank): resolved first, then straddling,
+                then the suppressed block — which stays one uniform tier. */}
             {[
               ...a.attributeStats,
               ...HOUSE_VIEW.filter(
@@ -290,9 +313,18 @@ export default async function ResultsPage({
                   suppressed: true,
                 })
               ),
-            ].map((s) => (
-              <ContrastRow key={`${s.attribute}:${s.valueA}|${s.valueB}`} stat={s} />
-            ))}
+            ]
+              .sort((x, y) => {
+                const rx = decisionRank(x);
+                const ry = decisionRank(y);
+                if (rx !== ry) return rx - ry; // resolved → straddling → collecting
+                if (rx === 0) return clearance(y) - clearance(x); // strongest clearance first
+                if (rx === 1) return y.n - x.n; // straddling: most data first
+                return 0; // suppressed: stable — one uniform, undifferentiated block
+              })
+              .map((s) => (
+                <ContrastRow key={`${s.attribute}:${s.valueA}|${s.valueB}`} stat={s} />
+              ))}
           </div>
         </section>
 
