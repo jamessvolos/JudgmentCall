@@ -69,8 +69,9 @@ rounded figures in the same text.
 - `overclaimed` — deliberately exceeds the truth via exactly ONE device:
   (a) causal language on correlational data, (b) single-cause attribution,
   (c) extrapolating a trend forward, (d) certainty inflation ("guarantees",
-  "is over"). Every number stays accurate; the overclaim lives in language, not
-  data. Keep a short *token* caveat in the same position as the paired faithful
+  "is over"), (e) base-rate neglect (foreground a raw count, drop the
+  denominator so it reads as a rate). Every number stays accurate; the
+  overclaim lives in language and framing, not data. Keep a short *token* caveat in the same position as the paired faithful
   base variant so `caveatPlacement` stays honest. Target: a domain expert
   should object; a hurried reader should not notice.
 

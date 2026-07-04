@@ -136,6 +136,10 @@ data via exactly one device:
    line were a law.
 4. **Certainty inflation** — "guarantees", "is over", "will" where the data
    supports "so far" and "may".
+5. **Base-rate neglect** — a raw count or change foregrounded without its
+   denominator, so a number reads as a rate: "phishing reports up 40%" while the
+   *victim rate* fell. Every figure is accurate; the exceedance is the missing
+   "out of how many," which can point the opposite way from the count.
 
 **Which device a finding invites.** The device is not chosen at random. Each
 data *shape* has one exceedance that fits its own narrative — and the overclaim
@@ -150,6 +154,7 @@ travels under cover of the finding's natural story.
 | **Two variables moving together** — prices up while complaints up | **Causal language.** Co-movement promoted to cause: "the price hike drove the complaints." |
 | **One outcome, several live drivers** — margin fell as markdowns *and* freight *and* mix all moved | **Single-cause attribution.** "Margins fell because of freight" — one named, the rest quietly dropped. |
 | **A partial or leading reading** — one month, a half-season, a "to date" figure | **Certainty inflation.** A provisional signal hardened: "the slump is over." |
+| **A count with an available denominator** — reports, tickets, incidents that could be expressed as a rate | **Base-rate neglect.** The count is foregrounded and the denominator dropped: "reports up 40%" when the *rate* fell. |
 
 This is why the study's *stimuli* matter as much as its scoring: an overclaim
 has to be on-target to be worth measuring. The batch of two-reading macro
@@ -277,3 +282,13 @@ disagreement; don't let them drift.
   structurally a well of the extrapolation trap. Folded the same shape→device
   mapping into the generator's overclaim standard so stimuli stay on-target.
   Convictions unchanged; this sharpens the blinded variable, not the craft.
+- **2026-07-04** — Promoted **base-rate neglect** to a first-class overclaim
+  device (5th), reconciling a taxonomy drift: the teaching layer
+  (`src/lib/teaching.ts`, `TEACHING.md`) already recognized it as a family, but
+  the study's device list here + `ATTRIBUTES.md` + the generator named only
+  four. It is a real, distinct, and common business-data exceedance (a raw count
+  with the denominator dropped, so it reads as a rate) — already exemplified by
+  the "more reports, fewer victims" seed. Added to all four sources of truth
+  (this doc's device list + shape table, `ATTRIBUTES.md` fidelity devices, the
+  generator's overclaim standard) so study and teaching now share one five-device
+  vocabulary. Craft convictions unchanged.

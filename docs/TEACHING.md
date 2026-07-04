@@ -40,11 +40,13 @@ Teaching happens at two levels, always together:
 | **Certainty inflation** | A noisy or provisional reading spoken as settled | Watch for "is / will / guarantees" where the data supports "so far / may". |
 | **Base-rate neglect** | A raw count with no denominator | Ask "out of how many?" — the rate can move opposite the count. |
 
-The families map onto the four generation devices in `ATTRIBUTES.md`
-(causal, single-cause, extrapolation, certainty inflation) plus base-rate, which
-the drill data exercises directly. `overclaimFamily(device)` classifies any
-free-form device string into a family (keyword rules, `other` fallback, never
-throws) — so richer, item-specific device wording still teaches a stable pattern.
+The families are the study's five overclaim devices (`INSIGHT-PRINCIPLES.md` /
+`ATTRIBUTES.md`: causal, single-cause, extrapolation, certainty inflation,
+base-rate neglect) — study and teaching share ONE vocabulary, so a learner who
+gets fluent in the drill is fluent in exactly what the generator can plant.
+`overclaimFamily(device)` classifies any free-form device string into a family
+(keyword rules, `other` fallback, never throws) — so richer, item-specific
+device wording still teaches a stable pattern.
 
 ---
 
