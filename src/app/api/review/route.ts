@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { withTiming } from "@/lib/timing";
 import { computeAnalyticsCached, MIN_N, type ValuePairStat } from "@/lib/analytics";
 import { stanceFor } from "@/lib/house-view";
-import { LESSONS } from "@/lib/lessons";
+import { lessonFor } from "@/lib/lessons";
 import { judgeRank, levelFor } from "@/lib/progression";
 import { computePersonalResults } from "@/lib/results";
 import { getLastRunComparisons, getPairConsensus, getSession } from "@/lib/repo";
@@ -193,7 +193,9 @@ async function getHandler(request: Request): Promise<Response> {
     const you = p.picked / p.shown;
     const gap = Math.abs(you - segShare);
     if (!divergence || gap > Math.abs(divergence.you - divergence.segment)) {
-      const lesson = LESSONS[p.attribute as AttributeKey];
+      // Audience-aware: the reader's own segment flavours the lesson where the
+      // desk's convictions flip by reader (INSIGHT-PRINCIPLES audience switch).
+      const lesson = lessonFor(p.attribute as AttributeKey, session.segment as Segment);
       if (!lesson) continue;
       const stance = stanceFor(p.attribute, stat.valueA, stat.valueB);
       divergence = {

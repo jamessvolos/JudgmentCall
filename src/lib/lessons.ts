@@ -6,7 +6,7 @@
 // fidelity dimension and its vocabulary must never ship to a client, so it
 // has no entry here and never will.
 
-import type { AttributeKey } from "./types";
+import type { AttributeKey, Segment } from "./types";
 
 export const LESSONS: Partial<Record<AttributeKey, string>> = {
   leadType:
@@ -20,3 +20,35 @@ export const LESSONS: Partial<Record<AttributeKey, string>> = {
   soWhat:
     "An explicit so-what tells the reader what to do; an implied one trusts them to conclude it. Explicit direction speeds decisions and invites pushback; implication flatters expertise and risks the point being missed.",
 };
+
+// The convictions are defaults, not laws — the reader's job flips several
+// (INSIGHT-PRINCIPLES "Audience is the flip switch"). When a reader's own
+// segment is one the doc names, append a short coda that says WHY the lesson
+// weighs more for them. Craft only, never fidelity; only the doc-specified
+// flips get a coda (data_leader / other read the base lesson).
+const AUDIENCE_CODA: Partial<Record<Segment, Partial<Record<AttributeKey, string>>>> = {
+  executive: {
+    leadType:
+      "For an executive audience this only sharpens: they act on the first clause, so a number buried past it is one they may never reach.",
+    soWhat:
+      "For an executive audience a missing so-what isn't a stylistic choice — it hands the decision to whoever speaks next.",
+  },
+  analyst: {
+    caveatPlacement:
+      "For an analyst audience the up-front hedge is itself the competence signal; an unstated limit reads as one you didn't notice.",
+    quantification:
+      "For an analyst audience — the study's verification layer — precise figures are exactly what they check you against.",
+  },
+};
+
+/**
+ * The micro-lesson for an attribute, with an audience-specific coda where the
+ * desk's convictions flip by reader. Returns undefined for attributes with no
+ * lesson (fidelity has none, by design). Craft only.
+ */
+export function lessonFor(attribute: AttributeKey, segment: Segment): string | undefined {
+  const base = LESSONS[attribute];
+  if (!base) return undefined;
+  const coda = AUDIENCE_CODA[segment]?.[attribute];
+  return coda ? `${base} ${coda}` : base;
+}

@@ -192,6 +192,14 @@ contrast) is where this stops being a claim and becomes data. When the two
 segments split cleanly on a contrast, that gap is itself a finding about who
 you're writing for — often more useful than the headline rate.
 
+This flip is now operationalized, not just asserted: the run-review
+micro-lesson (`src/lib/lessons.ts` `lessonFor(attribute, segment)`) appends a
+short audience coda for exactly the flips above — executives get it on
+lead-type and so-what, analysts on caveat-placement and quantification — so a
+reader diverging from their *own* segment is told why the conviction weighs
+more for the room they write for. The other segments read the base lesson.
+Craft only; no fidelity coda exists.
+
 ---
 
 ## How insights fail
@@ -255,8 +263,9 @@ system compiles from:
 - **Generation** (`scripts/generate.ts`) — the craft standards and the
   overclaim device taxonomy the model writes toward.
 - **Review micro-lessons** (`src/lib/lessons.ts`) — the craft-only notes a
-  reader sees when their taste diverges from their segment (fidelity is
-  deliberately absent — it must never appear in a voting client).
+  reader sees when their taste diverges from their segment, now
+  audience-aware (`lessonFor(attribute, segment)` adds the flip coda). Fidelity
+  is deliberately absent — it must never appear in a voting client.
 - **Attribute rubric** (`docs/ATTRIBUTES.md`) — the mechanical tagging rules
   these principles justify.
 
@@ -272,6 +281,11 @@ disagreement; don't let them drift.
 - **2026-07-04** — Added the failure taxonomy ("How insights fail"): the nine
   ways a telling goes wrong, each the shadow of a conviction, with the
   exceedance named as the blinded fault line. Convictions unchanged.
+- **2026-07-04** — Operationalized the audience flip: the run-review
+  micro-lesson is now `lessonFor(attribute, segment)`, appending a short coda
+  for the doc-named flips (executives on lead-type + so-what, analysts on
+  caveat-placement + quantification). A section that was pure assertion is now
+  load-bearing in the product. Craft only; convictions unchanged.
 - **2026-07-04** — Added a worked example: one faithful finding told weakly
   (63 words) vs. strongly (24 words), so the five convictions are demonstrated,
   not just asserted. Craft-only; no fidelity vocabulary in either telling.
