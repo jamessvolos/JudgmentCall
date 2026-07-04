@@ -62,25 +62,67 @@ export function personaTitle(preferences: PreferenceDto[]): string {
   return "The Undecided (so far)";
 }
 
+// A deterministic 4-digit "edition number" so a shared poster reads as a
+// numbered print — stable for a given persona + vote count, cosmetic only.
+export function editionSerial(title: string, voteCount: number): string {
+  let h = voteCount * 101 + 7;
+  for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) | 0;
+  return String(1000 + (Math.abs(h) % 9000));
+}
+
+// Print-object corner mark: a small L drawn from two borders. Registration
+// marks are the strongest "this is a printed edition" signal, and they're
+// pure divs so the Satori OG twin can reproduce them exactly.
+function CornerMarks() {
+  const base = "absolute h-3 w-3";
+  const c = "var(--poster-rule)";
+  return (
+    <div aria-hidden>
+      <span className={`${base} left-2.5 top-2.5 border-l border-t`} style={{ borderColor: c }} />
+      <span className={`${base} right-2.5 top-2.5 border-r border-t`} style={{ borderColor: c }} />
+      <span className={`${base} left-2.5 bottom-2.5 border-l border-b`} style={{ borderColor: c }} />
+      <span className={`${base} right-2.5 bottom-2.5 border-r border-b`} style={{ borderColor: c }} />
+    </div>
+  );
+}
+
 export function TastePoster({ data }: { data: PosterData }) {
   const ordered = [
     ...data.preferences.filter((p) => !p.hedged),
     ...data.preferences.filter((p) => p.hedged),
   ];
   const title = personaTitle(data.preferences);
+  const serial = editionSerial(title, data.voteCount);
 
   return (
     <div
-      className="poster-in poster-print overflow-hidden rounded-[6px] px-6 py-6 shadow-[var(--shadow-lift)]"
+      className="poster-in poster-print relative overflow-hidden rounded-[6px] px-6 py-6 shadow-[var(--shadow-lift)]"
       style={{ background: "var(--poster-bg)", color: "var(--poster-fg)" }}
     >
-      <div className="flex items-center gap-3">
+      <CornerMarks />
+
+      {/* Edition line: the numbered-print header. */}
+      <div
+        className="flex items-center justify-between font-mono text-[10px] font-semibold uppercase tracking-[0.18em]"
+        style={{ color: "var(--poster-mut)" }}
+      >
+        <span>Taste profile</span>
+        <span style={{ color: "var(--poster-acc)" }}>No. {serial}</span>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
         <span className="h-px flex-1" style={{ background: "var(--poster-rule)" }} aria-hidden />
         <p className="masthead" style={{ color: "var(--poster-mut)" }}>
           Judgment Call
         </p>
         <span className="h-px flex-1" style={{ background: "var(--poster-rule)" }} aria-hidden />
       </div>
+      {/* Signature double rule under the masthead. */}
+      <div
+        className="mt-1 h-0"
+        style={{ borderTop: "2px solid var(--poster-rule)", boxShadow: "0 3px 0 -2px var(--poster-rule)" }}
+        aria-hidden
+      />
 
       <p className="kicker mt-5" style={{ color: "var(--poster-acc)" }}>
         My insight taste

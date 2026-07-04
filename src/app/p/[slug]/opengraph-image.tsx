@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { OG, OG_SIZE, OgMasthead, ogFonts } from "@/lib/og";
-import { personaTitle } from "@/components/TastePoster";
+import { editionSerial, personaTitle } from "@/components/TastePoster";
 import { levelFor } from "@/lib/progression";
 import { computePersonalResults } from "@/lib/results";
 import { getSessionByPublicSlug } from "@/lib/repo";
@@ -18,21 +18,48 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const title = results ? personaTitle(results.preferences) : "The Undecided (so far)";
   const solid = (results?.preferences ?? []).filter((p) => !p.hedged).slice(0, 3);
   const level = session ? levelFor(session.xp) : null;
+  const serial = editionSerial(title, results?.voteCount ?? 0);
+  // Corner registration marks (print-object twin of the poster's CornerMarks).
+  const mark = (pos: Record<string, number>, borders: React.CSSProperties) => (
+    <div style={{ position: "absolute", width: 22, height: 22, display: "flex", ...pos, ...borders }} />
+  );
 
   return new ImageResponse(
     (
       <div
         style={{
+          position: "relative",
           width: "100%",
           height: "100%",
           display: "flex",
           flexDirection: "column",
           background: OG.bg,
-          padding: "64px 72px",
+          padding: "56px 72px 64px",
           fontFamily: "Plex Mono",
         }}
       >
+        {mark({ top: 30, left: 34 }, { borderLeft: `2px solid ${OG.rule}`, borderTop: `2px solid ${OG.rule}` })}
+        {mark({ top: 30, right: 34 }, { borderRight: `2px solid ${OG.rule}`, borderTop: `2px solid ${OG.rule}` })}
+        {mark({ bottom: 30, left: 34 }, { borderLeft: `2px solid ${OG.rule}`, borderBottom: `2px solid ${OG.rule}` })}
+        {mark({ bottom: 30, right: 34 }, { borderRight: `2px solid ${OG.rule}`, borderBottom: `2px solid ${OG.rule}` })}
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            width: "100%",
+            fontSize: 18,
+            fontWeight: 600,
+            letterSpacing: "0.18em",
+            marginBottom: 22,
+          }}
+        >
+          <span style={{ color: OG.mut }}>TASTE PROFILE</span>
+          <span style={{ color: OG.acc }}>No. {serial}</span>
+        </div>
         <OgMasthead />
+        <div style={{ display: "flex", height: 2, background: OG.rule, marginTop: 6, width: "100%" }} />
+        <div style={{ display: "flex", height: 1, background: OG.rule, marginTop: 3, width: "100%" }} />
         <div
           style={{
             marginTop: 48,
