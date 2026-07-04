@@ -65,7 +65,17 @@ async function voteHandler(request: Request): Promise<Response> {
     return NextResponse.json({ error: "unknown session" }, { status: 404 });
   }
 
-  const stats = await getRecentVoteStats(sessionId, CANT_DECIDE_WINDOW);
+  // The three pre-settle reads are independent (rate stats, the variant pair,
+  // and repeat detection all key off the request alone), so fetch them in one
+  // round-trip instead of three. isRepeat is over-fetched on the rare
+  // rate-limit / invalid-pair path, which is cheaper than serializing every
+  // hot-path vote. Repeat detection still resolves BEFORE the vote is logged.
+  const [stats, pair, isRepeat] = await Promise.all([
+    getRecentVoteStats(sessionId, CANT_DECIDE_WINDOW),
+    getVariantPair(variantAId, variantBId),
+    hasSeenPair(sessionId, variantAId, variantBId),
+  ]);
+
   if (stats.votesLastMinute >= MAX_VOTES_PER_MINUTE) {
     return NextResponse.json(
       { error: "too many votes, slow down", code: "rate_limited" },
@@ -82,14 +92,12 @@ async function voteHandler(request: Request): Promise<Response> {
     }
   }
 
-  const pair = await getVariantPair(variantAId, variantBId);
   if (!pair) {
     return NextResponse.json({ error: "invalid variant pair" }, { status: 400 });
   }
 
   // Contrast is computed server-side from the stored tags — never trusted
-  // from the client. Repeat detection must run BEFORE the vote is logged.
-  const isRepeat = await hasSeenPair(sessionId, variantAId, variantBId);
+  // from the client.
   const contrastAttrs = contrastKey(
     attributeDiff(pair.a as unknown as AttributeProfile, pair.b as unknown as AttributeProfile)
   );

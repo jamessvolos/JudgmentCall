@@ -70,6 +70,11 @@ re-derive it.
 - Vote settle is ALREADY a single `prisma.$transaction` (comparison
   insert, Elo, XP events, gold marking, session counters) — a crash can't
   half-settle. ✅ (pre-existing; verified.)
+- The three independent pre-settle reads (`getRecentVoteStats`,
+  `getVariantPair`, `hasSeenPair`) now run in one `Promise.all` instead of
+  three serial awaits — one round-trip, not three. ✅ Verified: vote drops
+  from ~24ms to ~12–17ms warm; record / idempotency / can't-decide all
+  still correct.
 - Idempotency: client sends a `clientVoteId` (uuid per pair render);
   server dedupes on a nullable unique column so retries and double-taps
   become no-ops instead of a second Elo application. Also stop applying
