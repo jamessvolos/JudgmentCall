@@ -36,9 +36,9 @@ yarn-error.log*
 # Put real secrets in .env.local (still ignored).
 !.env
 
-# local SQLite database
-prisma/dev.db
-prisma/dev.db-journal
+# local + CI SQLite databases (dev, and the throwaway ci.db the CI gate creates)
+*.db
+*.db-journal
 
 # vercel
 .vercel
