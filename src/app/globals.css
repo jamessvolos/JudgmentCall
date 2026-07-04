@@ -95,11 +95,12 @@
   --color-accent-soft: var(--accent-soft);
   --color-on-accent: var(--on-accent);
   --color-danger: var(--danger);
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, sans-serif;
-  --font-serif: "Source Serif 4 Variable", "Iowan Old Style", Palatino, Georgia,
+  /* next/font/local emits these vars (hashed family + size-adjusted fallbacks);
+     the trailing generics are belt-and-suspenders if the var ever goes unset. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), "Iowan Old Style", Palatino, Georgia,
     serif;
-  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --radius-card: var(--r-card);
   --radius-chip: var(--r-chip);
 }

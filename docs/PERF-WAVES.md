@@ -99,8 +99,21 @@ re-derive it.
   always be waiting). Serve from the prefetch on vote, fetch-ahead again.
 - Optimistic vote: stamp + tally tick immediately, reconcile in the
   background, roll back with an apology toast only on failure.
-- Font loading: subset + `font-display: optional` for the mono face,
-  preload the two weights actually used above the fold.
+- Font loading ✅: migrated from `@fontsource` CSS imports to
+  `next/font/local`, reading the same latin variable woff2 (copied into
+  `src/app/fonts/`, so no build-time network — `next/font/google` is
+  unavailable in the sandbox). This auto-injects `<link rel=preload>` for the
+  above-the-fold faces (killing the hero/masthead FOUT), applies size-adjust
+  fallback metrics (cuts CLS), and emits ONLY the latin faces used — the old
+  `import "@fontsource-variable/geist"` shipped `@font-face` for five scripts ×
+  normal + italic, none preloaded. Geist sans + mono carry no italic and
+  preload on every route (above the fold everywhere); Source Serif ships
+  normal + italic with `preload: false` (it's the tellings/quotes voice, never
+  the LCP element, absent from the landing above the fold — so its ~100KB never
+  crowds the critical path and loads on demand where it renders). Verified: the
+  landing preloads exactly the two Geist faces; all three families paint
+  (incl. serif italic on the desk quotes); build + lint clean. IBM Plex Mono
+  remains OG-only.
 - Bundle audit: `@next/bundle-analyzer` in CI; admin routes already
   split; keep the swipe route's first-load JS under 120KB gzipped.
 
