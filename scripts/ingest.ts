@@ -1,23 +1,25 @@
 /**
  * Public-source ingestion adapters (ROADMAP-2 §3). Every source lands as a
- * Finding(status=submitted) with provenance + a DRAFTED truth summary the
- * admin must confirm — then the normal pipeline: generation -> human review.
+ * Finding(status=submitted) with provenance + a DRAFTED truth summary — then
+ * the normal pipeline: generation -> activation.
  *
- *   npx tsx scripts/ingest.ts fred CPIAUCSL      # needs FRED_API_KEY
- *   npx tsx scripts/ingest.ts edgar 0000320193   # SEC companyfacts (public, no key)
+ *   npx tsx scripts/ingest.ts fred CPIAUCSL          # needs FRED_API_KEY
+ *   npx tsx scripts/ingest.ts edgar 0000320193       # SEC companyfacts (public, no key)
+ *   npx tsx scripts/ingest.ts worldbank USA NY.GDP.MKTP.KD.ZG   # World Bank (public, no key)
+ *   npx tsx scripts/ingest.ts frankfurter USD EUR    # ECB reference rates (public, no key)
+ *
+ * The pure transforms live in ./ingest-parse.ts so they can be unit-tested
+ * offline; this file only adds the network fetch around each.
  */
 import { PrismaClient } from "@prisma/client";
+import {
+  parseWorldBank,
+  parseFrankfurter,
+  oneYearBefore,
+  type Draft,
+} from "./ingest-parse";
 
 const prisma = new PrismaClient();
-
-type Draft = {
-  title: string;
-  domain: string;
-  contextSnippet: string;
-  sourceLabel: string;
-  truthSummary: string;
-  sourceUrl: string;
-};
 
 async function fred(seriesId: string): Promise<Draft> {
   const key = process.env.FRED_API_KEY;
@@ -83,13 +85,52 @@ async function edgar(cik: string): Promise<Draft> {
   };
 }
 
+function requireArg(adapter: string, v: string | undefined): string {
+  if (!v) throw new Error(`${adapter} needs a second argument (see usage)`);
+  return v;
+}
+
+// World Bank Open Data — macro indicators by country. No key. The two most
+// recent non-null annual observations become the finding (parse in ./ingest-parse).
+async function worldbank(country: string, indicator: string): Promise<Draft> {
+  const url = `https://api.worldbank.org/v2/country/${country}/indicator/${indicator}?format=json&per_page=120`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`World Bank ${res.status}`);
+  return parseWorldBank(await res.json(), country, indicator);
+}
+
+// ECB euro reference rates via Frankfurter — one FX pair, latest fixing vs the
+// nearest fixing ~a year earlier. No key.
+async function frankfurter(base: string, quote: string): Promise<Draft> {
+  const b = base.toUpperCase();
+  const q = quote.toUpperCase();
+  const latest = await (await fetch(`https://api.frankfurter.app/latest?from=${b}&to=${q}`)).json();
+  if (!latest?.date) throw new Error("Frankfurter: no latest fixing");
+  const histDate = oneYearBefore(latest.date);
+  const historical = await (
+    await fetch(`https://api.frankfurter.app/${histDate}?from=${b}&to=${q}`)
+  ).json();
+  return parseFrankfurter(latest, historical, b, q);
+}
+
 async function main() {
-  const [adapter, arg] = process.argv.slice(2);
+  const [adapter, arg, arg2] = process.argv.slice(2);
   if (!adapter || !arg) {
-    console.error("usage: npx tsx scripts/ingest.ts <fred|edgar> <series-id|cik>");
+    console.error(
+      "usage: npx tsx scripts/ingest.ts <fred SERIES | edgar CIK | worldbank ISO3 INDICATOR | frankfurter BASE QUOTE>"
+    );
     process.exit(1);
   }
-  const draft = adapter === "fred" ? await fred(arg) : adapter === "edgar" ? await edgar(arg) : null;
+  const draft =
+    adapter === "fred"
+      ? await fred(arg)
+      : adapter === "edgar"
+        ? await edgar(arg)
+        : adapter === "worldbank"
+          ? await worldbank(arg, requireArg(adapter, arg2))
+          : adapter === "frankfurter"
+            ? await frankfurter(arg, requireArg(adapter, arg2))
+            : null;
   if (!draft) throw new Error(`unknown adapter ${adapter}`);
 
   // Idempotency: the same source re-ingested within 30 days is a no-op, so
