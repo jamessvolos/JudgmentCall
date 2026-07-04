@@ -41,7 +41,13 @@ jobs:
             exit 1
           fi
 
+      # The app source lives ONLY on the feature branch; main carries just the
+      # workflow files. Pin the checkout to the branch so a dispatch from ANY
+      # ref (including main, where this workflow is listed) builds the real
+      # app — not main's empty tree, which would deploy a 404 shell.
       - uses: actions/checkout@v4
+        with:
+          ref: claude/judgment-call-spec-r02iib
 
       - uses: actions/setup-node@v4
         with:
