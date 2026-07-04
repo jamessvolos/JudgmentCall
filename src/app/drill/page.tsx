@@ -7,7 +7,7 @@ import { Snippet } from "@/components/Snippet";
 import { getSessionId, nowMs } from "@/lib/session-client";
 import { withViewTransition } from "@/lib/view-transition";
 // Drill-world only (fidelity vocabulary) — the sanctioned training surface.
-import { overclaimFamily } from "@/lib/teaching";
+import { overclaimFamily, OVERCLAIM_FAMILIES, type OverclaimFamily } from "@/lib/teaching";
 
 // "Spot the overclaim" — the training room. Clearly labeled as NOT the study:
 // items are purpose-built, feedback is immediate, and attempts never touch
@@ -261,6 +261,50 @@ export default function DrillPage() {
                 </p>
               </div>
             )}
+
+            {/* Consolidation: re-teach the transferable tell for exactly the
+                families the learner MISSED (caught < attempted), at the
+                reflective moment. The item pool is too small to re-serve those
+                families as extra reps (mastery-model bullet 2, deferred on a
+                deeper pool), so we reinforce the pattern instead. Drill-world
+                only — OVERCLAIM_FAMILIES lives in teaching.ts. */}
+            {(() => {
+              const missed = (drill.familyProgress ?? []).filter(
+                (f) => f.attempted > 0 && f.caught < f.attempted
+              );
+              const faced = (drill.familyProgress ?? []).some((f) => f.attempted > 0);
+              if (!faced) return null;
+              if (missed.length === 0) {
+                return (
+                  <p className="mt-6 font-mono text-xs text-accent">
+                    Clean sweep — you caught every pattern you faced.
+                  </p>
+                );
+              }
+              return (
+                <div className="mt-6 mx-auto w-full max-w-sm text-left">
+                  <p className="kicker text-muted mb-2.5">Patterns to carry forward</p>
+                  <ul className="space-y-2.5">
+                    {missed.map((f) => {
+                      const fam = OVERCLAIM_FAMILIES[f.id as OverclaimFamily["id"]];
+                      if (!fam) return null;
+                      return (
+                        <li
+                          key={f.id}
+                          className="rounded-chip border-l-2 border-accent/50 bg-wash py-2 pl-3 pr-2"
+                        >
+                          <p className="font-mono text-xs font-semibold text-ink-strong">{f.name}</p>
+                          <p className="mt-1 text-sm leading-relaxed text-pretty text-muted">
+                            {fam.tell}
+                          </p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })()}
+
             <Link
               href="/swipe"
               className="mt-6 inline-block rounded-card bg-accent px-6 py-3 font-mono text-sm font-semibold text-on-accent"

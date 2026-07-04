@@ -136,3 +136,24 @@ that keeps it from the study is absolute:
   family except extrapolation's two, there is no within-family ladder to climb).
   Blinding held: change is entirely inside `getNextDrillItem`; the `/api/drill`
   response shape is untouched and no fidelity vocabulary leaves the server.
+- **2026-07-04** — Curriculum, part 3: **missed-family reinforcement**. The
+  completion screen's "overclaim radar" was a scoreboard (caught/attempted
+  pips); it now adds a **"Patterns to carry forward"** block that re-teaches the
+  transferable *tell* for exactly the families the learner MISSED (`caught <
+  attempted`), reusing the per-drill verdict's "Carry it forward" styling. This
+  is the credit-free realization of mastery-model bullet 2 ("spend extra
+  attention on the families a learner misses"): the ~6-item pool is too shallow
+  to re-serve those families as extra *reps* (still deferred on a deeper pool /
+  generation credits), so instead we reinforce the *pattern* at the reflective
+  consolidation moment — turning the radar from a score into a study aid.
+  Clean sweep gets an affirmation instead. How it advances the arc: bullet 1
+  (cover all families) shipped last round; this delivers the reinforcement half
+  of bullet 2 that does not need more items. Feasible now — the tells already
+  live in `teaching.ts` (`OVERCLAIM_FAMILIES`), imported drill-client-only.
+  Blinding held: change is confined to the `/drill` completion screen; canonical
+  grep clean, bundle guard confirms the teaching chunk stays drill-only,
+  screenshotted complete-with-misses in light + dark. Open / next candidates:
+  the *selection* half of bullet 2 (re-serve missed families as extra reps) and
+  bullet 3 (difficulty escalation) both still want a deeper item pool; an
+  active-recall "name the family before the reveal" beat is a credit-free
+  candidate for a future round.
