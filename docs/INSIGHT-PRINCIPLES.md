@@ -80,6 +80,43 @@ be wrong about it in public.*
 
 ---
 
+## Worked example
+
+One finding, told two ways. Both are strictly faithful — this is a craft
+demonstration, not a fidelity one — so the only thing separating them is the
+five convictions.
+
+**The finding.** A small-business hiring index fell for the third straight
+month; the drop is small, the sample is a survey, and one month doesn't make a
+trend.
+
+**Weak telling (63 words):**
+> There are a number of forces currently shaping the labor market, and among the
+> various signals worth watching is small-business hiring sentiment, which
+> according to the latest survey wave has now moved lower for the third
+> consecutive month, declining 1.8 percentage points to 47.2, a reading that
+> some observers may interpret as consistent with a broader softening, though of
+> course much remains uncertain.
+
+Buried lede (the number lands in the third clause), padded to 63 words, false
+precision (47.2, 1.8pp on a survey), the caveat dissolved into "much remains
+uncertain," and no so-what — the reader finishes knowing a number moved and not
+what to do. Every failure in the taxonomy below, in one paragraph.
+
+**Strong telling (24 words):**
+> Small-business hiring sentiment fell for a third straight month — a small drop,
+> and only survey data. Watch the next reading before calling it a trend.
+
+Number-and-subject first, short enough to repeat in a meeting, the limitation
+("small," "only survey data") stated before it can be over-read, rounded to what
+the survey can defend, and an explicit so-what that names the move (*watch the
+next reading*) and the thing it would settle (*before calling it a trend*).
+
+Same facts. Same fidelity. The second one changes a decision and the first one
+fills a slot. That gap — not the number — is what the study measures.
+
+---
+
 ## The tension the study measures (blinded)
 
 The five convictions are craft — matters of taste with no single right answer,
@@ -210,3 +247,6 @@ disagreement; don't let them drift.
 - **2026-07-04** — Added the failure taxonomy ("How insights fail"): the nine
   ways a telling goes wrong, each the shadow of a conviction, with the
   exceedance named as the blinded fault line. Convictions unchanged.
+- **2026-07-04** — Added a worked example: one faithful finding told weakly
+  (63 words) vs. strongly (24 words), so the five convictions are demonstrated,
+  not just asserted. Craft-only; no fidelity vocabulary in either telling.
