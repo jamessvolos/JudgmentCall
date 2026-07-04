@@ -219,41 +219,33 @@ Medium article mid-read, and the 15-second time-to-first-vote budget doesn't sur
 an App Store detour. The UI is mobile-first (390px is the design target), works as an
 embed, and can be wrapped as a PWA or native shell later without touching the core.
 
-### Deploy (Vercel + Postgres)
+### Deploy (Vercel + Postgres) — zero-config
 
-1. **Swap the database.** In `prisma/schema.prisma`, change the datasource to
-   `provider = "postgresql"` and point `DATABASE_URL` at your Postgres instance
-   (Vercel Postgres/Neon/Supabase all work). Then:
+The repo is self-deploying: `vercel.json` points the build at
+`scripts/vercel-build.sh`, which derives the Postgres schema from the canonical
+SQLite one (provider swap only — no drift), runs `prisma migrate deploy` against
+the committed migration in `prisma/postgres/migrations/`, seeds **once** if the
+database is empty (`scripts/prod-init.ts` — it never reseeds, so votes are safe),
+and builds. Local dev stays zero-config on SQLite.
 
-   ```bash
-   rm -rf prisma/migrations          # SQLite migration history doesn't transfer
-   npx prisma migrate dev --name init  # regenerates against Postgres + seeds
-   ```
-
-   All DB access already goes through `src/lib/repo.ts` and enums are plain
-   strings, so no application code changes.
-
-2. **Import the repo into Vercel.** The build needs no config beyond env vars —
-   `postinstall` runs `prisma generate`.
-
-3. **Set production env vars:**
+1. **Vercel → Add New Project** → import this repo, pick the branch to deploy.
+2. **Set env vars** (Project → Settings → Environment Variables):
 
    | Var | Required | Notes |
    |---|---|---|
-   | `DATABASE_URL` | yes | Postgres connection string |
-   | `ADMIN_KEY` | yes | Long random string. The dev default `local-admin` is **rejected in production** — the admin surface stays locked until you set a real key. |
-   | `IP_HASH_SALT` | yes | Long random string. Without it, production stores **no** IP digests (a known salt would be dictionary-attackable) and sybil forensics lose a signal. |
-   | `NEXT_PUBLIC_SITE_URL` | recommended | Absolute origin (e.g. `https://judgmentcall.example`) for OG/social metadata. |
-   | `ANTHROPIC_API_KEY` | for generation | Only needed when running `scripts/generate.ts`; the serving app never calls the API. |
-   | `DIGEST_WEBHOOK_URL` | optional | `scripts/digest.ts` posts the daily digest here. |
-   | `FRED_API_KEY` | optional | For `scripts/ingest.ts` FRED adapter. |
+   | `DATABASE_URL` | yes | Postgres connection string (Neon/Supabase/Vercel Postgres) |
+   | `ADMIN_KEY` | yes | Long random string. The dev default `local-admin` is **rejected in production**. |
+   | `IP_HASH_SALT` | yes | Long random string; without it production stores no IP digests. |
+   | `NEXT_PUBLIC_SITE_URL` | recommended | The deployment origin, for OG/social metadata. |
+   | `ANTHROPIC_API_KEY` | for generation | Only for `scripts/generate.ts`; the serving app never calls the API. |
+
+3. **Deploy.** Migration + seed happen inside the build; no manual DB steps.
 
 4. **Release checklist:**
-   - [ ] Fresh production DB seeded once (`npx prisma db seed`) — never reuse a dev DB with test votes.
    - [ ] `/admin` 404s without the key; `/admin/login` works with the new `ADMIN_KEY`.
    - [ ] Cast one vote end-to-end in production; confirm it lands in `Comparison` with an `ipHash`.
-   - [ ] `docs/PREREGISTRATION.md` is committed *before* votes are collected (the alpha-spending plan depends on it).
-   - [ ] `/results` renders in an iframe/embed context (no fixed backgrounds — it inherits the page).
+   - [ ] `docs/PREREGISTRATION.md` is committed *before* votes are collected.
+   - [ ] `/results` renders in an iframe/embed context.
    - [ ] Point a cron (or GitHub Action) at `scripts/analyze.ts` and `scripts/digest.ts` daily.
 
 ### Operations
