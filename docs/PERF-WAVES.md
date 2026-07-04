@@ -146,9 +146,51 @@ re-derive it.
   switches to the latest `AnalysisSnapshot` JSON (already produced daily)
   with live numbers only for the headline totals; the full recompute
   becomes cron-only.
-- Load test: `scripts/loadtest.ts` (autocannon) hitting /api/pair + vote
-  at 50 rps in CI-adjacent runs; budget: p95 < 300ms at 50 rps on the
-  hobby tier.
+- Load test: `scripts/loadtest.ts` (dependency-free) drives session →
+  pair → vote loops and reports per-route p50/p95/p99. ✅ measured (local
+  SQLite, `CONCURRENCY=4 DURATION=12`): **vote p50 5ms / p95 23ms / p99
+  34ms / max 73ms at 58 rps** — inside the p95 < 300ms budget. Read that
+  number, not the harness's `ok%`: `ok%` is `res.ok`, so it counts the
+  vote route's per-session rate-limit **429s (a study-integrity feature,
+  MAX_VOTES_PER_MINUTE) as "not ok"**. A single-source flood trips the
+  limiter constantly, so `ok%` says nothing about health — latency does.
 - Connection pooling: confirm the Neon connection string is the pooled
   (`-pooler`) endpoint for serverless, and alarm before the plan's
   connection ceiling.
+
+### Write-path contention hardening ✅ (shipped)
+
+The load test at `CONCURRENCY=10` pushed local SQLite past its
+single-writer lock and surfaced two vote-settle failure classes. SQLite's
+global write lock is a **local-only artifact** (Postgres uses row-level
+MVCC — writes don't serialize behind one lock), but it exposed a real
+gap: the vote settle path had no contention resilience at all, so the
+equivalent Postgres failure (a serialization/deadlock abort) would have
+dropped a vote from the ledger as a 500. Three changes, all correct on
+both engines:
+
+- **`withTxRetry` (`src/lib/tx-retry.ts`)** wraps both write transactions
+  (`recordVote`, `recordDrillAttempt`). It retries **only** errors that
+  guarantee the transaction rolled back — Prisma `P2034`, Postgres
+  SQLSTATE `40001`/`40P01`/`55P03`, and message-matched lock/serialize/
+  deadlock — with jittered backoff. It never retries `P2002` (the
+  `clientVoteId` idempotency signal the vote route already treats as a
+  settled no-op), validation, not-found, or opaque errors, so a re-run
+  can never double-record. 23 offline assertions in
+  `scripts/tx-retry.test.ts` (wired into `npm test`).
+- **`WRITE_TX_OPTS` (maxWait 10s / timeout 15s)** on both interactive
+  transactions. Prisma's defaults (2s / 5s) dropped votes under
+  contention with `P2028` ("interactive transaction timeout"); widening
+  the budget eliminated that class entirely (server log: present before,
+  zero after). For a votes ledger, waiting for the write lock is always
+  correct over dropping the vote; under normal load these settle in
+  single-digit ms and never approach the ceiling. Pairs with the retry:
+  the budget covers "waited for the lock", the retry covers "aborted
+  after grabbing it".
+- **SQLite WAL** (`src/lib/db.ts`): `journal_mode=WAL` +
+  `synchronous=NORMAL` + `busy_timeout=8000`, guarded to `file:` URLs so
+  it is a strict no-op on Postgres. Lets local/self-host writers hand off
+  the lock fast instead of stalling readers. The residual `Socket
+  timeout` 500s at `CONCURRENCY=10` are SQLite saturation Postgres does
+  not share — correctly **not** retried (a socket timeout gives no
+  rollback guarantee).

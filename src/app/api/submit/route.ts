@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTiming } from "@/lib/timing";
 import { createDeckWithFinding, getSession } from "@/lib/repo";
 import { DOMAINS } from "@/lib/types";
 
@@ -7,7 +8,7 @@ import { DOMAINS } from "@/lib/types";
 // until the M2 pipeline generates variants AND an admin approves them — the
 // same gate as everything else. PII stays the submitter's responsibility and
 // decks are unlisted by default.
-export async function POST(request: Request) {
+async function postHandler(request: Request) {
   const body = await request.json().catch(() => null);
   const { sessionId, deckName, title, domain, contextSnippet, sourceLabel, fact, driver, limitation } =
     body ?? {};
@@ -35,3 +36,5 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ slug: deck.slug });
 }
+
+export const POST = withTiming("submit", postHandler);

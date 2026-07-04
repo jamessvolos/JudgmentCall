@@ -10,6 +10,7 @@ import { XP, drillElo, levelFor, updateAbility, type LevelInfo } from "./progres
 // the SERVER only (repo.ts uses Prisma, so it never enters a client bundle) to
 // classify drill devices into families. The bundle guard enforces this.
 import { overclaimFamily, OVERCLAIM_FAMILIES, type OverclaimFamily } from "./teaching";
+import { withTxRetry } from "./tx-retry";
 import type { Finding, Variant, Comparison, Session, DrillItem } from "@prisma/client";
 
 export type { Finding, Variant, Comparison, Session };
@@ -206,6 +207,18 @@ export type VoteResult = {
   leveledUp: boolean;
 };
 
+// Interactive-transaction budget for the two write paths (vote + drill). The
+// Prisma defaults (maxWait 2s / timeout 5s) drop the transaction under write
+// contention — a load test showed votes lost to "interactive transaction
+// timeout" the moment several voters settled at once. For a votes ledger,
+// waiting for the write lock is always correct over dropping the vote, so we
+// widen both ceilings. Under normal operation these settle in single-digit ms
+// and never approach the limits; on Postgres they're a rarely-touched safety
+// margin, on SQLite they absorb the single-writer serialization. Pairs with
+// withTxRetry: this covers "waited for the lock", retry covers "aborted after
+// grabbing it".
+const WRITE_TX_OPTS = { maxWait: 10_000, timeout: 15_000 } as const;
+
 /** Top-2 most-starved craft attributes from the newest analysis snapshot. */
 async function getStarvedAttrs(): Promise<Set<string>> {
   const snap = await prisma.analysisSnapshot.findFirst({ orderBy: { createdAt: "desc" } });
@@ -276,102 +289,107 @@ export async function recordVote(input: VoteInput): Promise<VoteResult> {
       ])
     : [new Set<string>(), 1, 1];
 
-  return prisma.$transaction(async (tx) => {
-    const before = await tx.session.findUniqueOrThrow({ where: { id: input.sessionId } });
-    await tx.comparison.create({
-      data: {
-        findingId: input.findingId,
-        variantAId: input.variantAId,
-        variantBId: input.variantBId,
-        winnerId: input.winnerId,
-        sessionId: input.sessionId,
-        segment: input.segment,
-        deckId: input.deckId,
-        contrastAttrs: input.contrastAttrs,
-        latencyMs: input.latencyMs,
-        lowAttention: input.lowAttention,
-        isRepeat: input.isRepeat,
-        isGold,
-        postDrill: before.drillCount > 0,
-        ipHash: input.ipHash,
-        userAgent: input.userAgent,
-        clientVoteId: input.clientVoteId,
-      },
-    });
-
-    // Repeats are non-independent (exhaustion fallback or a double-tap) — they
-    // are logged for the seen-set but must not move ratings, matching their
-    // exclusion from analytics and XP. Only clean decided votes touch Elo.
-    if (input.winnerId && !input.isRepeat) {
-      const loserId = input.winnerId === input.variantAId ? input.variantBId : input.variantAId;
-      const [winner, loser] = await Promise.all([
-        tx.variant.findUniqueOrThrow({ where: { id: input.winnerId } }),
-        tx.variant.findUniqueOrThrow({ where: { id: loserId } }),
-      ]);
-      const next = eloUpdate(winner.elo, loser.elo);
-      await Promise.all([
-        tx.variant.update({
-          where: { id: winner.id },
-          data: { elo: next.winner, wins: { increment: 1 } },
-        }),
-        tx.variant.update({
-          where: { id: loser.id },
-          data: { elo: next.loser, losses: { increment: 1 } },
-        }),
-      ]);
-    }
-
-    // XP settlement. Base pay only for decided, non-repeat public votes;
-    // bonus labels are generic on purpose (see function doc).
-    const xpGained: { kind: string; amount: number }[] = [];
-    if (publicVote && input.winnerId && !input.isRepeat) {
-      xpGained.push({ kind: "vote", amount: XP.vote });
-      if (priorSameContrast === 0) xpGained.push({ kind: "first_contrast", amount: XP.firstContrast });
-      const attrs = input.contrastAttrs.split(",").filter(Boolean);
-      if (attrs.length === 1 && starved.has(attrs[0]))
-        xpGained.push({ kind: "frontier", amount: XP.frontier });
-      if ((before.voteCount + 1) % 10 === 0)
-        xpGained.push({ kind: "run_complete", amount: XP.runComplete });
-      if (todayVotes === 0) xpGained.push({ kind: "daily", amount: XP.daily });
-    }
-    const xpTotal = xpGained.reduce((s, e) => s + e.amount, 0);
-    if (xpTotal > 0) {
-      await tx.xpEvent.createMany({
-        data: xpGained.map((e) => ({
+  // Wrapped in withTxRetry: on Postgres a serialization/deadlock abort (P2034)
+  // rolls the whole transaction back, so re-running it is safe and keeps the
+  // vote in the ledger instead of dropping it as a 500. See tx-retry.ts.
+  return withTxRetry(() =>
+    prisma.$transaction(async (tx) => {
+      const before = await tx.session.findUniqueOrThrow({ where: { id: input.sessionId } });
+      await tx.comparison.create({
+        data: {
+          findingId: input.findingId,
+          variantAId: input.variantAId,
+          variantBId: input.variantBId,
+          winnerId: input.winnerId,
           sessionId: input.sessionId,
-          kind: e.kind,
-          amount: e.amount,
-        })),
+          segment: input.segment,
+          deckId: input.deckId,
+          contrastAttrs: input.contrastAttrs,
+          latencyMs: input.latencyMs,
+          lowAttention: input.lowAttention,
+          isRepeat: input.isRepeat,
+          isGold,
+          postDrill: before.drillCount > 0,
+          ipHash: input.ipHash,
+          userAgent: input.userAgent,
+          clientVoteId: input.clientVoteId,
+        },
       });
-    }
 
-    const session = await tx.session.update({
-      where: { id: input.sessionId },
-      data: {
-        voteCount: { increment: 1 },
-        ...(xpTotal > 0 && { xp: { increment: xpTotal } }),
-        ...(isGold && {
-          goldCount: { increment: 1 },
-          goldAgreement: { increment: agreesWithConsensus ? 1 : 0 },
-          judgeAbility: updateAbility(before.judgeAbility, consensusShare, agreesWithConsensus),
-        }),
-      },
-    });
-    if (isGold && session.goldCount >= JUDGE_MIN_GOLD) {
-      await tx.session.update({
+      // Repeats are non-independent (exhaustion fallback or a double-tap) — they
+      // are logged for the seen-set but must not move ratings, matching their
+      // exclusion from analytics and XP. Only clean decided votes touch Elo.
+      if (input.winnerId && !input.isRepeat) {
+        const loserId = input.winnerId === input.variantAId ? input.variantBId : input.variantAId;
+        const [winner, loser] = await Promise.all([
+          tx.variant.findUniqueOrThrow({ where: { id: input.winnerId } }),
+          tx.variant.findUniqueOrThrow({ where: { id: loserId } }),
+        ]);
+        const next = eloUpdate(winner.elo, loser.elo);
+        await Promise.all([
+          tx.variant.update({
+            where: { id: winner.id },
+            data: { elo: next.winner, wins: { increment: 1 } },
+          }),
+          tx.variant.update({
+            where: { id: loser.id },
+            data: { elo: next.loser, losses: { increment: 1 } },
+          }),
+        ]);
+      }
+
+      // XP settlement. Base pay only for decided, non-repeat public votes;
+      // bonus labels are generic on purpose (see function doc).
+      const xpGained: { kind: string; amount: number }[] = [];
+      if (publicVote && input.winnerId && !input.isRepeat) {
+        xpGained.push({ kind: "vote", amount: XP.vote });
+        if (priorSameContrast === 0) xpGained.push({ kind: "first_contrast", amount: XP.firstContrast });
+        const attrs = input.contrastAttrs.split(",").filter(Boolean);
+        if (attrs.length === 1 && starved.has(attrs[0]))
+          xpGained.push({ kind: "frontier", amount: XP.frontier });
+        if ((before.voteCount + 1) % 10 === 0)
+          xpGained.push({ kind: "run_complete", amount: XP.runComplete });
+        if (todayVotes === 0) xpGained.push({ kind: "daily", amount: XP.daily });
+      }
+      const xpTotal = xpGained.reduce((s, e) => s + e.amount, 0);
+      if (xpTotal > 0) {
+        await tx.xpEvent.createMany({
+          data: xpGained.map((e) => ({
+            sessionId: input.sessionId,
+            kind: e.kind,
+            amount: e.amount,
+          })),
+        });
+      }
+
+      const session = await tx.session.update({
         where: { id: input.sessionId },
-        data: { judgeScore: session.goldAgreement / session.goldCount },
+        data: {
+          voteCount: { increment: 1 },
+          ...(xpTotal > 0 && { xp: { increment: xpTotal } }),
+          ...(isGold && {
+            goldCount: { increment: 1 },
+            goldAgreement: { increment: agreesWithConsensus ? 1 : 0 },
+            judgeAbility: updateAbility(before.judgeAbility, consensusShare, agreesWithConsensus),
+          }),
+        },
       });
-    }
-    const level = levelFor(session.xp);
-    return {
-      voteCount: session.voteCount,
-      xp: session.xp,
-      xpGained,
-      level,
-      leveledUp: level.level > levelFor(before.xp).level,
-    };
-  });
+      if (isGold && session.goldCount >= JUDGE_MIN_GOLD) {
+        await tx.session.update({
+          where: { id: input.sessionId },
+          data: { judgeScore: session.goldAgreement / session.goldCount },
+        });
+      }
+      const level = levelFor(session.xp);
+      return {
+        voteCount: session.voteCount,
+        xp: session.xp,
+        xpGained,
+        level,
+        leveledUp: level.level > levelFor(before.xp).level,
+      };
+    }, WRITE_TX_OPTS)
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -673,37 +691,42 @@ export async function recordDrillAttempt(input: {
   correct: boolean;
   latencyMs: number;
 }): Promise<{ drillRating: number; ratingDelta: number; drillCount: number; xp: number }> {
-  return prisma.$transaction(async (tx) => {
-    const [session, item] = await Promise.all([
-      tx.session.findUniqueOrThrow({ where: { id: input.sessionId } }),
-      tx.drillItem.findUniqueOrThrow({ where: { id: input.drillItemId } }),
-    ]);
-    const next = drillElo(session.drillRating, item.rating, input.correct);
-    await tx.drillAttempt.create({ data: input });
-    await tx.drillItem.update({
-      where: { id: item.id },
-      data: { rating: next.item, attempts: { increment: 1 } },
-    });
-    if (input.correct) {
-      await tx.xpEvent.create({
-        data: { sessionId: input.sessionId, kind: "drill", amount: XP.drill },
+  // Same contention guard as the vote path: a serialization/deadlock abort
+  // rolls back, so the whole attempt closure is safe to re-run (drill data is
+  // training-only, but a dropped Elo update would still corrupt the ladder).
+  return withTxRetry(() =>
+    prisma.$transaction(async (tx) => {
+      const [session, item] = await Promise.all([
+        tx.session.findUniqueOrThrow({ where: { id: input.sessionId } }),
+        tx.drillItem.findUniqueOrThrow({ where: { id: input.drillItemId } }),
+      ]);
+      const next = drillElo(session.drillRating, item.rating, input.correct);
+      await tx.drillAttempt.create({ data: input });
+      await tx.drillItem.update({
+        where: { id: item.id },
+        data: { rating: next.item, attempts: { increment: 1 } },
       });
-    }
-    const updated = await tx.session.update({
-      where: { id: input.sessionId },
-      data: {
-        drillRating: next.session,
-        drillCount: { increment: 1 },
-        ...(input.correct && { xp: { increment: XP.drill } }),
-      },
-    });
-    return {
-      drillRating: updated.drillRating,
-      ratingDelta: next.session - session.drillRating,
-      drillCount: updated.drillCount,
-      xp: updated.xp,
-    };
-  });
+      if (input.correct) {
+        await tx.xpEvent.create({
+          data: { sessionId: input.sessionId, kind: "drill", amount: XP.drill },
+        });
+      }
+      const updated = await tx.session.update({
+        where: { id: input.sessionId },
+        data: {
+          drillRating: next.session,
+          drillCount: { increment: 1 },
+          ...(input.correct && { xp: { increment: XP.drill } }),
+        },
+      });
+      return {
+        drillRating: updated.drillRating,
+        ratingDelta: next.session - session.drillRating,
+        drillCount: updated.drillCount,
+        xp: updated.xp,
+      };
+    }, WRITE_TX_OPTS)
+  );
 }
 
 // ---------------------------------------------------------------------------

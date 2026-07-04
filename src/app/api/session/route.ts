@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
+import { withTiming } from "@/lib/timing";
 import { upsertSession } from "@/lib/repo";
 import { isSegment } from "@/lib/types";
 
 // POST /api/session — create (or retag) the anonymous session.
 // Body: { sessionId: string, segment: Segment }
-export async function POST(request: Request) {
+async function postHandler(request: Request) {
   const body = await request.json().catch(() => null);
   const sessionId = body?.sessionId;
   const segment = body?.segment;
@@ -25,3 +26,5 @@ export async function POST(request: Request) {
     voteCount: session.voteCount,
   });
 }
+
+export const POST = withTiming("session", postHandler);

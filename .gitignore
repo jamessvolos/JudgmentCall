@@ -39,6 +39,9 @@ yarn-error.log*
 # local + CI SQLite databases (dev, and the throwaway ci.db the CI gate creates)
 *.db
 *.db-journal
+# WAL sidecars (journal_mode=WAL, enabled for SQLite in src/lib/db.ts)
+*.db-wal
+*.db-shm
 
 # vercel
 .vercel

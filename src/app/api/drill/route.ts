@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { withTiming } from "@/lib/timing";
 import { NextResponse } from "next/server";
 import {
   getDrillFamilyProgress,
@@ -23,7 +24,7 @@ function faithfulFirst(sessionId: string, itemId: string): boolean {
 }
 
 // GET /api/drill?sessionId=... — next unattempted item, sides shuffled.
-export async function GET(request: Request) {
+async function getHandler(request: Request) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get("sessionId");
   if (!sessionId) return NextResponse.json({ error: "sessionId required" }, { status: 400 });
@@ -61,7 +62,7 @@ export async function GET(request: Request) {
 
 // POST /api/drill — grade an attempt.
 // Body: { sessionId, drillId, picked: "a" | "b", latencyMs }
-export async function POST(request: Request) {
+async function postHandler(request: Request) {
   const body = await request.json().catch(() => null);
   const { sessionId, drillId, picked, latencyMs } = body ?? {};
   if (
@@ -99,3 +100,6 @@ export async function POST(request: Request) {
     xp: result.xp,
   });
 }
+
+export const GET = withTiming("drill", getHandler);
+export const POST = withTiming("drill", postHandler);
