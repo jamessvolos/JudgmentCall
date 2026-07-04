@@ -17,7 +17,7 @@ export default async function DeckPage({ params }: { params: Promise<{ slug: str
     <main className="flex-1 px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-2xl">
         <p className="kicker text-muted">Judgment Call · Private deck</p>
-        <h1 className="mt-2 font-serif font-semibold text-ink-strong text-3xl tracking-tight">
+        <h1 className="mt-2 font-sans font-semibold text-ink-strong text-3xl tracking-[-0.03em]">
           {deck.name}
         </h1>
         <p className="mt-2 text-sm text-muted">

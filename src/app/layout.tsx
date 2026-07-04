@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
+// DATUM type system: Geist (display + body) + Geist Mono (the data voice).
+// Source Serif 4 is retained only for the desk's first-person voice, the
+// poster's leaning values, and the voting tellings.
+import "@fontsource-variable/geist";
+import "@fontsource-variable/geist-mono";
 import "@fontsource-variable/source-serif-4";
-import "@fontsource/ibm-plex-mono/400.css";
-import "@fontsource/ibm-plex-mono/600.css";
+// IBM Plex Mono is NOT loaded here — it is used only by the OG image generator
+// (src/lib/og.tsx reads its woff files directly). The client's data voice is
+// Geist Mono (--font-mono).
 import "./globals.css";
 import { SiteFooter } from "@/components/SiteFooter";
 

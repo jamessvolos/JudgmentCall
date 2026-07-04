@@ -187,7 +187,7 @@ export default function ReviewPage() {
         {data && p && data.runSize > 0 && (
           <>
             <div className="rise" style={{ "--i": 0 } as React.CSSProperties}>
-              <h1 className="ink-gradient mt-4 font-serif font-semibold text-3xl tracking-tight text-balance">
+              <h1 className="ink-gradient mt-4 font-sans font-semibold text-3xl tracking-[-0.03em] text-balance">
                 Your last {data.runSize === 1 ? "call" : `${data.runSize} calls`}, on the record
               </h1>
               <p className="mt-2 text-sm text-muted">

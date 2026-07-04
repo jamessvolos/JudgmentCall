@@ -45,7 +45,7 @@ export default function SubmitPage() {
         <p className="text-xs font-semibold tracking-[0.2em] uppercase text-accent">
           Judgment Call · Bring your own data
         </p>
-        <h1 className="font-serif font-semibold text-ink-strong text-3xl tracking-tight">Run this on your numbers</h1>
+        <h1 className="font-sans font-semibold text-ink-strong text-3xl tracking-[-0.03em]">Run this on your numbers</h1>
         <p className="text-sm text-muted">
           Submit one finding and get a private deck: six tellings of your fact, reviewed before
           anyone votes, scoped to a link only you share. Your deck&apos;s votes never enter the

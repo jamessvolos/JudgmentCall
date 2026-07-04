@@ -180,7 +180,7 @@ export default async function ResultsPage({
             <div className="double-rule" aria-hidden />
           </>
         )}
-        <h1 className="ink-gradient mt-4 font-serif font-semibold text-4xl sm:text-5xl tracking-tight text-balance">
+        <h1 className="ink-gradient mt-4 font-sans font-semibold text-4xl sm:text-5xl tracking-[-0.03em] text-balance">
           What makes an insight land?
         </h1>
         {/* The study's pulse, set as a front-page stat line: the two live

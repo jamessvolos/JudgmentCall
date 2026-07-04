@@ -1,39 +1,56 @@
-# The Desk Edition — Judgment Call design system
+# DATUM — Judgment Call design system
 
-The product is a scientific instrument disguised as a 90-second game. Every
-screen is treated like a page from a newspaper graphics desk: warm paper,
-hairline and double rules, a text serif carrying the hero content, a mono
-"data voice" for everything numeric or methodological. Nothing decorates;
-everything annotates.
+The product is a scientific instrument disguised as a 90-second game. DATUM
+treats every screen as an **optical bench**, not a newspaper page: a machined
+graphite deck under a single overhead lamp, where *measured values emit accent
+light and unmeasured states recede into the unlit*. The core law is now
+literal — **light = earned data**. Dark mode is primary (the lit bench);
+light mode is the same instrument in daylight, at equal fidelity. Nothing
+decorates; everything annotates, and only measurement glows.
 
-All tokens live in `src/app/globals.css` (`:root` + `@theme inline`). Use the
-Tailwind utilities they generate (`bg-wash`, `border-rule-strong`, `text-danger`,
-`rounded-card`…) — never raw hex.
+All tokens live in `src/app/globals.css` (`:root` + `@media dark` +
+`@theme inline`). Use the Tailwind utilities they generate (`bg-wash`,
+`border-rule-strong`, `text-accent`, `rounded-card`…) — never raw hex. Variable
+names are preserved from the prior Desk Edition so the whole system re-skins
+from these tokens.
 
 ## Voices
 
 | Voice | Face | Use |
 |---|---|---|
-| **Serif** (`font-serif`, Source Serif 4) | the hero | tellings, headlines, persona titles, deck copy |
-| **Mono** (`font-mono`, IBM Plex Mono) | the data | masthead, kickers, n-counts, intervals, buttons, footnotes — every number is `tabular-nums` |
-| Sans (system) | plain prose | body sentences, form labels |
+| **Sans** (`font-sans`, Geist Variable) | the display + the room's voice | headlines, hero phrases, UI labels, buttons, body prose — tight tracking (`-0.02em`…`-0.03em`) at display scale |
+| **Mono** (`font-mono`, Geist Mono Variable) | the data | masthead, kickers, n-counts, intervals, footnotes, ratings — every number is `tabular-nums` |
+| **Serif** (`font-serif`, Source Serif 4) | the reading surface + first person | the two voting **tellings**, the desk's first-person quotes, the poster's leaning values |
 
-Utility classes: `.masthead` (caps, 0.3em tracking), `.kicker` (caps mono
-section label), `.double-rule` (2px + offset 1px — the signature mark).
+Serif is now reserved, not the default hero — it marks the neutral text a
+reader *judges* (tellings) and the desk's *opinions* (House View quotes,
+poster values). Geist carries all chrome and display. Utility classes:
+`.masthead` (mono caps, 0.3em tracking), `.kicker` (mono caps section label),
+`.datum` / `.double-rule` (the signature beam — see below).
 
 ## Color law
 
-- `--accent` (press blue) is **earned by data**: it appears on measured,
-  published values (calipers, earned heatmap cells, calibration matches) and
-  primary CTAs. Below n≥30, surfaces are ink-only with **hatched** fills
-  (`repeating-linear-gradient(-45deg, var(--card-border) …)`).
+- `--accent` (**instrument light**, azure) is **earned by data**: measured,
+  published values (calipers, earned heatmap cells, calibration matches), the
+  datum beam, nav/masthead, and the one primary CTA per page. In dark it
+  literally *glows* (`--glow`, a soft bloom); in light the same hue reads as
+  restrained ink with the glow near-zero. Below n≥30, surfaces stay ink-only
+  with **hatched** fills (`repeating-linear-gradient(-45deg, var(--card-border) …)`).
 - `--danger` appears **only on graded surfaces** (drill verdicts, calibration
   misses, errors) — never on taste, which has no wrong answer.
-- **The instrument rule:** no accent on or between the two voting cards, ever.
-  Card affordance = `--rule → --rule-strong` border shift + shadow lift,
-  identical on both sides. Anything beyond position could cue a preference.
-- Poster tokens (`--poster-*`) are theme-stable: the taste poster is "printed,"
-  identical in light and dark.
+- **The instrument rule (now enforced by physics):** `--accent`, the datum
+  beam, and all glow are BANNED from the two voting cards and the gap between
+  them — the pair simply never emits light. Card affordance = `--rule →
+  --rule-strong` border shift + edge-lit shadow lift, identical on both sides.
+  Anything beyond position could cue a preference.
+- **Material tokens** carry the bench: `--lamp` (the static top-centre radial
+  on `<body>`, no drift), `--edge-light` (the top-edge highlight baked into
+  `--shadow-card`, so any raised card reads as a milled panel), `--inset-well`
+  (recessed surfaces, via `.well`), `--glow`/`--glow-strong` (accent bloom).
+- Poster tokens (`--poster-*`) are theme-stable and now graphite: the taste
+  poster is a "printed spec plate," identical in light and dark. (OG twins in
+  `src/lib/og.tsx` mirror these in hex — keep them in step when poster tokens
+  change.)
 
 ## Instruments (reuse these, don't invent new chart forms)
 
@@ -54,34 +71,40 @@ section label), `.double-rule` (2px + offset 1px — the signature mark).
 - **Dot-leader index lines** (poster): mono attr · serif value · dotted
   leader · `n/n`.
 
-## The alive layer (2026-07 direction shift)
+## The datum beam (the signature mark)
 
-The Desk Edition's information design stays; its *atmosphere* got voltage.
-Three additions, all environmental, none allowed near an instrument:
+`.datum` / `.double-rule` is DATUM's wordmark rule: one 1px beam of instrument
+light (`--accent`) with a soft bloom and a dim `--accent-soft` companion 2px
+below — *the reference plane made visible*. It replaces the newspaper
+double-rule under every masthead, and is the SAME primitive as the caliper's
+50% null line: the caliper is just this beam bent into a measurement. It is
+banned from the two voting cards and the gap between them (instrument rule).
 
-- **Night desk palette**: dark mode drops warm paper for a deep cool blue
-  (`oklch(0.168 0.016 265)` field) with an electric accent — same rules,
-  higher contrast. Light mode remains paper.
-- **Grain** (`body::after`): one static SVG-noise sheet at 5–7% opacity over
-  every page, so flat fills read as stock. Static by design; hidden in print.
-- **Aurora** (`.aurora` inside `.aurora-field`): three blurred light fields
-  drifting on a 26s pendulum behind the landing hero. This is the ONE
-  sanctioned loop in the system — it is weather, not signal. On fine-pointer
-  devices the field also leans toward the cursor (a compositor-only transform
-  on the wrapper via `--ax/--ay`, so the blurred fill never repaints); touch
-  and reduced-motion get the plain drift. It never appears on `/swipe`,
-  `/drill`, `/review`, `/results` or any surface carrying data, and it dies
-  under reduced-motion (static gradient remains) and in print.
-- **Hero entrance** (`.hero-line`): the landing masthead / edition line /
-  headline / deck develop in out of a soft blur, staggered by `--i`, once on
-  load — then still. Reduced-motion and print serve it solid.
-- **Gradient ink** (`.ink-gradient`): display type only (the hero's key
-  phrase) — never body copy, never a number.
-- **CTA glow** (`.cta-glow`): the one primary action per page may glow;
+## The material layer (2026-07 direction shift → DATUM)
+
+The Desk Edition's warm-paper *atmosphere* retired. DATUM's only atmosphere is
+**light on a milled deck** — no grain, no drifting aurora, nothing loops:
+
+- **Graphite deck, dark-primary**: dark mode is the lit optical bench (deep
+  near-neutral graphite, `--background: oklch(0.158 …)`); light mode is the
+  "daylight bench" — the same instrument, cool and matte, at equal fidelity.
+- **The lamp** (`--lamp`): one static radial on `<body>`, brightest top-centre,
+  falling to the edges. The light source is *still* — it does not drift.
+- **Edge-lit panels** (`--edge-light` in `--shadow-card`): a raised card
+  catches light on its top edge, so any surface using `shadow-[var(--shadow-card)]`
+  reads as a milled panel under the lamp with no markup change. Recessed
+  surfaces use `.well` (`--inset-well`).
+- **Accent glow** (`--glow`/`--glow-strong`): measured light blooms in the
+  dark; near-zero in daylight. The datum beam and the one CTA per page emit;
   nothing else does.
-
-This direction is provisional: the target reference (jamessvolos.com/about)
-is unreachable from the build environment — tune against it when available.
+- **Hero entrance** (`.hero-line`): the landing masthead / edition line /
+  headline / subhead develop in out of a soft blur, staggered by `--i`, once
+  on load — then still. Reduced-motion and print serve it solid.
+- **`.ink-gradient`**: kept as a *solid* alias (`--ink-strong`, weight 600) —
+  DATUM emphasis is weight + scale, never a colour wash. Accent is reserved
+  for measured light.
+- **CTA glow** (`.cta-glow`): the one primary action per page glows (lit from
+  the top for depth); nothing else does.
 
 ## The House View (opinionated by design)
 
@@ -113,11 +136,12 @@ Promotion is a typeset slug with a self-drawing rule, not a toast.
 ## Layout
 
 Page = `max-w-2xl` column (poster/profile pages `max-w-md`), gutters `px-5`
-mobile / `px-8` desktop. Radius: `rounded-card` (4px — print, not app),
-`rounded-chip` (3px), pills only for "Can't decide" and badges. Shadows:
-`shadow-[var(--shadow-card)]` resting, `--shadow-lift` on hover. Cards over
-`bg-card`; quiet context panels over `bg-wash` with a 3px `--rule-strong` left
-rail. Every public page ends with the colophon (`SiteFooter`).
+mobile / `px-8` desktop. Radius: `rounded-card` (10px — a milled panel, not a
+paper card), `rounded-chip` (5px), pills only for "Can't decide" and badges.
+Shadows: `shadow-[var(--shadow-card)]` resting (edge-lit), `--shadow-lift` on
+hover. Cards over `bg-card`; quiet context panels over `bg-wash` with a 3px
+`--rule-strong` left rail. Every public page ends with the colophon
+(`SiteFooter`).
 
 ## Blinding rules for designers (non-negotiable)
 

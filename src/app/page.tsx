@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { getOrCreateSessionId, getSessionId } from "@/lib/session-client";
 import { SEGMENTS, SEGMENT_LABELS, type Segment } from "@/lib/client-constants";
 
@@ -13,33 +13,6 @@ export default function Landing() {
   const [totals, setTotals] = useState<{ countedVotes: number; votingSessions: number } | null>(
     null
   );
-  const mainRef = useRef<HTMLElement | null>(null);
-
-  // Pointer parallax on the aurora (desktop only; touch + reduced-motion get
-  // the plain drift). Sets --ax/--ay on the field wrapper via rAF so the
-  // blurred field never repaints — only its compositor transform moves.
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
-    const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const el = mainRef.current;
-    if (!fine || reduce || !el) return;
-    let raf = 0;
-    const onMove = (e: PointerEvent) => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const cx = window.innerWidth / 2;
-        const cy = window.innerHeight / 2;
-        el.style.setProperty("--ax", String(((e.clientX - cx) / cx) * 18));
-        el.style.setProperty("--ay", String(((e.clientY - cy) / cy) * 14));
-      });
-    };
-    window.addEventListener("pointermove", onMove, { passive: true });
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
 
   // Returning visitor: offer to continue instead of a cold start. Progress was
   // always kept server-side — this just makes that visible.
@@ -87,13 +60,7 @@ export default function Landing() {
   }
 
   return (
-    <main
-      ref={mainRef}
-      className="relative flex-1 flex flex-col items-center justify-center overflow-hidden px-5 py-12 sm:px-8"
-    >
-      <div className="aurora-field" aria-hidden>
-        <div className="aurora" />
-      </div>
+    <main className="relative flex-1 flex flex-col items-center justify-center px-5 py-12 sm:px-8">
       <div className="w-full max-w-md text-center">
         {/* Masthead: hairline — wordmark — hairline, over the double rule. */}
         <div
@@ -130,14 +97,14 @@ export default function Landing() {
         </p>
 
         <h1
-          className="hero-line font-serif font-semibold text-ink-strong text-[clamp(2.125rem,6vw,3.625rem)] leading-[1.06] tracking-[-0.015em] text-balance"
+          className="hero-line font-sans font-semibold text-ink-strong text-[clamp(2.25rem,6.4vw,3.875rem)] leading-[1.0] tracking-[-0.03em] text-balance"
           style={{ "--i": 2 } as React.CSSProperties}
         >
           Two tellings of the same finding.{" "}
-          <em className="ink-gradient">You make the call.</em>
+          <em className="not-italic text-muted">You make the call.</em>
         </h1>
         <p
-          className="hero-line mt-4 font-serif text-lg leading-[1.55] text-muted"
+          className="hero-line mt-5 font-sans text-lg leading-[1.55] text-muted"
           style={{ "--i": 3 } as React.CSSProperties}
         >
           Ten quick calls, then see what you value in a data story. Your votes feed a{" "}
@@ -176,7 +143,7 @@ export default function Landing() {
               onClick={() => pick(segment)}
               disabled={pending !== null}
               style={{ "--i": i } as React.CSSProperties}
-              className="rise group flex items-center justify-center gap-2.5 rounded-card border border-card-border bg-card px-4 py-4 font-serif text-lg font-semibold shadow-[inset_0_1px_0_oklch(1_0_0_/_0.06),var(--shadow-card)] transition hover:-translate-y-0.5 hover:border-rule-strong hover:shadow-[var(--glow)] active:translate-y-0 active:scale-[0.98] disabled:opacity-60"
+              className="rise group flex items-center justify-center gap-2.5 rounded-card border border-card-border bg-card px-4 py-4 font-sans text-lg font-semibold tracking-[-0.01em] shadow-[inset_0_1px_0_var(--edge-light),var(--shadow-card)] transition hover:-translate-y-0.5 hover:border-rule-strong hover:shadow-[var(--glow)] active:translate-y-0 active:scale-[0.98] disabled:opacity-60"
             >
               {/* The role dot earns accent on hover — this sets a segment, not
                   a data preference, so the instrument rule doesn't apply. */}

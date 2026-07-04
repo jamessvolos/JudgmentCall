@@ -10,12 +10,14 @@ export const OG_SIZE = { width: 1200, height: 630 };
 
 // Poster tokens (hex equivalents of the OKLCH poster ramp — satori has no
 // oklch() support).
+// Hex equivalents of the graphite --poster-* OKLCH ramp (satori has no oklch()).
+// Keep in step with the tokens in globals.css when the poster palette changes.
 export const OG = {
-  bg: "#211d17",
-  fg: "#f1ede4",
-  mut: "#aaa294",
-  rule: "#575046",
-  acc: "#9ab8e8",
+  bg: "#121417",
+  fg: "#edf0f4",
+  mut: "#9a9fa6",
+  rule: "#44484e",
+  acc: "#60b0ff",
 };
 
 const FONT_DIR = path.join(process.cwd(), "node_modules/@fontsource/ibm-plex-mono/files");

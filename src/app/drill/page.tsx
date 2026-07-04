@@ -211,7 +211,7 @@ export default function DrillPage() {
 
         {drill && !drill.item && (
           <div className="mt-8 text-center">
-            <p className="font-serif text-xl font-semibold text-ink-strong text-balance">
+            <p className="font-sans text-xl font-semibold text-ink-strong tracking-[-0.02em] text-balance">
               You&apos;ve cleared every drill.
             </p>
             <p className="mt-2 font-mono text-sm text-muted tabular-nums">
