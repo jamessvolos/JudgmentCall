@@ -108,6 +108,10 @@ model Session {
   // from the study; drillCount also stamps Comparison.postDrill.
   drillRating Float @default(1200)
   drillCount  Int   @default(0)
+  // Public taste permalink (opt-in): set once when the owner publishes their
+  // profile; /p/[publicSlug] renders the poster read-only. Craft only — the
+  // personal-results blinding rules apply unchanged.
+  publicSlug String? @unique
   createdAt   DateTime       @default(now())
   comparisons Comparison[]
   decks       Deck[]

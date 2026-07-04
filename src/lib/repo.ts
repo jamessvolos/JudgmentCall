@@ -653,3 +653,28 @@ export async function getFunnel(): Promise<Funnel> {
     topUtm: utms.map((u) => ({ utmSource: u.utmSource!, sessions: u._count._all })),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Public taste profiles (launch kit)
+
+/** Idempotent publish: mint a short public slug for the session's poster. */
+export async function publishProfile(sessionId: string): Promise<string | null> {
+  const session = await prisma.session.findUnique({ where: { id: sessionId } });
+  if (!session) return null;
+  if (session.publicSlug) return session.publicSlug;
+  // Opaque short id; retry on the (astronomically unlikely) collision.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const slug = Math.random().toString(36).slice(2, 10);
+    try {
+      await prisma.session.update({ where: { id: sessionId }, data: { publicSlug: slug } });
+      return slug;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+export async function getSessionByPublicSlug(slug: string): Promise<Session | null> {
+  return prisma.session.findUnique({ where: { publicSlug: slug } });
+}
