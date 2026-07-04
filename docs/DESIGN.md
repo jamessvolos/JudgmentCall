@@ -64,11 +64,17 @@ Three additions, all environmental, none allowed near an instrument:
   higher contrast. Light mode remains paper.
 - **Grain** (`body::after`): one static SVG-noise sheet at 5–7% opacity over
   every page, so flat fills read as stock. Static by design; hidden in print.
-- **Aurora** (`.aurora`): three blurred light fields drifting on a 26s
-  pendulum behind the landing hero. This is the ONE sanctioned loop in the
-  system — it is weather, not signal. It never appears on `/swipe`, `/drill`,
-  `/review`, `/results` or any surface carrying data, and it dies under
-  reduced-motion (static gradient remains) and in print.
+- **Aurora** (`.aurora` inside `.aurora-field`): three blurred light fields
+  drifting on a 26s pendulum behind the landing hero. This is the ONE
+  sanctioned loop in the system — it is weather, not signal. On fine-pointer
+  devices the field also leans toward the cursor (a compositor-only transform
+  on the wrapper via `--ax/--ay`, so the blurred fill never repaints); touch
+  and reduced-motion get the plain drift. It never appears on `/swipe`,
+  `/drill`, `/review`, `/results` or any surface carrying data, and it dies
+  under reduced-motion (static gradient remains) and in print.
+- **Hero entrance** (`.hero-line`): the landing masthead / edition line /
+  headline / deck develop in out of a soft blur, staggered by `--i`, once on
+  load — then still. Reduced-motion and print serve it solid.
 - **Gradient ink** (`.ink-gradient`): display type only (the hero's key
   phrase) — never body copy, never a number.
 - **CTA glow** (`.cta-glow`): the one primary action per page may glow;

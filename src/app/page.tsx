@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getOrCreateSessionId, getSessionId } from "@/lib/session-client";
 import { SEGMENTS, SEGMENT_LABELS, type Segment } from "@/lib/client-constants";
 
@@ -13,6 +13,33 @@ export default function Landing() {
   const [totals, setTotals] = useState<{ countedVotes: number; votingSessions: number } | null>(
     null
   );
+  const mainRef = useRef<HTMLElement | null>(null);
+
+  // Pointer parallax on the aurora (desktop only; touch + reduced-motion get
+  // the plain drift). Sets --ax/--ay on the field wrapper via rAF so the
+  // blurred field never repaints — only its compositor transform moves.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const el = mainRef.current;
+    if (!fine || reduce || !el) return;
+    let raf = 0;
+    const onMove = (e: PointerEvent) => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        el.style.setProperty("--ax", String(((e.clientX - cx) / cx) * 18));
+        el.style.setProperty("--ay", String(((e.clientY - cy) / cy) * 14));
+      });
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   // Returning visitor: offer to continue instead of a cold start. Progress was
   // always kept server-side — this just makes that visible.
@@ -60,17 +87,28 @@ export default function Landing() {
   }
 
   return (
-    <main className="relative flex-1 flex flex-col items-center justify-center overflow-hidden px-5 py-12 sm:px-8">
-      <div className="aurora" aria-hidden />
+    <main
+      ref={mainRef}
+      className="relative flex-1 flex flex-col items-center justify-center overflow-hidden px-5 py-12 sm:px-8"
+    >
+      <div className="aurora-field" aria-hidden>
+        <div className="aurora" />
+      </div>
       <div className="w-full max-w-md text-center">
         {/* Masthead: hairline — wordmark — hairline, over the double rule. */}
-        <div className="flex items-center gap-3 mb-1">
+        <div
+          className="hero-line flex items-center gap-3 mb-1"
+          style={{ "--i": 0 } as React.CSSProperties}
+        >
           <span className="h-px flex-1 bg-rule-strong/40" aria-hidden />
           <p className="masthead text-ink-strong">Judgment Call</p>
           <span className="h-px flex-1 bg-rule-strong/40" aria-hidden />
         </div>
-        <div className="double-rule" aria-hidden />
-        <p className="mt-3 mb-8 font-mono text-[0.75rem] text-muted tabular-nums text-pretty">
+        <div className="hero-line double-rule" style={{ "--i": 0 } as React.CSSProperties} aria-hidden />
+        <p
+          className="hero-line mt-3 mb-8 font-mono text-[0.75rem] text-muted tabular-nums text-pretty"
+          style={{ "--i": 1 } as React.CSSProperties}
+        >
           {totals && totals.countedVotes > 0 ? (
             <>
               A live study of data storytelling ·{" "}
@@ -91,11 +129,17 @@ export default function Landing() {
           )}
         </p>
 
-        <h1 className="font-serif font-semibold text-ink-strong text-[clamp(2.125rem,6vw,3.625rem)] leading-[1.06] tracking-[-0.015em] text-balance">
+        <h1
+          className="hero-line font-serif font-semibold text-ink-strong text-[clamp(2.125rem,6vw,3.625rem)] leading-[1.06] tracking-[-0.015em] text-balance"
+          style={{ "--i": 2 } as React.CSSProperties}
+        >
           Two tellings of the same finding.{" "}
           <em className="ink-gradient">You make the call.</em>
         </h1>
-        <p className="mt-4 font-serif text-lg leading-[1.55] text-muted">
+        <p
+          className="hero-line mt-4 font-serif text-lg leading-[1.55] text-muted"
+          style={{ "--i": 3 } as React.CSSProperties}
+        >
           Ten quick calls, then see what you value in a data story. Your votes feed a{" "}
           <a
             href="/results"

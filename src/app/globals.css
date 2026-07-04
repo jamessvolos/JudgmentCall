@@ -153,6 +153,38 @@ body::after {
   animation: aurora-drift 26s ease-in-out infinite alternate;
 }
 
+/* Pointer parallax: on fine-pointer devices the whole weather field leans
+   toward the cursor (a compositor-only transform on this wrapper, so the
+   blurred aurora inside never repaints). --ax/--ay are set in JS and default
+   to 0, so touch devices and reduced-motion get the plain drift. */
+.aurora-field {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  transform: translate3d(calc(var(--ax, 0) * 1px), calc(var(--ay, 0) * 1px), 0);
+  transition: transform 420ms var(--ease);
+  will-change: transform;
+}
+
+/* Hero entrance: the front door develops in — each line rises out of a soft
+   blur, staggered, then everything is still. Reduced-motion serves it solid. */
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+    filter: blur(7px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+.hero-line {
+  animation: hero-rise 640ms var(--ease) calc(var(--i, 0) * 90ms) both;
+}
+
 /* Gradient ink: display-type only (the landing hero's key phrase). Never on
    body copy, never on numbers — data stays in one honest color. */
 .ink-gradient {
@@ -437,7 +469,8 @@ body:has(main[data-embed]) footer {
   .pair-in,
   .poster-in,
   .rise,
-  .card-reveal {
+  .card-reveal,
+  .hero-line {
     animation: none;
     opacity: 1;
   }
@@ -453,11 +486,20 @@ body:has(main[data-embed]) footer {
   .rise,
   .card-reveal,
   .promo-slug,
-  .rule-draw {
+  .rule-draw,
+  .hero-line {
     animation: none;
+  }
+  .hero-line {
+    opacity: 1;
   }
   .aurora {
     animation: none;
+  }
+  /* No pointer parallax under reduced motion. */
+  .aurora-field {
+    transform: none;
+    transition: none;
   }
   .verdict-culprit,
   .clear-back,
