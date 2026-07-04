@@ -10,6 +10,9 @@ export default function Landing() {
   const [pending, setPending] = useState<Segment | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [returning, setReturning] = useState<{ segment: Segment; voteCount: number } | null>(null);
+  const [totals, setTotals] = useState<{ countedVotes: number; votingSessions: number } | null>(
+    null
+  );
 
   // Returning visitor: offer to continue instead of a cold start. Progress was
   // always kept server-side — this just makes that visible.
@@ -21,6 +24,11 @@ export default function Landing() {
       .then((d) => {
         if (d && d.voteCount > 0) setReturning({ segment: d.segment, voteCount: d.voteCount });
       })
+      .catch(() => {});
+    // The edition line: live public totals (same numbers as /results).
+    fetch("/api/crowd")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d?.totals && setTotals(d.totals))
       .catch(() => {});
   }, []);
 
@@ -57,8 +65,10 @@ export default function Landing() {
           <span className="h-px flex-1 bg-card-border" aria-hidden />
         </div>
         <div className="double-rule" aria-hidden />
-        <p className="mt-3 mb-8 font-mono text-[0.75rem] text-muted">
-          A live study of data storytelling · No sign-up · ≈90 seconds
+        <p className="mt-3 mb-8 font-mono text-[0.75rem] text-muted tabular-nums">
+          {totals && totals.countedVotes > 0
+            ? `A live study of data storytelling · ${totals.countedVotes.toLocaleString()} calls logged · ≈90 seconds`
+            : "A live study of data storytelling · No sign-up · ≈90 seconds"}
         </p>
 
         <h1 className="font-serif font-semibold text-ink-strong text-[clamp(2.125rem,6vw,3.625rem)] leading-[1.06] tracking-[-0.015em] text-balance">

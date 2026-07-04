@@ -3,6 +3,7 @@ import "@fontsource-variable/source-serif-4";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/600.css";
 import "./globals.css";
+import { SiteFooter } from "@/components/SiteFooter";
 
 const description =
   "Two tellings of the same data insight. Tap the better one. Your votes feed a live, public study of what makes a data story land.";
@@ -37,7 +38,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <SiteFooter />
+      </body>
     </html>
   );
 }
