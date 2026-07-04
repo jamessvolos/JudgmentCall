@@ -31,20 +31,39 @@ Ground rules for all waves:
   the per-finding query chain; `/api/review` fetches gold-pair consensus
   in one parallel burst.
 
-## Wave 2 — Aggregates as first-class state
+## Wave 2 — Aggregates as first-class state  ⏸ DEFERRED BY DESIGN
 
-The remaining full scans (`getAnalyticsComparisons`, `getContrastCounts`,
-`getFindingComparisonCounts`) shrink to point reads:
+**Status: not shipped, on purpose.** At current volume (~200 counted votes)
+the Wave-1 memoized scan resolves `/results` in ~30ms and only recomputes
+when the data version changes. A vote-path aggregate table would add write
+complexity and a drift-risk to the flagship study's *published numbers* for
+a benefit that doesn't materialize until roughly 50k+ counted votes. Ship
+this wave when the analytics recompute (measured, not guessed) crosses ~150ms
+p95, and only behind the reconciliation guard below. The design is recorded
+here so it's a drop-in when that day comes.
 
-- `ContrastTally` table (attribute, valueA, valueB, segment, winsA, n)
-  updated inside the vote transaction — analytics becomes a 26-row read.
-  Backfill script replays existing comparisons once; a nightly
-  reconciliation job (ops.yml) asserts tally == recount and alarms on
-  drift, so the ledger stays the source of truth.
-- Per-finding and per-contrast comparison counts maintained the same way
-  (or read from the tally), removing both groupBys from `/api/pair`.
-- `getSeenPairKeys` capped: read only the session's last N=200 pair keys
-  (a session that has seen 200 pairs is already in repeat territory).
+**Exact write contract (must match `getAnalyticsComparisons` byte-for-byte).**
+A vote contributes to the tally iff: `winnerId != null AND lowAttention =
+false AND isRepeat = false AND deckId = null`, its `contrastAttrs` is a single
+key, and that key is not `fidelity`. The value pair is `[winner[attr],
+loser[attr]].sort()`; `winsA` increments when `winner[attr] === valueA`. Any
+divergence from this filter corrupts a public claim — replicate it, don't
+re-derive it.
+
+- `ContrastTally(attribute, valueA, valueB, segment, winsA, n)`, one row per
+  segment (store ALL segments; `/results` overall = sum across segments, the
+  segment views filter to executive/analyst — strictly more general than the
+  current scan). Updated inside the existing vote `$transaction`.
+- Backfill script replays the ledger once; a nightly reconciliation step
+  (ops.yml) recomputes from the ledger and asserts `tally == recount`,
+  alarming on any drift. The ledger stays the single source of truth; the
+  tally is a cache that must prove equality before reads switch to it.
+- Per-finding and per-contrast counts (`getFindingComparisonCounts`,
+  `getContrastCounts`) maintained the same way, removing both groupBys from
+  the `/api/pair` hot path.
+- `getSeenPairKeys` capped to the session's last N≈200 pair keys (a session
+  past 200 pairs has already exhausted a pool of this size — bounded read,
+  no behavior change at current scale).
 
 ## Wave 3 — Vote-path latency & integrity
 
