@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { withTiming } from "@/lib/timing";
 import { getSession } from "@/lib/repo";
 import { computePersonalResults } from "@/lib/results";
 import { judgeRank, levelFor } from "@/lib/progression";
 
 // GET /api/results?sessionId=... — the session's personal preference profile,
 // computed from its single-attribute-contrast votes only.
-export async function GET(request: Request) {
+async function getHandler(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get("sessionId");
   if (!sessionId) {
@@ -29,3 +30,5 @@ export async function GET(request: Request) {
     ...results,
   });
 }
+
+export const GET = withTiming("results", getHandler);

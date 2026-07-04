@@ -85,8 +85,12 @@ re-derive it.
   log line per request plus a `Server-Timing` response header (visible in
   devtools). ✅ Baseline at ~535 votes (local SQLite, warm): `pair` ≈6–12ms,
   `vote` ≈24ms (the settle transaction + inline next-pair selection). This is
-  the measurement floor every future wave is judged against — expand the
-  wrap to `/api/review` and `/results` if either shows up hot in prod logs.
+  the measurement floor every future wave is judged against. Now also wraps
+  the analytics-backed reads `/api/review`, `/api/crowd`, and `/api/results`,
+  so every API read/write path emits a `[perf]` line + `Server-Timing`
+  header. ✅ (`/results` is an RSC page with no handler to wrap — measure it
+  via the `computeAnalyticsCached` version-key hit rate; if it shows hot,
+  move it to ISR `revalidate` rather than a response header.)
 
 ## Wave 4 — Client performance & perceived speed
 

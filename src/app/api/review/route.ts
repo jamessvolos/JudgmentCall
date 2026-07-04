@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTiming } from "@/lib/timing";
 import { computeAnalyticsCached, MIN_N, type ValuePairStat } from "@/lib/analytics";
 import { stanceFor } from "@/lib/house-view";
 import { LESSONS } from "@/lib/lessons";
@@ -68,7 +69,7 @@ function statFor(
   return stats.find((s) => s.attribute === attr && s.valueA === a && s.valueB === b);
 }
 
-export async function GET(request: Request) {
+async function getHandler(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get("sessionId");
   if (!sessionId) return NextResponse.json({ error: "sessionId required" }, { status: 400 });
@@ -252,3 +253,5 @@ export async function GET(request: Request) {
     },
   });
 }
+
+export const GET = withTiming("review", getHandler);

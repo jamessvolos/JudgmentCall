@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withTiming } from "@/lib/timing";
 import { computeAnalyticsCached } from "@/lib/analytics";
 
 // Public, unsuppressed crowd win rates — powers "your taste vs the crowd".
@@ -6,7 +7,7 @@ import { computeAnalyticsCached } from "@/lib/analytics";
 // so a short shared-cache TTL at the CDN is safe and takes the read off the
 // function entirely for the common case (perf wave 5). stale-while-revalidate
 // keeps it instant even at the TTL boundary.
-export async function GET() {
+async function getHandler(): Promise<Response> {
   const a = await computeAnalyticsCached();
   return NextResponse.json(
     {
@@ -26,3 +27,5 @@ export async function GET() {
     { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
   );
 }
+
+export const GET = withTiming("crowd", getHandler);
