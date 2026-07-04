@@ -17,3 +17,9 @@ export const SEGMENT_LABELS: Record<Segment, string> = {
 
 // Personal results card unlocks after this many votes.
 export const RESULTS_AT_VOTES = 10;
+
+// The desk's preregistered House View calls, as a bare count for the landing's
+// House View tile. A plain integer — never import the server-only house-view.ts
+// (it carries the desk's stance strings) into a client bundle. Keep in sync with
+// HOUSE_VIEW.length in src/lib/house-view.ts.
+export const HOUSE_VIEW_COUNT = 13;
