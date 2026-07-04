@@ -604,3 +604,52 @@ export async function recordDrillAttempt(input: {
     };
   });
 }
+
+// ---------------------------------------------------------------------------
+// Share-loop funnel (launch kit)
+
+/** Log a share tap. Amount 0: the XP ledger doubles as an event log here —
+ * shares are measured, never rewarded (rewarding them invites spam). */
+export async function logShare(sessionId: string): Promise<void> {
+  await prisma.xpEvent.create({ data: { sessionId, kind: "share", amount: 0 } });
+}
+
+export type Funnel = {
+  sessions: number;
+  voted: number; // >=1 vote
+  completed: number; // >=10 votes (saw the payoff moment)
+  sharers: number; // distinct sessions with a share tap
+  topReferrers: { referrer: string; sessions: number }[];
+  topUtm: { utmSource: string; sessions: number }[];
+};
+
+export async function getFunnel(): Promise<Funnel> {
+  const [sessions, voted, completed, shareEvents, refs, utms] = await Promise.all([
+    prisma.session.count(),
+    prisma.session.count({ where: { voteCount: { gt: 0 } } }),
+    prisma.session.count({ where: { voteCount: { gte: 10 } } }),
+    prisma.xpEvent.findMany({ where: { kind: "share" }, select: { sessionId: true } }),
+    prisma.session.groupBy({
+      by: ["referrer"],
+      where: { referrer: { not: null } },
+      _count: { _all: true },
+      orderBy: { _count: { id: "desc" } },
+      take: 5,
+    }),
+    prisma.session.groupBy({
+      by: ["utmSource"],
+      where: { utmSource: { not: null } },
+      _count: { _all: true },
+      orderBy: { _count: { id: "desc" } },
+      take: 5,
+    }),
+  ]);
+  return {
+    sessions,
+    voted,
+    completed,
+    sharers: new Set(shareEvents.map((e) => e.sessionId)).size,
+    topReferrers: refs.map((r) => ({ referrer: r.referrer!, sessions: r._count._all })),
+    topUtm: utms.map((u) => ({ utmSource: u.utmSource!, sessions: u._count._all })),
+  };
+}

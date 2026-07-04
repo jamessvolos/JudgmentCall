@@ -304,6 +304,12 @@ body {
   animation-duration: var(--t-fast);
 }
 
+/* Embed mode (?embed=1 on /results): the colophon disappears so the page
+   iframes cleanly inside an article. */
+body:has(main[data-embed]) footer {
+  display: none;
+}
+
 /* The Desk Edition prints. Interactive chrome disappears; the poster keeps
    its ink (print-color-adjust) so a printed taste card matches the shared
    one. Everything else falls back to ink on paper. */

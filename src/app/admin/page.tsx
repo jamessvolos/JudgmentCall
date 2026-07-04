@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { computeCoverageGrid, computeOverclaim, computeAnalytics, MIN_N } from "@/lib/analytics";
 import { audit, isAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
-import { getServingConfig, getVotesPerDay, setServingConfig } from "@/lib/repo";
+import { getFunnel, getServingConfig, getVotesPerDay, setServingConfig } from "@/lib/repo";
 import { SEGMENTS } from "@/lib/types";
 import { AdminNav } from "@/components/AdminNav";
 
@@ -26,12 +26,13 @@ export default async function AdminPage({
   const { key } = await searchParams;
   if (!(await isAdmin(key))) notFound();
 
-  const [o, a, grid, series, policy, pendingCount, weekVotes, lowJudges] = await Promise.all([
+  const [o, a, grid, series, policy, funnel, pendingCount, weekVotes, lowJudges] = await Promise.all([
     computeOverclaim(),
     computeAnalytics(),
     computeCoverageGrid(),
     getVotesPerDay(14),
     getServingConfig(),
+    getFunnel(),
     prisma.variant.count({ where: { status: "pending" } }),
     prisma.comparison.count({
       where: { createdAt: { gte: weekAgo() }, deckId: null },
@@ -88,6 +89,43 @@ export default async function AdminPage({
               </div>
             ))}
           </div>
+        </section>
+
+        {/* Share-loop funnel */}
+        <section className="mt-6 rounded-card border border-card-border bg-card p-5">
+          <h2 className="kicker text-muted">Share loop</h2>
+          <div className="mt-3 flex items-center gap-2 font-mono text-sm tabular-nums">
+            {[
+              { label: "sessions", value: funnel.sessions },
+              { label: "voted", value: funnel.voted },
+              { label: "hit 10", value: funnel.completed },
+              { label: "shared", value: funnel.sharers },
+            ].map((step, i, arr) => (
+              <span key={step.label} className="flex items-center gap-2">
+                <span className="text-center">
+                  <span className="block text-xl font-semibold">{step.value}</span>
+                  <span className="block text-[10px] text-muted uppercase tracking-[0.14em]">
+                    {step.label}
+                  </span>
+                </span>
+                {i < arr.length - 1 && (
+                  <span className="text-muted text-xs" aria-hidden>
+                    →{" "}
+                    {arr[i].value > 0 ? `${Math.round((arr[i + 1].value / arr[i].value) * 100)}%` : "—"}
+                  </span>
+                )}
+              </span>
+            ))}
+          </div>
+          {(funnel.topReferrers.length > 0 || funnel.topUtm.length > 0) && (
+            <p className="mt-3 font-mono text-xs text-muted">
+              {funnel.topReferrers.length > 0 &&
+                `referrers: ${funnel.topReferrers.map((r) => `${r.referrer} (${r.sessions})`).join(" · ")}`}
+              {funnel.topReferrers.length > 0 && funnel.topUtm.length > 0 && " — "}
+              {funnel.topUtm.length > 0 &&
+                `utm: ${funnel.topUtm.map((u) => `${u.utmSource} (${u.sessions})`).join(" · ")}`}
+            </p>
+          )}
         </section>
 
         <h1 className="mt-8 font-serif font-semibold text-ink-strong text-3xl tracking-tight">The overclaim experiment</h1>

@@ -22,13 +22,17 @@ function pct(x: number): string {
 function ContrastRow({ stat }: { stat: ValuePairStat }) {
   const clears =
     !stat.suppressed && stat.interval !== null && (stat.interval.lo > 0.5 || stat.interval.hi < 0.5);
+  // Stable anchor so articles can deep-link one contrast: /results#leadType-a-b
+  const anchor = `${stat.attribute}-${stat.valueA}-${stat.valueB}`.replace(/[^a-zA-Z0-9_-]/g, "");
   return (
-    <div className="py-3.5 border-b border-card-border last:border-b-0">
+    <div id={anchor} className="group scroll-mt-6 py-3.5 border-b border-card-border last:border-b-0">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <p>
-          <span className="font-semibold">{stat.valueALabel}</span>
-          <span className="text-muted"> vs </span>
-          <span className="font-semibold">{stat.valueBLabel}</span>
+          <a href={`#${anchor}`} className="hover:underline decoration-card-border underline-offset-2">
+            <span className="font-semibold">{stat.valueALabel}</span>
+            <span className="text-muted"> vs </span>
+            <span className="font-semibold">{stat.valueBLabel}</span>
+          </a>
         </p>
         <p className="font-mono text-xs text-muted shrink-0 tabular-nums">
           {stat.suppressed ? `COLLECTING — ${stat.n}/${MIN_N}` : `n=${stat.n}`}
@@ -95,7 +99,14 @@ function ContrastRow({ stat }: { stat: ValuePairStat }) {
   );
 }
 
-export default async function ResultsPage() {
+export default async function ResultsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ embed?: string }>;
+}) {
+  // Embed mode (?embed=1): chrome-less for iframes in articles — masthead and
+  // colophon drop away (body:has() rule in globals.css), content stays whole.
+  const embed = (await searchParams).embed === "1";
   const [a, snapshots] = await Promise.all([computeAnalytics(), getAnalysisSnapshots(5)]);
   const exec = a.segmentStats.executive ?? [];
   const analyst = a.segmentStats.analyst ?? [];
@@ -112,12 +123,16 @@ export default async function ResultsPage() {
     .sort((d1, d2) => Math.abs(d2.e.rateA! - d2.an!.rateA!) - Math.abs(d1.e.rateA! - d1.an!.rateA!));
 
   return (
-    <main className="flex-1 px-4 py-8 sm:py-12">
+    <main className="flex-1 px-4 py-8 sm:py-12" {...(embed && { "data-embed": "1" })}>
       <div className="mx-auto w-full max-w-2xl">
-        <div className="pb-2">
-          <p className="masthead text-ink-strong">Judgment Call</p>
-        </div>
-        <div className="double-rule" aria-hidden />
+        {!embed && (
+          <>
+            <div className="pb-2">
+              <p className="masthead text-ink-strong">Judgment Call</p>
+            </div>
+            <div className="double-rule" aria-hidden />
+          </>
+        )}
         <h1 className="mt-4 font-serif font-semibold text-ink-strong text-3xl sm:text-4xl tracking-tight">
           What makes an insight land?
         </h1>
@@ -128,8 +143,12 @@ export default async function ResultsPage() {
           {MIN_N}. Full inclusion rules in Methods at the bottom.
         </p>
         <p className="mt-3 text-sm">
-          <Link href="/" className="font-semibold text-accent hover:underline">
-            Cast your own votes →
+          <Link
+            href="/"
+            {...(embed && { target: "_blank" })}
+            className="font-semibold text-accent hover:underline"
+          >
+            Cast your own votes{embed ? " at judgment-call.vercel.app" : ""} →
           </Link>
         </p>
         <YourContribution />

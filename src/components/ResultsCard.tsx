@@ -94,6 +94,15 @@ export function ResultsCard({
         setShareState("copied");
       }
       setTimeout(() => setShareState("idle"), 2500);
+      // Funnel breadcrumb — fire-and-forget, never blocks the share.
+      const sessionId = localStorage.getItem("jc_session_id");
+      if (sessionId) {
+        fetch("/api/share", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+        }).catch(() => {});
+      }
     } catch {
       // user dismissed the share sheet / clipboard unavailable — no-op
     }
