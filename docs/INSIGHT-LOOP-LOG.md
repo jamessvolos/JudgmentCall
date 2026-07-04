@@ -64,3 +64,22 @@ with a clean interval (amend the overruled conviction); a new craft attribute or
 device entering the taxonomy; the weekly INSIGHT SYNTHESIS loop surfacing a
 durable aggregate pattern worth encoding; or a genuinely sharper distinction /
 example that clears the high bar for touching the constitution.
+
+## 2026-07-04 · Re-check (still converged — state unchanged)
+
+Loop re-fired. Verified via git that the four source-of-truth surfaces
+(`house-view.ts`, `ATTRIBUTES.md`, `generate.ts`, `lessons.ts`) and the
+constitution are **untouched since the prior convergence** — the intervening
+commits were all teaching / design / perf-doc / deploy-ops work that never
+touches an INSIGHT surface or introduces a new craft principle. None of the
+re-open triggers above has fired. A fresh look at the standing deferrals (a
+"clarity" dimension — already carried by the thesis's "how much of the number's
+real information survives"; a generator/reviewer checklist — redundant with the
+convictions' own "*Great insight: …*" lines; a `data_leader`/`other` audience
+flip — speculative; the over-reached so-what — borders fidelity) still finds
+none clearing the bar. No change.
+
+**Standing policy to avoid churn:** while the four surfaces + constitution
+remain unchanged since this note **and** no re-open trigger has fired, this loop
+is a no-op — re-checking is fine, but do not re-log or edit for its own sake.
+The next entry here should coincide with an actual change or a fired trigger.
