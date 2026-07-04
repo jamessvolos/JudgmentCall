@@ -76,7 +76,10 @@ export default function Landing() {
         </h1>
         <p className="mt-4 font-serif text-lg leading-[1.55] text-muted">
           Ten quick calls, then see what you value in a data story. Your votes feed a{" "}
-          <a href="/results" className="text-accent hover:underline">
+          <a
+            href="/results"
+            className="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
+          >
             public study
           </a>{" "}
           of what makes data stories land.
