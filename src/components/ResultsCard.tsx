@@ -105,7 +105,7 @@ export function ResultsCard({
           screenshot shared from dark mode looks identical to one from light —
           the poster is print, not UI. */}
       <div
-        className="poster-in overflow-hidden rounded-[6px] px-6 py-6 shadow-[var(--shadow-lift)]"
+        className="poster-in poster-print overflow-hidden rounded-[6px] px-6 py-6 shadow-[var(--shadow-lift)]"
         style={{ background: "var(--poster-bg)", color: "var(--poster-fg)" }}
       >
         <div className="flex items-center gap-3">
@@ -217,7 +217,7 @@ export function ResultsCard({
       </div>
 
       {/* Actions live outside the poster so screenshots stay clean. */}
-      <div className="mt-4 flex flex-col sm:flex-row gap-3">
+      <div className="print-hide mt-4 flex flex-col sm:flex-row gap-3">
         <button
           onClick={onKeepGoing}
           className="flex-1 rounded-card bg-accent px-4 py-3 font-mono text-sm font-semibold text-on-accent transition hover:opacity-90 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"

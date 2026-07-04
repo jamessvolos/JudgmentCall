@@ -199,6 +199,16 @@ export default function DrillPage() {
           </p>
         )}
 
+        {!drill && !error && (
+          <div aria-hidden className="mt-5 animate-pulse">
+            <div className="rounded-card bg-card-border/50 h-20 mb-4" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-card bg-card-border/50 h-40" />
+              <div className="rounded-card bg-card-border/50 h-40" />
+            </div>
+          </div>
+        )}
+
         {drill && !drill.item && (
           <div className="mt-8 text-center">
             <p className="font-serif text-xl font-semibold text-ink-strong text-balance">

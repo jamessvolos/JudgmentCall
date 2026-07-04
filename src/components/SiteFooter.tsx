@@ -5,7 +5,7 @@ import Link from "next/link";
 // and /drill stay discoverable outside their happy paths.
 export function SiteFooter() {
   return (
-    <footer className="px-5 pb-8 pt-10 sm:px-8">
+    <footer className="print-hide px-5 pb-8 pt-10 sm:px-8">
       <div className="mx-auto w-full max-w-2xl">
         <div className="h-px w-full bg-card-border" aria-hidden />
         <nav className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-muted">

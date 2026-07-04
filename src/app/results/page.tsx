@@ -206,7 +206,7 @@ export default async function ResultsPage() {
             {a.leaderboard.map((row) => (
               <div key={row.findingId} className="rounded-card border border-card-border bg-card p-4">
                 <p className="text-xs text-muted">{row.findingTitle}</p>
-                <p className="mt-1 font-serif text-[1.0625rem] leading-relaxed text-ink-strong">{row.text}</p>
+                <p className="mt-1 font-serif text-[1.0625rem] leading-relaxed text-ink-strong text-pretty">{row.text}</p>
                 <p className="mt-2 font-mono text-xs text-muted tabular-nums">
                   Elo {Math.round(row.elo)} · {row.wins}W–{row.losses}L
                 </p>
