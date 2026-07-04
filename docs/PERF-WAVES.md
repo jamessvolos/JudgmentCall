@@ -75,9 +75,13 @@ re-derive it.
   become no-ops instead of a second Elo application. Also stop applying
   Elo on `isRepeat` votes — repeats are non-independent and should not
   move ratings (they already earn no XP and are excluded from analytics).
-- Per-route timing: a small wrapper logs `route, ms, sessionId-hash` on
-  every API response so p95s are readable from Vercel logs before and
-  after each wave.
+- Per-route timing: `withTiming()` (`src/lib/timing.ts`) wraps the hot
+  handlers (`/api/vote`, `/api/pair`) — one `[perf] route=… ms=… status=…`
+  log line per request plus a `Server-Timing` response header (visible in
+  devtools). ✅ Baseline at ~535 votes (local SQLite, warm): `pair` ≈6–12ms,
+  `vote` ≈24ms (the settle transaction + inline next-pair selection). This is
+  the measurement floor every future wave is judged against — expand the
+  wrap to `/api/review` and `/results` if either shows up hot in prod logs.
 
 ## Wave 4 — Client performance & perceived speed
 

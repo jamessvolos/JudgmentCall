@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDeckBySlug, getSession } from "@/lib/repo";
 import { selectPair, serializePair } from "@/lib/matchmaking";
+import { withTiming } from "@/lib/timing";
 
 // GET /api/pair?sessionId=... — matchmake the next pair for this session.
 //
@@ -8,7 +9,7 @@ import { selectPair, serializePair } from "@/lib/matchmaking";
 // especially the hidden fidelity flag) must never reach the client, where
 // they could bias votes or unblind the overclaim experiment. The vote route
 // recomputes the contrast server-side from the variant ids.
-export async function GET(request: Request) {
+async function getHandler(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get("sessionId");
   if (!sessionId) {
@@ -33,3 +34,5 @@ export async function GET(request: Request) {
 
   return NextResponse.json(serializePair(pair, session.voteCount));
 }
+
+export const GET = withTiming("pair", getHandler);

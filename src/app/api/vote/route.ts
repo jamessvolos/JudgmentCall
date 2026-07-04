@@ -9,6 +9,7 @@ import {
 } from "@/lib/repo";
 import { contrastKey, selectPair, serializePair } from "@/lib/matchmaking";
 import { levelFor } from "@/lib/progression";
+import { withTiming } from "@/lib/timing";
 import {
   attributeDiff,
   CANT_DECIDE_MAX_IN_WINDOW,
@@ -45,7 +46,7 @@ function hashIp(request: Request): string | null {
 // - "Can't decide" is throttled: more than CANT_DECIDE_MAX_IN_WINDOW of the
 //   last CANT_DECIDE_WINDOW votes undecided → the next undecided vote is
 //   rejected with code "cant_decide_throttled" (the client asks for a pick).
-export async function POST(request: Request) {
+async function voteHandler(request: Request): Promise<Response> {
   const body = await request.json().catch(() => null);
   const { sessionId, variantAId, variantBId, winnerId, latencyMs, clientVoteId } = body ?? {};
 
@@ -163,3 +164,5 @@ export async function POST(request: Request) {
     nextPair,
   });
 }
+
+export const POST = withTiming("vote", voteHandler);
