@@ -84,6 +84,11 @@ jobs:
             npx tsx scripts/ingest.ts fred "$series" || echo "::warning::FRED ingest failed for $series"
           done
 
+      - name: Dedupe unstarted submitted findings
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx tsx scripts/dedupe-submitted.ts
+
       - name: Generate tellings for submitted findings
         if: inputs.run_generate
         env:

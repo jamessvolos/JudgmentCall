@@ -181,14 +181,21 @@ ${planText}${
 }
 
 async function callModel(system: string, messages: Anthropic.MessageParam[]) {
-  const response = await client.messages.create({
+  // Adaptive thinking spends from max_tokens before the JSON starts, so the
+  // budget must be generous — and anything above ~16K output must stream to
+  // dodge SDK HTTP timeouts. 64K gives thinking + six variants ample room.
+  const stream = client.messages.stream({
     model: MODEL,
-    max_tokens: 8000,
+    max_tokens: 64000,
     thinking: { type: "adaptive" },
     system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
     output_config: { format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
     messages,
   });
+  const response = await stream.finalMessage();
+  if (response.stop_reason === "max_tokens") {
+    throw new Error("model hit max_tokens before completing the JSON — raise the budget");
+  }
   const text = response.content.find((b) => b.type === "text");
   if (!text || text.type !== "text") throw new Error(`no text block (stop: ${response.stop_reason})`);
   return JSON.parse(text.text).variants as GeneratedVariant[];

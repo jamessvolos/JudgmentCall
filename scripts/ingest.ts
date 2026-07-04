@@ -72,6 +72,20 @@ async function main() {
   const draft = adapter === "fred" ? await fred(arg) : adapter === "edgar" ? await edgar(arg) : null;
   if (!draft) throw new Error(`unknown adapter ${adapter}`);
 
+  // Idempotency: the same source re-ingested within 30 days is a no-op, so
+  // re-running the pipeline (or a workflow input quirk) can't create dupes.
+  const existing = await prisma.finding.findFirst({
+    where: {
+      sourceUrl: draft.sourceUrl,
+      title: draft.title,
+      retrievedAt: { gte: new Date(Date.now() - 30 * 86400_000) },
+    },
+  });
+  if (existing) {
+    console.log(`already ingested within 30d as ${existing.id}: ${existing.title} — skipping`);
+    return;
+  }
+
   const finding = await prisma.finding.create({
     data: {
       ...draft,
