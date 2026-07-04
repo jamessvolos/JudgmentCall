@@ -179,14 +179,29 @@ export default async function ResultsPage({
             <div className="double-rule" aria-hidden />
           </>
         )}
-        <h1 className="ink-gradient mt-4 font-serif font-semibold text-3xl sm:text-4xl tracking-tight">
+        <h1 className="ink-gradient mt-4 font-serif font-semibold text-4xl sm:text-5xl tracking-tight text-balance">
           What makes an insight land?
         </h1>
-        <p className="mt-2 text-muted text-sm">
-          Live results from {a.totals.countedVotes.toLocaleString()} counted votes across{" "}
-          {a.totals.votingSessions.toLocaleString()} voting sessions — the tables below sum to
-          exactly this number. Win rates carry Wilson 95% intervals and stay hidden until n≥
-          {MIN_N}. Full inclusion rules in Methods at the bottom.
+        {/* The study's pulse, set as a front-page stat line: the two live
+            totals as large tabular figures, over a hairline. The tables below
+            sum to exactly the vote count. */}
+        <dl className="mt-5 flex flex-wrap items-end gap-x-8 gap-y-3 border-t border-rule-strong/40 pt-4">
+          <div>
+            <dd className="font-mono text-3xl sm:text-4xl font-semibold tabular-nums text-ink-strong leading-none">
+              {a.totals.countedVotes.toLocaleString()}
+            </dd>
+            <dt className="mt-1.5 kicker text-muted">counted votes</dt>
+          </div>
+          <div>
+            <dd className="font-mono text-3xl sm:text-4xl font-semibold tabular-nums text-ink-strong leading-none">
+              {a.totals.votingSessions.toLocaleString()}
+            </dd>
+            <dt className="mt-1.5 kicker text-muted">voting sessions</dt>
+          </div>
+        </dl>
+        <p className="mt-4 text-muted text-sm">
+          The tables below sum to exactly the vote count. Win rates carry Wilson 95% intervals
+          and stay hidden until n≥{MIN_N}; full inclusion rules in Methods at the bottom.
         </p>
         <p className="mt-3 text-sm">
           <Link
