@@ -136,12 +136,17 @@ jobs:
 
       # No human review gate: promote anything still pending/submitted so real
       # data serves immediately. Idempotent; never touches rejected variants.
+      # Runs even if generation failed partway (out of API credits, a timeout,
+      # one bad finding) so every finding that DID generate still goes live
+      # instead of being stranded behind the failed step.
       - name: Activate content (no approval gate)
+        if: ${{ !cancelled() }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx tsx scripts/activate-content.ts
 
       - name: Queue summary
+        if: ${{ !cancelled() }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |

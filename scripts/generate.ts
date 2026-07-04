@@ -22,6 +22,7 @@ import { readFileSync } from "fs";
 import Anthropic from "@anthropic-ai/sdk";
 import { PrismaClient } from "@prisma/client";
 import { fidelityAllowed, planFinding, type FindingPlan } from "../src/lib/generation/planner";
+import { isFatalApiError } from "./generate-util";
 import {
   validateGeneration,
   type GeneratedVariant,
@@ -290,6 +291,34 @@ async function generateFinding(
   console.log(`  written approved + active (${result.lints.length} lints)`);
 }
 
+/**
+ * Generate each finding in isolation: a per-finding failure is logged and the
+ * batch continues, so one bad finding (or a transient error) never abandons the
+ * rest — findings already written are activated inline and persist. A fatal
+ * auth/credit error stops the batch early. Returns the count of failures; the
+ * caller sets a non-zero exit code so CI surfaces partial failure while the
+ * workflow's activate/summary steps (if: !cancelled()) still sweep what landed.
+ */
+async function runQueue(
+  items: { finding: InputFinding; index: number; existingId?: string }[]
+): Promise<number> {
+  let failed = 0;
+  for (const { finding, index, existingId } of items) {
+    console.log(`Generating: ${finding.title}`);
+    try {
+      await generateFinding(finding, index, existingId);
+    } catch (e) {
+      failed++;
+      console.error(`  FAILED: ${finding.title} — ${(e as { message?: string })?.message ?? e}`);
+      if (isFatalApiError(e)) {
+        console.error("  fatal API error (auth/credits) — stopping the batch; the rest stay submitted");
+        break;
+      }
+    }
+  }
+  return failed;
+}
+
 async function main() {
   const arg = process.argv[2];
   if (!arg) {
@@ -297,23 +326,23 @@ async function main() {
     process.exit(1);
   }
   const existing = await prisma.finding.count();
+  let failed: number;
   if (arg === "--submitted") {
     // BYO submissions awaiting variants (deck findings with none yet).
     const submitted = await prisma.finding.findMany({
       where: { status: "submitted", variants: { none: {} } },
     });
     console.log(`${submitted.length} submitted finding(s) awaiting variants`);
-    for (let i = 0; i < submitted.length; i++) {
-      const f = submitted[i];
-      console.log(`Generating: ${f.title}`);
-      await generateFinding(f, existing + i, f.id);
-    }
-    return;
+    failed = await runQueue(
+      submitted.map((f, i) => ({ finding: f, index: existing + i, existingId: f.id }))
+    );
+  } else {
+    const findings: InputFinding[] = JSON.parse(readFileSync(arg, "utf8"));
+    failed = await runQueue(findings.map((f, i) => ({ finding: f, index: existing + i })));
   }
-  const findings: InputFinding[] = JSON.parse(readFileSync(arg, "utf8"));
-  for (let i = 0; i < findings.length; i++) {
-    console.log(`Generating: ${findings[i].title}`);
-    await generateFinding(findings[i], existing + i);
+  if (failed > 0) {
+    console.error(`${failed} finding(s) failed to generate; others were written and activated.`);
+    process.exitCode = 1;
   }
 }
 
