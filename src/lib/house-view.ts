@@ -96,7 +96,7 @@ export const HOUSE_VIEW: HouseStance[] = [
     "quantification",
     ["precise", "rounded"],
     "rounded",
-    "Round to what you'd defend in a hallway. Decimal places read as confidence and audit as noise."
+    "Round to what you'd defend in a hallway. Decimal places read as confidence and audit as noise — unless the digit itself is the point, like a covenant or a threshold."
   ),
   s(
     "quantification",

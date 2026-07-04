@@ -154,7 +154,7 @@ A word is any whitespace-separated token containing a letter or digit ("$2.84B" 
 DISTINCTNESS (the point of the experiment)
 Voters see two sibling variants side by side and must feel a real difference in the first second — six copy-edits of one memo are useless data. Rules:
 - No two variants may open with the same first three words, and no two may reuse the same sentence skeleton (swap clause order, rhythm, and connectives, not just the changed attribute).
-- Make the changed attribute LOUD: a number-first lead puts the figure inside the first five words; a question-first lead opens with the question itself; an explicit so-what names an action, not a mood; upfront caveats come before any number lands.
+- Make the changed attribute LOUD: a number-first lead puts the figure inside the first five words; a question-first lead opens with the question itself; an explicit so-what names an action, not a mood; upfront caveats come before any number lands; a quantification change must show in the digits themselves — qualitative uses no magnitude numerals, rounded reads as a spoken approximation ("about a third"), precise shows the figure as reported ("31.4%").
 - Distinctness lives in structure and diction only. It must never add, drop, or alter a factual claim — the fidelity rules always win.
 
 SELF-CHECK

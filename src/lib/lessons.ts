@@ -16,7 +16,7 @@ export const LESSONS: Partial<Record<AttributeKey, string>> = {
   caveatPlacement:
     "A caveat placed up front changes how every following number is read; the same caveat at the end reads as fine print. Omitting it entirely is faster — and quietly moves the risk of over-reading onto the audience.",
   quantification:
-    "Precise figures ('31.4%') signal auditability; rounded ones ('about a third') signal confidence in the direction over the digits. Qualitative wording travels furthest and verifies least. Match precision to how the number will be reused.",
+    "Precise figures ('31.4%') signal auditability; rounded ones ('about a third') signal confidence in the direction over the digits. Qualitative wording travels furthest and verifies least. Match precision to how the number will be reused — reserve the exact digit for when it's load-bearing (a covenant, a threshold, a reconciliation), and round to what you'd defend when the direction is the point.",
   soWhat:
     "An explicit so-what tells the reader what to do; an implied one trusts them to conclude it. Explicit direction speeds decisions and invites pushback; implication flatters expertise and risks the point being missed.",
 };

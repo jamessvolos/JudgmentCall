@@ -101,7 +101,7 @@ trend.
 Buried lede (the number lands in the third clause), padded to 63 words, false
 precision (47.2, 1.8pp on a survey), the caveat dissolved into "much remains
 uncertain," and no so-what — the reader finishes knowing a number moved and not
-what to do. Every failure in the taxonomy below, in one paragraph.
+what to do. Most of the craft failures below, stacked in one paragraph.
 
 **Strong telling (24 words):**
 > Small-business hiring sentiment fell for a third straight month — a small drop,
@@ -306,3 +306,18 @@ disagreement; don't let them drift.
   (this doc's device list + shape table, `ATTRIBUTES.md` fidelity devices, the
   generator's overclaim standard) so study and teaching now share one five-device
   vocabulary. Craft convictions unchanged.
+- **2026-07-04** — Propagated conviction 4's **load-bearing-digit carve-out**
+  ("reserve precise figures for when the digit *is* the point — a covenant, a
+  threshold, a reconciliation") to the three surfaces that were flattening it to
+  "rounded always wins": the House View quantification stance
+  (`src/lib/house-view.ts`), the run-review quantification micro-lesson
+  (`src/lib/lessons.ts`), and — as a distinctness gap, quantification being the
+  only conviction missing from the generator's "make the changed attribute LOUD"
+  list — `scripts/generate.ts`. Five independent surface audits converged on the
+  same gap. Also fixed an internal contradiction in the worked example: the weak
+  telling was said to contain "every failure in the taxonomy below," but the
+  ninth failure (the exceedance) is a fidelity failure a *strictly faithful*
+  telling structurally cannot commit — corrected to "most of the craft failures
+  below," which is both accurate and tightens blinding (a faithful telling no
+  longer reads as carrying the hidden variable). Craft convictions unchanged;
+  the pick on every stance is unchanged — only the stated boundary is restored.
