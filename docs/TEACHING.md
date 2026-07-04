@@ -108,3 +108,15 @@ that keeps it from the study is absolute:
   `overclaimFamily()` classifier and surfaced the family name + transferable
   tell in the drill verdict (teaching depth per drill). Curriculum-level family
   coverage tracking is the next round.
+- **2026-07-04** — Curriculum, part 1: **per-family progress read**. Added
+  `getDrillFamilyProgress(sessionId)` (server; classifies each attempted item's
+  device into its family at read time — no schema change, works on existing
+  data) and an "overclaim radar" on the "you've cleared every drill" screen:
+  the five families, caught/attempted pips, and which to come back to. This is
+  the visible skill map the mastery model calls for. Still open in the arc:
+  targeted item *selection* (steer the next drill toward a learner's weak
+  families) and difficulty escalation — deferred because meaningful selection
+  wants a deeper item pool than the current six (new drill items are blocked on
+  generation credits). Blinding held: `teaching.ts` is imported server-side via
+  `repo.ts` (Prisma-bound, never client) + the drill client only; the bundle
+  guard enforces it.

@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { NextResponse } from "next/server";
 import {
+  getDrillFamilyProgress,
   getDrillItem,
   getNextDrillItem,
   getSession,
@@ -31,11 +32,14 @@ export async function GET(request: Request) {
 
   const { item, remaining } = await getNextDrillItem(sessionId);
   if (!item) {
+    // Cleared the pool: return the per-family skill map so the completion
+    // screen can show where the learner is strong and where to come back.
     return NextResponse.json({
       item: null,
       remaining: 0,
       drillRating: Math.round(session.drillRating),
       drillCount: session.drillCount,
+      familyProgress: await getDrillFamilyProgress(sessionId),
     });
   }
   const flip = !faithfulFirst(sessionId, item.id);

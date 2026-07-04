@@ -22,11 +22,14 @@ type DrillItemDto = {
   b: string;
 };
 
+type FamilyProgressDto = { id: string; name: string; attempted: number; caught: number };
+
 type DrillDto = {
   item: DrillItemDto | null;
   remaining: number;
   drillRating: number;
   drillCount: number;
+  familyProgress?: FamilyProgressDto[];
 };
 
 type VerdictDto = {
@@ -219,6 +222,45 @@ export default function DrillPage() {
             <p className="mt-2 font-mono text-sm text-muted tabular-nums">
               Final drill rating: {drill.drillRating} · {drill.drillCount} attempted
             </p>
+
+            {/* The skill map: where the learner is fluent across the five
+                overclaim families, and which to come back to. Drill-world only. */}
+            {drill.familyProgress && drill.familyProgress.length > 0 && (
+              <div className="mt-7 mx-auto w-full max-w-xs">
+                <p className="kicker text-muted mb-3">Your overclaim radar</p>
+                <ul className="space-y-2.5 text-left">
+                  {drill.familyProgress.map((f) => (
+                    <li key={f.id} className="flex items-center gap-3">
+                      <span className="flex-1 text-sm text-ink-strong">{f.name}</span>
+                      {f.attempted === 0 ? (
+                        <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted">
+                          not yet
+                        </span>
+                      ) : (
+                        <>
+                          <span className="flex gap-1" aria-hidden>
+                            {Array.from({ length: f.attempted }).map((_, i) => (
+                              <span
+                                key={i}
+                                className={`inline-block size-2 rounded-full ${
+                                  i < f.caught ? "bg-accent" : "border border-rule-strong"
+                                }`}
+                              />
+                            ))}
+                          </span>
+                          <span className="sr-only">
+                            {f.caught} of {f.attempted} caught
+                          </span>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 font-mono text-[0.6875rem] leading-relaxed text-muted">
+                  Filled = caught. Come back to the families you missed.
+                </p>
+              </div>
+            )}
             <Link
               href="/swipe"
               className="mt-6 inline-block rounded-card bg-accent px-6 py-3 font-mono text-sm font-semibold text-on-accent"
