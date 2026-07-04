@@ -194,3 +194,41 @@ both engines:
   timeout` 500s at `CONCURRENCY=10` are SQLite saturation Postgres does
   not share — correctly **not** retried (a socket timeout gives no
   rollback guarantee).
+
+### Round reflection — 2026-07-04 · converged (no change)
+
+Re-audited the hot paths after the write-path hardening above and found no
+improvement that clears the "clear value + full safety bar + lowest risk"
+gate. What was evaluated and why each was declined:
+
+- **`/api/crowd` totals-only fast path.** The new landing's hero live-count
+  reads only `totals`, but `/api/crowd` computes full analytics. Declined:
+  the endpoint is CDN-cached (`s-maxage=60`, swr=300) and
+  version-memoized, and it serves a *second* consumer (`YourContribution`)
+  that needs the full `stats` payload — so the cost is amortized and the
+  payload isn't dead weight. A separate cheap path would save only a rare
+  cold-compute (new instance + cache miss + first-since-version-change)
+  while adding a divergent query to keep truthful. Low value, added
+  surface.
+- **SSR the landing hero count.** Would put the number in initial HTML, but
+  it would trade the landing's static shell + one CDN-cached fetch for
+  dynamic-per-request SSR on the highest-traffic page — a scale
+  *regression*, not a win. The current static-shell + streamed-count
+  design is the correct architecture for a front door; leave it.
+- **Drill selection query (this session's family-diverse `getNextDrillItem`).**
+  Verified already index-covered: `DrillAttempt` carries `@@index([sessionId])`
+  and `@@index([drillItemId])`, so both the session filter and the device
+  join hit indexes. No gap introduced.
+- **Deferred big items still correctly gated.** Snapshot-serving (@~100k
+  votes) and Wave 2 aggregate tables (@~50k, behind the reconciliation
+  guard) remain unjustified at the study's current ~768 counted votes;
+  building them now would add reconciliation surface with no live benefit.
+
+Assessment of remaining high-confidence opportunities: none actionable
+now. The next real perf work is threshold-triggered (aggregate tables /
+snapshot serving once vote volume approaches the documented thresholds),
+plus the standing ops item — confirming the production Neon URL is the
+pooled (`-pooler`) endpoint, which is a config/ops check, not a code
+change this loop can make. Ledger remains the source of truth; no caching
+or staleness surface was added; blinding untouched. Convergence recorded
+per the stop condition — not forcing a change.
