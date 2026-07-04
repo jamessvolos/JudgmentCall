@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Snippet } from "@/components/Snippet";
 import { getSessionId, nowMs } from "@/lib/session-client";
 import { withViewTransition } from "@/lib/view-transition";
+// Drill-world only (fidelity vocabulary) — the sanctioned training surface.
+import { overclaimFamily } from "@/lib/teaching";
 
 // "Spot the overclaim" — the training room. Clearly labeled as NOT the study:
 // items are purpose-built, feedback is immediate, and attempts never touch
@@ -335,11 +337,26 @@ export default function DrillPage() {
                     </span>
                   </p>
                 </div>
-                <p className="mt-2 flex items-baseline gap-2">
+                {/* Teach at two levels: the item-specific device, and the
+                    recognizable FAMILY it belongs to with a transferable tell,
+                    so the learner leaves with a pattern, not just this answer. */}
+                <p className="mt-3 flex items-baseline gap-2">
+                  <span className="kicker text-muted shrink-0">Pattern</span>
+                  <span className="font-mono text-xs font-semibold text-ink-strong">
+                    {overclaimFamily(verdict.device).name}
+                  </span>
+                </p>
+                <p className="mt-1 flex items-baseline gap-2">
                   <span className="kicker text-muted shrink-0">Device</span>
                   <span className="font-mono text-xs text-muted">{verdict.device}</span>
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-pretty">{verdict.explanation}</p>
+                <div className="mt-3 rounded-chip border-l-2 border-accent/50 bg-wash py-2 pl-3 pr-2">
+                  <p className="kicker text-accent">Carry it forward</p>
+                  <p className="mt-1 text-sm leading-relaxed text-pretty text-muted">
+                    {overclaimFamily(verdict.device).tell}
+                  </p>
+                </div>
                 <button
                   onClick={fetchDrill}
                   className="cta-glow mt-4 w-full rounded-card bg-accent px-4 py-3 font-mono text-sm font-semibold text-on-accent"
