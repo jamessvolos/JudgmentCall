@@ -29,7 +29,7 @@ concurrency:
 jobs:
   content:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Guard — secrets present
         env:
@@ -83,6 +83,11 @@ jobs:
             echo "--- FRED $series"
             npx tsx scripts/ingest.ts fred "$series" || echo "::warning::FRED ingest failed for $series"
           done
+
+      - name: Dedupe unstarted submitted findings
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx tsx scripts/dedupe-submitted.ts
 
       - name: Generate tellings for submitted findings
         if: inputs.run_generate
