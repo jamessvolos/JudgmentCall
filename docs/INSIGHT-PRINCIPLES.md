@@ -132,6 +132,57 @@ you're writing for — often more useful than the headline rate.
 
 ---
 
+## How insights fail
+
+The convictions read as advice; they bite harder as a diagnostic. Nine ways a
+telling of a real number goes wrong, each the shadow of a conviction above. The
+first eight are craft (matters of degree the study measures as taste); the
+ninth is the fault line the whole project is built to expose.
+
+**The buried lede.** The number arrives in sentence three, after throat-
+clearing. The reader has already decided how much to care, on no evidence.
+*(Conviction 1.)*
+
+**The padded finding.** Every true clause survives, and there are forty of
+them. Length used as a proxy for rigor; the one number that matters is now load-
+bearing for a paragraph no one finishes. *(Conviction 2.)*
+
+**The fine-print caveat.** The limitation is present — in the last line, after
+the claim has already been believed. Technically disclosed, functionally hidden.
+*(Conviction 3.)*
+
+**The absent caveat.** The hedge is simply gone. Not false, but the reader now
+carries a risk they were never told they were holding. *(Conviction 3.)*
+
+**The false precision.** "31.4%" on data that supports "about a third." The
+extra digits don't add information; they add a target for the argument to move
+onto, and a confidence the sample can't cash. *(Conviction 4.)*
+
+**The vibe.** "Cooled sharply." No number at all, so nothing to check and
+nothing to repeat but a feeling. Travels far, verifies never. *(Conviction 4.)*
+
+**The missing so-what.** A true, well-caveated, precisely-quantified fact that
+names no move. The reader nods and does nothing; the decision defaults to whoever
+speaks next. *(Conviction 5.)*
+
+**The over-reached so-what.** An action the data can't underwrite —
+"reprice everything" off one quarter. The right instinct (say the move) applied
+past the evidence. *(Conviction 5, colliding with fidelity.)*
+
+**The exceedance.** The deepest failure and the one we hide: a telling that
+lands precisely *because* it asserts more than the data holds — a correlation
+promoted to a cause, one quarter extrapolated into a trend, "may" upgraded to
+"will." Every number still accurate; the lie is in the grammar. A domain expert
+objects; a hurried reader is convinced. This is not a craft flaw the room
+grades in the open — it's the blinded variable, measured as a separate
+experiment and reported only when the sample is defensible. The product's
+whole reason to exist is the suspicion that this failure is not rare, not
+obvious, and not penalized by the market — that the tellings which win are
+disproportionately the ones that commit it. *(See `ATTRIBUTES.md` fidelity;
+never surface this vocabulary to a voting client.)*
+
+---
+
 ## How this doc is load-bearing
 
 This is not a manifesto that sits in a drawer. It is the source the rest of the
@@ -156,3 +207,6 @@ disagreement; don't let them drift.
 
 - **2026-07-04** — First articulation, written alongside the House View's 13
   founding calls. Nothing overruled yet; the room has ruled on 2 of 13.
+- **2026-07-04** — Added the failure taxonomy ("How insights fail"): the nine
+  ways a telling goes wrong, each the shadow of a conviction, with the
+  exceedance named as the blinded fault line. Convictions unchanged.
