@@ -29,17 +29,18 @@ function deskVerdict(stat: ValuePairStat | undefined, stance: HouseStance): Desk
   return roomPick === stance.pick ? "ROOM CONCURS" : "ROOM OVERRULES";
 }
 
+// The desk's verdict is a margin note, not an instrument reading — un-boxed so
+// the one boxed pill per row stays the caliper's statistical verdict. Keeps the
+// accent/danger color semantics.
 function DeskVerdictChip({ verdict }: { verdict: DeskVerdict }) {
   const tone =
     verdict === "ROOM CONCURS"
-      ? "border-accent text-accent"
+      ? "text-accent"
       : verdict === "ROOM OVERRULES"
-        ? "border-danger text-danger"
-        : "border-card-border text-muted";
+        ? "text-danger"
+        : "text-muted";
   return (
-    <span
-      className={`shrink-0 rounded-chip border px-1.5 py-px font-mono text-[10px] font-semibold tracking-[0.14em] ${tone}`}
-    >
+    <span className={`shrink-0 font-mono text-[10px] font-semibold tracking-[0.14em] ${tone}`}>
       {verdict}
     </span>
   );
@@ -178,7 +179,7 @@ export default async function ResultsPage({
             <div className="double-rule" aria-hidden />
           </>
         )}
-        <h1 className="mt-4 font-serif font-semibold text-ink-strong text-3xl sm:text-4xl tracking-tight">
+        <h1 className="ink-gradient mt-4 font-serif font-semibold text-3xl sm:text-4xl tracking-tight">
           What makes an insight land?
         </h1>
         <p className="mt-2 text-muted text-sm">
@@ -232,7 +233,7 @@ export default async function ResultsPage({
           );
         })()}
 
-        <section className="mt-8">
+        <section className="card-reveal mt-8">
           <h2 className="kicker text-muted">Attribute head-to-heads</h2>
           <div className="mt-2 rounded-card border border-card-border bg-card px-5 py-2">
             {/* Every desk-covered contrast renders from vote zero — un-voted
@@ -266,7 +267,7 @@ export default async function ResultsPage({
           </div>
         </section>
 
-        <section className="mt-8">
+        <section className="card-reveal mt-8">
           <h2 className="kicker text-muted">Executives vs. analysts</h2>
           <p className="mt-1 text-sm text-muted">
             The disagreement view: what leaders want vs. what analysts write. Appears once both
@@ -315,7 +316,7 @@ export default async function ResultsPage({
           </div>
         </section>
 
-        <section className="mt-8">
+        <section className="card-reveal mt-8">
           <h2 className="kicker text-muted">Top telling per finding</h2>
           <p className="mt-1 text-sm text-muted">
             Variants only ever compete within their own finding, so ratings don&apos;t compare
@@ -334,7 +335,7 @@ export default async function ResultsPage({
           </div>
         </section>
 
-        <section className="mt-8">
+        <section className="card-reveal mt-8">
           <h2 className="kicker text-muted">Study log</h2>
           <p className="mt-1 text-sm text-muted">
             Formal analysis runs, newest first — published findings cite a snapshot id so anyone

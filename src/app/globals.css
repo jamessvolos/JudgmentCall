@@ -32,12 +32,12 @@
      primary CTA; the aurora trio feeds the landing's weather field. All of it
      lives OUTSIDE instruments — calipers, tally, voting cards never glow. */
   --grad-pop: oklch(0.5 0.17 305);
-  --glow: 0 4px 22px oklch(0.46 0.12 255 / 0.25);
-  --glow-strong: 0 6px 34px oklch(0.46 0.12 255 / 0.4);
-  --aurora-a: oklch(0.88 0.07 255 / 0.55);
-  --aurora-b: oklch(0.92 0.06 60 / 0.5);
-  --aurora-c: oklch(0.88 0.08 310 / 0.4);
-  --grain-opacity: 0.05;
+  --glow: 0 6px 26px oklch(0.46 0.12 255 / 0.3);
+  --glow-strong: 0 10px 42px oklch(0.46 0.12 255 / 0.45);
+  --aurora-a: oklch(0.86 0.09 255 / 0.62);
+  --aurora-b: oklch(0.92 0.07 60 / 0.55);
+  --aurora-c: oklch(0.86 0.1 310 / 0.48);
+  --grain-opacity: 0.06;
 
   --r-card: 4px;
   --r-chip: 3px;
@@ -73,10 +73,10 @@
     --grad-pop: oklch(0.76 0.16 305);
     --glow: 0 4px 26px oklch(0.76 0.135 252 / 0.32);
     --glow-strong: 0 6px 40px oklch(0.76 0.135 252 / 0.5);
-    --aurora-a: oklch(0.45 0.13 262 / 0.4);
-    --aurora-b: oklch(0.4 0.1 310 / 0.32);
-    --aurora-c: oklch(0.42 0.09 210 / 0.3);
-    --grain-opacity: 0.07;
+    --aurora-a: oklch(0.47 0.14 262 / 0.44);
+    --aurora-b: oklch(0.42 0.11 310 / 0.36);
+    --aurora-c: oklch(0.44 0.1 210 / 0.32);
+    --grain-opacity: 0.055;
   }
 }
 
@@ -143,22 +143,36 @@ body::after {
   background:
     radial-gradient(38% 45% at 22% 18%, var(--aurora-a), transparent 70%),
     radial-gradient(42% 50% at 80% 28%, var(--aurora-b), transparent 70%),
-    radial-gradient(50% 55% at 55% 88%, var(--aurora-c), transparent 72%);
+    radial-gradient(50% 55% at 50% 55%, var(--aurora-c), transparent 72%);
   filter: blur(52px);
+  /* Fade the sheet out before the interactive zone so the weather stays
+     behind the hero and never pools under the role picker (which would give
+     the lower cards a brighter field than the upper ones). */
+  mask-image: linear-gradient(to bottom, #000 46%, transparent 82%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 46%, transparent 82%);
   animation: aurora-drift 26s ease-in-out infinite alternate;
 }
 
 /* Gradient ink: display-type only (the landing hero's key phrase). Never on
    body copy, never on numbers — data stays in one honest color. */
 .ink-gradient {
-  background: linear-gradient(94deg, var(--ink-strong) 8%, var(--accent) 52%, var(--grad-pop) 95%);
+  /* Accent-led: press blue (the one earned color) carries the phrase; the
+     violet grad-pop is only a tail whisper pushed off-canvas. */
+  background: linear-gradient(94deg, var(--ink-strong) 4%, var(--accent) 44%, var(--grad-pop) 128%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* Primary CTA glow — earned light on the one action that matters per page. */
+/* Primary CTA glow — earned light on the one action that matters per page.
+   The face is lit from the top (accent→brighter accent) for depth; the hue
+   stays accent-only so it never reads as decorative signal on a data surface. */
 .cta-glow {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--accent) 90%, white 10%),
+    var(--accent)
+  );
   box-shadow: var(--glow);
   transition:
     box-shadow var(--t-base) var(--ease),
@@ -168,6 +182,9 @@ body::after {
 .cta-glow:hover {
   box-shadow: var(--glow-strong);
   transform: translateY(-1px);
+}
+.cta-glow:active {
+  transform: translateY(0);
 }
 
 /* Newspaper-desk signature: a heavy rule over a hairline, used under the
@@ -228,7 +245,7 @@ body::after {
    Unsupported browsers render static cards, which is the correct fallback. */
 @keyframes card-develop {
   from {
-    opacity: 0.2;
+    opacity: 0.5;
     transform: translateY(10px);
   }
 }
@@ -236,7 +253,10 @@ body::after {
   .card-reveal {
     animation: card-develop linear both;
     animation-timeline: view();
-    animation-range: entry 10% entry 40%;
+    /* Resolve early and tolerate tall pages: a text-dense card must be solid
+       well before it reaches mid-viewport, or a non-scrolling reader sees a
+       half-loaded page. */
+    animation-range: entry 4% cover 18%;
   }
 }
 
@@ -417,8 +437,9 @@ body:has(main[data-embed]) footer {
   .pair-in,
   .poster-in,
   .rise,
-  .develop {
+  .card-reveal {
     animation: none;
+    opacity: 1;
   }
 }
 

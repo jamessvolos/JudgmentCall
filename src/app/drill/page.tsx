@@ -278,7 +278,7 @@ export default function DrillPage() {
                     {verdict && (
                       <span
                         aria-hidden
-                        className={`stamp-in absolute right-3 top-3 rounded-chip border-2 px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-[0.18em] ${
+                        className={`stamp-in absolute -right-1 -top-2.5 rounded-chip border-2 bg-card px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-[0.18em] ${
                           isFaithful
                             ? "border-rule-strong text-rule-strong"
                             : "border-danger text-danger"

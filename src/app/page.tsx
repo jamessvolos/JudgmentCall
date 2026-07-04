@@ -61,15 +61,26 @@ export default function Landing() {
       <div className="w-full max-w-md text-center">
         {/* Masthead: hairline — wordmark — hairline, over the double rule. */}
         <div className="flex items-center gap-3 mb-1">
-          <span className="h-px flex-1 bg-card-border" aria-hidden />
+          <span className="h-px flex-1 bg-rule-strong/40" aria-hidden />
           <p className="masthead text-ink-strong">Judgment Call</p>
-          <span className="h-px flex-1 bg-card-border" aria-hidden />
+          <span className="h-px flex-1 bg-rule-strong/40" aria-hidden />
         </div>
         <div className="double-rule" aria-hidden />
-        <p className="mt-3 mb-8 font-mono text-[0.75rem] text-muted tabular-nums">
-          {totals && totals.countedVotes > 0
-            ? `A live study of data storytelling · ${totals.countedVotes.toLocaleString()} calls logged · ≈90 seconds`
-            : "A live study of data storytelling · No sign-up · ≈90 seconds"}
+        <p className="mt-3 mb-8 font-mono text-[0.75rem] text-muted tabular-nums text-pretty">
+          {totals && totals.countedVotes > 0 ? (
+            <>
+              A live study of data storytelling ·{" "}
+              {/* Mechanical counter: the live total ticks up from 0 on load —
+                  a small "this is live" heartbeat, reduced-motion safe. */}
+              <span
+                className="count"
+                style={{ "--num": totals.countedVotes } as React.CSSProperties}
+              />{" "}
+              calls logged · ≈90 seconds
+            </>
+          ) : (
+            "A live study of data storytelling · No sign-up · ≈90 seconds"
+          )}
         </p>
 
         <h1 className="font-serif font-semibold text-ink-strong text-[clamp(2.125rem,6vw,3.625rem)] leading-[1.06] tracking-[-0.015em] text-balance">
@@ -107,16 +118,19 @@ export default function Landing() {
           {returning ? "…or switch roles" : "I mostly read data as a(n)…"}
         </p>
         <div className="grid grid-cols-2 gap-3">
-          {SEGMENTS.map((segment) => (
+          {SEGMENTS.map((segment, i) => (
             <button
               key={segment}
               onClick={() => pick(segment)}
               disabled={pending !== null}
-              className="group flex items-center justify-center gap-2.5 rounded-card border border-card-border bg-card px-4 py-4 font-serif text-lg font-semibold shadow-[var(--shadow-card)] transition hover:border-rule-strong hover:shadow-[var(--shadow-lift)] active:scale-[0.98] disabled:opacity-60"
+              style={{ "--i": i } as React.CSSProperties}
+              className="rise group flex items-center justify-center gap-2.5 rounded-card border border-card-border bg-card px-4 py-4 font-serif text-lg font-semibold shadow-[inset_0_1px_0_oklch(1_0_0_/_0.06),var(--shadow-card)] transition hover:-translate-y-0.5 hover:border-rule-strong hover:shadow-[var(--glow)] active:translate-y-0 active:scale-[0.98] disabled:opacity-60"
             >
+              {/* The role dot earns accent on hover — this sets a segment, not
+                  a data preference, so the instrument rule doesn't apply. */}
               <span
                 aria-hidden
-                className="inline-block size-3.5 shrink-0 rounded-full border border-rule-strong transition group-hover:bg-rule-strong group-active:bg-rule-strong"
+                className="inline-block size-3.5 shrink-0 rounded-full border border-rule-strong transition group-hover:translate-x-0.5 group-hover:border-accent group-hover:bg-accent group-active:bg-accent"
               />
               {pending === segment ? "Starting…" : SEGMENT_LABELS[segment]}
             </button>
