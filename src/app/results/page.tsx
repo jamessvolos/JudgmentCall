@@ -160,18 +160,36 @@ export default async function ResultsPage() {
               </p>
             ) : (
               disagreements.map(({ e, an }) => (
-                <div key={`${e.attribute}:${e.valueA}`} className="py-3 border-b border-card-border last:border-b-0">
+                <div key={`${e.attribute}:${e.valueA}`} className="py-3.5 border-b border-card-border last:border-b-0">
                   <p className="text-sm font-semibold">
                     {e.valueALabel} <span className="text-muted font-normal">vs</span> {e.valueBLabel}
                   </p>
-                  <div className="mt-1 grid grid-cols-2 gap-4 text-xs text-muted">
-                    <p>
-                      Executives: <strong className="text-foreground">{pct(e.rateA!)}</strong> (n={e.n})
-                    </p>
-                    <p>
-                      Analysts: <strong className="text-foreground">{pct(an!.rateA!)}</strong> (n={an!.n})
-                    </p>
+                  {/* Both segments on ONE caliper: executives = filled dot,
+                      analysts = hollow ring. The gap between the marks IS the
+                      disagreement. */}
+                  <div className="relative mt-2.5 h-7" aria-hidden>
+                    <div className="absolute left-0 right-0 top-1/2 h-px bg-card-border" />
+                    {[0, 25, 75, 100].map((t) => (
+                      <div
+                        key={t}
+                        className="absolute top-1/2 h-2 w-px -translate-y-1/2 bg-card-border"
+                        style={{ left: `${t}%` }}
+                      />
+                    ))}
+                    <div className="absolute left-1/2 top-1/2 h-4 w-px -translate-y-1/2 bg-rule-strong" />
+                    <div
+                      className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent"
+                      style={{ left: pct(e.rateA!) }}
+                    />
+                    <div
+                      className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent bg-card"
+                      style={{ left: pct(an!.rateA!) }}
+                    />
                   </div>
+                  <p className="mt-1 font-mono text-xs text-muted tabular-nums">
+                    ● executives {pct(e.rateA!)} (n={e.n}) · ○ analysts {pct(an!.rateA!)} (n=
+                    {an!.n}) · gap {Math.abs(Math.round((e.rateA! - an!.rateA!) * 100))}pp
+                  </p>
                 </div>
               ))
             )}

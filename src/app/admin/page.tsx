@@ -182,12 +182,31 @@ export default async function AdminPage({
             <strong>{o.overall.n > 0 ? pct(o.overall.overclaimWins / o.overall.n) : "—"}</strong>
             <span className="text-muted"> — a large gap means low-quality judges move the result.</span>
           </p>
-          <div className="mt-3 flex gap-4 text-sm tabular-nums">
-            {o.judgeHistogram.map((b) => (
-              <p key={b.bucket}>
-                <span className="text-muted">{b.bucket}:</span> {b.sessions}
-              </p>
-            ))}
+          {/* One square per session, bucketed — evidence, not summary. */}
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm tabular-nums">
+            {o.judgeHistogram.map((b) => {
+              const style =
+                b.bucket === "<0.5"
+                  ? "border border-danger"
+                  : b.bucket === "0.5–0.8"
+                    ? "bg-rule-strong"
+                    : b.bucket === "≥0.8"
+                      ? "bg-accent"
+                      : "bg-card-border";
+              return (
+                <div key={b.bucket} className="flex items-center gap-1.5">
+                  <span className="font-mono text-xs text-muted">{b.bucket}</span>
+                  <span className="flex gap-[3px]">
+                    {Array.from({ length: Math.min(b.sessions, 20) }, (_, i) => (
+                      <span key={i} className={`inline-block size-2 rounded-[1px] ${style}`} />
+                    ))}
+                  </span>
+                  <span className="font-mono text-xs">
+                    {b.sessions > 20 ? `${b.sessions}` : b.sessions === 0 ? "0" : ""}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -212,14 +231,21 @@ export default async function AdminPage({
                   {SEGMENTS.map((seg) => {
                     const n = cell.bySegment[seg] ?? 0;
                     const frac = Math.min(1, n / MIN_N);
+                    const earned = n >= MIN_N;
+                    // Color is earned by n>=MIN_N, same law as the public
+                    // page: below threshold a cell is hatched ink with a
+                    // translucent progress fill, never a shade of accent.
                     return (
                       <td key={seg} className="px-1 py-0.5">
                         <div
-                          className="rounded px-1 text-center tabular-nums"
-                          style={{
-                            background: `color-mix(in oklab, var(--accent) ${Math.round(frac * 85)}%, var(--card-border))`,
-                            color: frac > 0.5 ? "white" : "inherit",
-                          }}
+                          className="rounded-[2px] px-1 text-center font-mono tabular-nums"
+                          style={
+                            earned
+                              ? { background: "var(--accent)", color: "var(--on-accent)" }
+                              : {
+                                  background: `linear-gradient(to right, color-mix(in oklab, var(--accent) 25%, transparent) ${Math.round(frac * 100)}%, transparent ${Math.round(frac * 100)}%), repeating-linear-gradient(-45deg, var(--card-border), var(--card-border) 2px, transparent 2px, transparent 5px)`,
+                                }
+                          }
                         >
                           {n}
                         </div>

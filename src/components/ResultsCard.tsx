@@ -23,6 +23,7 @@ export type ResultsDto = {
   xp?: number;
   level?: { level: number; title: string; nextAt: number | null };
   judgeRank?: string | null;
+  drillRating?: number | null;
 };
 
 
@@ -191,6 +192,20 @@ export function ResultsCard({
                 </li>
               ))}
             </ul>
+          )}
+          {/* Credentials line: only ranks the reader has actually earned. */}
+          {(results.judgeRank || results.drillRating) && (
+            <p
+              className="mt-5 font-mono text-[10px] font-semibold uppercase tracking-[0.18em]"
+              style={{ color: "var(--poster-acc)" }}
+            >
+              {[
+                results.judgeRank,
+                results.drillRating ? `overclaim drill ${results.drillRating}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
           )}
           <p className="mt-6 font-mono text-[10px] leading-relaxed" style={{ color: "var(--poster-mut)" }}>
             {`Your leanings, not findings — from the ${results.decidedSingleContrasts} ${
