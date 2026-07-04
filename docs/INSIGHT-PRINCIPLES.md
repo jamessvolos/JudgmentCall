@@ -137,6 +137,26 @@ data via exactly one device:
 4. **Certainty inflation** — "guarantees", "is over", "will" where the data
    supports "so far" and "may".
 
+**Which device a finding invites.** The device is not chosen at random. Each
+data *shape* has one exceedance that fits its own narrative — and the overclaim
+that is hardest to catch is always the one a real analyst would actually
+commit, because it is the one the hurried reader already expects. A device that
+doesn't fit the data reads as a non-sequitur and gets caught; the dangerous one
+travels under cover of the finding's natural story.
+
+| The finding is shaped like… | The exceedance it invites |
+|---|---|
+| **Two readings over time** — a period-over-period series (GDP growth y/y, an FX rate vs a year ago, revenue vs prior year) | **Trend extrapolation.** A two-point line begs to be extended: "growth is accelerating and will keep climbing." |
+| **Two variables moving together** — prices up while complaints up | **Causal language.** Co-movement promoted to cause: "the price hike drove the complaints." |
+| **One outcome, several live drivers** — margin fell as markdowns *and* freight *and* mix all moved | **Single-cause attribution.** "Margins fell because of freight" — one named, the rest quietly dropped. |
+| **A partial or leading reading** — one month, a half-season, a "to date" figure | **Certainty inflation.** A provisional signal hardened: "the slump is over." |
+
+This is why the study's *stimuli* matter as much as its scoring: an overclaim
+has to be on-target to be worth measuring. The batch of two-reading macro
+series the pipeline now ingests (World Bank indicators, ECB reference rates,
+year-over-year revenue) is, structurally, a deep well of the extrapolation trap
+specifically — two points, and the whole temptation is to draw the third.
+
 The craft is what makes an insight land. Fidelity is what makes it *true*. The
 flagship question of the whole project is whether the two trade off — whether
 the tellings that land hardest are systematically the ones that quietly exceed
@@ -250,3 +270,10 @@ disagreement; don't let them drift.
 - **2026-07-04** — Added a worked example: one faithful finding told weakly
   (63 words) vs. strongly (24 words), so the five convictions are demonstrated,
   not just asserted. Craft-only; no fidelity vocabulary in either telling.
+- **2026-07-04** — Added "Which device a finding invites": the overclaim device
+  is a function of the finding's data shape, and the on-target exceedance is the
+  one that hides in the finding's own narrative. Motivated by the pipeline's new
+  two-reading macro series (World Bank, ECB FX, y/y revenue), which are
+  structurally a well of the extrapolation trap. Folded the same shape→device
+  mapping into the generator's overclaim standard so stimuli stay on-target.
+  Convictions unchanged; this sharpens the blinded variable, not the craft.
