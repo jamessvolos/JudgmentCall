@@ -1,0 +1,113 @@
+# Content pipeline: ingest real public data (SEC EDGAR needs no key; FRED
+# needs FRED_API_KEY) as submitted findings, then optionally generate their
+# six tellings with the Anthropic API (needs ANTHROPIC_API_KEY). Everything
+# lands behind the human review gate at /admin/review — nothing serves until
+# approved. Named-entity (SEC) findings never receive an overclaimed telling.
+name: Content pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      sec_ciks:
+        description: "Space-separated SEC CIKs to ingest (default: Apple, Microsoft, Alphabet)"
+        default: "0000320193 0000789019 0001652044"
+      fred_series:
+        description: "Space-separated FRED series (needs FRED_API_KEY secret)"
+        default: "CPIAUCSL UNRATE FEDFUNDS"
+      run_generate:
+        description: "Generate variants for submitted findings (needs ANTHROPIC_API_KEY secret)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: content
+  cancel-in-progress: false
+
+jobs:
+  content:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Guard — secrets present
+        env:
+          D: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$D" ]; then
+            echo "::error::Missing repo secret DATABASE_URL."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/judgment-call-spec-r02iib
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Generate Postgres client
+        run: |
+          sed 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma > prisma/postgres/schema.prisma
+          npx prisma generate --schema prisma/postgres/schema.prisma
+
+      - name: Ingest SEC EDGAR filings
+        if: inputs.sec_ciks != ''
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SEC_CONTACT: ${{ secrets.SEC_CONTACT }}
+        run: |
+          for cik in ${{ inputs.sec_ciks }}; do
+            echo "--- EDGAR $cik"
+            npx tsx scripts/ingest.ts edgar "$cik" || echo "::warning::EDGAR ingest failed for $cik"
+            sleep 1  # SEC fair-access pacing
+          done
+
+      - name: Ingest FRED series
+        if: inputs.fred_series != ''
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          if [ -z "$FRED_API_KEY" ]; then
+            echo "::notice::FRED_API_KEY secret not set — skipping FRED ingest (get a free key at fred.stlouisfed.org)."
+            exit 0
+          fi
+          for series in ${{ inputs.fred_series }}; do
+            echo "--- FRED $series"
+            npx tsx scripts/ingest.ts fred "$series" || echo "::warning::FRED ingest failed for $series"
+          done
+
+      - name: Generate tellings for submitted findings
+        if: inputs.run_generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::notice::ANTHROPIC_API_KEY secret not set — skipping generation. Findings remain submitted; re-run once the key is added."
+            exit 0
+          fi
+          npx tsx scripts/generate.ts --submitted
+
+      - name: Queue summary
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          npx tsx -e "
+          import { PrismaClient } from '@prisma/client';
+          const p = new PrismaClient();
+          (async () => {
+            const submitted = await p.finding.count({ where: { status: 'submitted' } });
+            const pending = await p.variant.count({ where: { status: 'pending' } });
+            console.log(\`submitted findings: \${submitted} · variants awaiting review: \${pending}\`);
+            console.log('Review queue: https://judgment-call.vercel.app/admin/review');
+            await p.\$disconnect();
+          })();
+          "
