@@ -342,7 +342,7 @@ export default function DrillPage() {
                 <p className="mt-2 text-sm leading-relaxed text-pretty">{verdict.explanation}</p>
                 <button
                   onClick={fetchDrill}
-                  className="mt-4 w-full rounded-card bg-accent px-4 py-3 font-mono text-sm font-semibold text-on-accent transition hover:opacity-90"
+                  className="cta-glow mt-4 w-full rounded-card bg-accent px-4 py-3 font-mono text-sm font-semibold text-on-accent"
                 >
                   Next drill →
                 </button>

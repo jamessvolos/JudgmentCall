@@ -35,7 +35,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
         <div className="print-hide mt-4">
           <Link
             href="/"
-            className="block rounded-card bg-accent px-4 py-3 text-center font-mono text-sm font-semibold text-on-accent transition hover:opacity-90"
+            className="cta-glow block rounded-card bg-accent px-4 py-3 text-center font-mono text-sm font-semibold text-on-accent"
           >
             What&apos;s your insight taste? Cast ten calls →
           </Link>

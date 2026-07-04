@@ -87,7 +87,7 @@ export function ResultsCard({
       <div className="print-hide mt-4 flex flex-col sm:flex-row gap-3">
         <button
           onClick={onKeepGoing}
-          className="flex-1 rounded-card bg-accent px-4 py-3 font-mono text-sm font-semibold text-on-accent transition hover:opacity-90 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+          className="cta-glow flex-1 rounded-card bg-accent px-4 py-3 font-mono text-sm font-semibold text-on-accent active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         >
           Keep going — sharpen your profile
         </button>

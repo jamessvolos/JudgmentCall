@@ -459,7 +459,7 @@ export default function ReviewPage() {
             <div className="card-reveal mt-6">
               <Link
                 href="/swipe"
-                className="block w-full rounded-card bg-accent px-4 py-3 text-center font-mono text-sm font-semibold text-on-accent transition hover:opacity-90"
+                className="cta-glow block w-full rounded-card bg-accent px-4 py-3 text-center font-mono text-sm font-semibold text-on-accent"
               >
                 Next run →
               </Link>
