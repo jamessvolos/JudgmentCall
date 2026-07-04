@@ -4,6 +4,11 @@ Operational decision rules for the six craft attributes. This is the single
 source of truth for the seed data, the M2 generation prompt, and human review.
 The tags are the product: when a rule here is ambiguous, fix the rule, not the tag.
 
+The *why* behind these rules — what the desk believes makes a data insight
+great, and the faithful-vs-punchy tension the study measures — lives in
+`INSIGHT-PRINCIPLES.md`. When a principle there and a rule here disagree, one
+of them is wrong; fix the disagreement rather than let them drift.
+
 ## leadType — judged on the first *non-caveat* clause
 
 - `number_first` — leads with the data movement ("Revenue grew 6.2%…", "Inflation
