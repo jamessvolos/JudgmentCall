@@ -1,0 +1,147 @@
+# Deploy Judgment Call to Vercel and smoke-test the live deployment.
+#
+# Manually dispatched only. Requires four repo secrets (Settings → Secrets and
+# variables → Actions): VERCEL_TOKEN, DATABASE_URL, ADMIN_KEY, IP_HASH_SALT.
+# Secrets are never echoed; fork PRs never see them (workflow_dispatch only).
+#
+# The build itself (Postgres migrate + seed-once + next build) runs on
+# Vercel's infrastructure via scripts/vercel-build.sh — this job just points
+# Vercel at the repo state, wires env vars, and verifies the result.
+name: Deploy to Vercel
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Guard — secrets present
+        env:
+          T: ${{ secrets.VERCEL_TOKEN }}
+          D: ${{ secrets.DATABASE_URL }}
+          A: ${{ secrets.ADMIN_KEY }}
+          S: ${{ secrets.IP_HASH_SALT }}
+        run: |
+          missing=""
+          [ -z "$T" ] && missing="$missing VERCEL_TOKEN"
+          [ -z "$D" ] && missing="$missing DATABASE_URL"
+          [ -z "$A" ] && missing="$missing ADMIN_KEY"
+          [ -z "$S" ] && missing="$missing IP_HASH_SALT"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repo secrets:$missing — add them in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Create / link Vercel project
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npm i -g vercel@latest
+          vercel project add judgment-call --token "$VERCEL_TOKEN" 2>/dev/null || true
+          vercel link --yes --project judgment-call --token "$VERCEL_TOKEN"
+
+      - name: Set production env vars
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          IP_HASH_SALT: ${{ secrets.IP_HASH_SALT }}
+        run: |
+          set_env() {
+            vercel env rm "$1" production --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
+            printf '%s' "$2" | vercel env add "$1" production --token "$VERCEL_TOKEN" >/dev/null
+            echo "set $1"
+          }
+          set_env DATABASE_URL "$DATABASE_URL"
+          set_env ADMIN_KEY "$ADMIN_KEY"
+          set_env IP_HASH_SALT "$IP_HASH_SALT"
+
+      - name: Deploy (build runs on Vercel — migrate, seed-once, next build)
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          DEPLOY_URL=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN")
+          echo "deployment: $DEPLOY_URL"
+          ALIAS=$(vercel inspect "$DEPLOY_URL" --token "$VERCEL_TOKEN" 2>&1 \
+            | grep -oE 'https://[a-z0-9-]+\.vercel\.app' | sort -u | awk '{ print length, $0 }' | sort -n | head -1 | cut -d' ' -f2)
+          SITE_URL="${ALIAS:-$DEPLOY_URL}"
+          echo "site: $SITE_URL"
+          echo "site_url=$SITE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Set NEXT_PUBLIC_SITE_URL and redeploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SITE_URL: ${{ steps.deploy.outputs.site_url }}
+        run: |
+          vercel env rm NEXT_PUBLIC_SITE_URL production --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
+          printf '%s' "$SITE_URL" | vercel env add NEXT_PUBLIC_SITE_URL production --token "$VERCEL_TOKEN" >/dev/null
+          vercel deploy --prod --yes --token "$VERCEL_TOKEN" >/dev/null
+          echo "redeployed with NEXT_PUBLIC_SITE_URL=$SITE_URL"
+
+      - name: Smoke test — pages, blinded admin, full vote loop
+        env:
+          SITE_URL: ${{ steps.deploy.outputs.site_url }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+        run: |
+          set -e
+          for path in / /results /submit; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL$path")
+            [ "$code" = "200" ] || { echo "::error::$path returned $code"; exit 1; }
+            echo "ok  GET $path -> 200"
+          done
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL/admin")
+          [ "$code" = "404" ] || { echo "::error::/admin without key returned $code (want 404)"; exit 1; }
+          echo "ok  GET /admin (no key) -> 404 (blinded)"
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL/admin?key=$ADMIN_KEY")
+          [ "$code" = "200" ] || { echo "::error::/admin with key returned $code (want 200)"; exit 1; }
+          echo "ok  GET /admin (with key) -> 200"
+          python3 - <<'PY'
+          import json, os, urllib.request, uuid
+          base = os.environ["SITE_URL"]
+          def call(path, body=None):
+              req = urllib.request.Request(base + path,
+                  data=json.dumps(body).encode() if body else None,
+                  headers={"Content-Type": "application/json"})
+              with urllib.request.urlopen(req) as r:
+                  return json.loads(r.read())
+          sid = str(uuid.uuid4())
+          call("/api/session", {"sessionId": sid, "segment": "analyst"})
+          for i in range(3):
+              p = call(f"/api/pair?sessionId={sid}")
+              v = call("/api/vote", {"sessionId": sid, "variantAId": p["variantA"]["id"],
+                  "variantBId": p["variantB"]["id"], "winnerId": p["variantA"]["id"], "latencyMs": 1500})
+          assert v["voteCount"] == 3 and v["xp"] > 0, v
+          r = call(f"/api/results?sessionId={sid}")
+          assert r["level"]["title"] == "Stringer", r
+          rev = call(f"/api/review?sessionId={sid}")
+          assert rev["runSize"] == 3, rev
+          raw = json.dumps(rev).lower()
+          for banned in ["fidelity", "overclaim", "leadtype", "contrastattrs"]:
+              assert banned not in raw, f"BLINDING LEAK: {banned}"
+          d = call(f"/api/drill?sessionId={sid}")
+          assert d["item"] is not None, d
+          print("ok  vote loop, results, review (blinding audit), drill — all pass")
+          PY
+
+      - name: Summary
+        env:
+          SITE_URL: ${{ steps.deploy.outputs.site_url }}
+        run: |
+          echo "## Deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "**$SITE_URL** — smoke test passed (pages, blinded admin, vote loop, review blinding audit, drill)." >> "$GITHUB_STEP_SUMMARY"
