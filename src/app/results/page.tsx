@@ -173,34 +173,47 @@ export default async function ResultsPage({
     <main className="flex-1 px-4 py-8 sm:py-12" {...(embed && { "data-embed": "1" })}>
       <div className="mx-auto w-full max-w-2xl">
         {!embed && (
-          <>
-            <div className="pb-2">
-              <p className="masthead text-ink-strong">Judgment Call</p>
-            </div>
-            <div className="double-rule" aria-hidden />
-          </>
+          <div className="hero-line" style={{ "--i": 0 } as React.CSSProperties}>
+            <p className="masthead text-ink-strong">Judgment Call · Live study</p>
+            <div className="datum mt-1.5" aria-hidden />
+          </div>
         )}
-        <h1 className="ink-gradient mt-4 font-sans font-semibold text-4xl sm:text-5xl tracking-[-0.03em] text-balance">
+        <h1
+          className="hero-line ink-gradient mt-5 font-sans font-semibold text-[clamp(2.25rem,6vw,3.5rem)] leading-[1.02] tracking-[-0.03em] text-balance"
+          style={{ "--i": 1 } as React.CSSProperties}
+        >
           What makes an insight land?
         </h1>
-        {/* The study's pulse, set as a front-page stat line: the two live
-            totals as large tabular figures, over a hairline. The tables below
-            sum to exactly the vote count. */}
-        <dl className="mt-5 flex flex-wrap items-end gap-x-8 gap-y-3 border-t border-rule-strong/40 pt-4">
+        {/* The study's pulse, set as a lit instrument readout: the two live
+            totals as large tabular figures on an edge-lit panel with a LIVE
+            tag. The tables below sum to exactly the vote count. */}
+        <dl
+          className="hero-line mt-6 flex flex-wrap items-end gap-x-10 gap-y-4 rounded-card border border-card-border bg-card px-5 py-4 shadow-[var(--shadow-card)]"
+          style={{ "--i": 2 } as React.CSSProperties}
+        >
           <div>
             <dd className="font-mono text-3xl sm:text-4xl font-semibold tabular-nums text-ink-strong leading-none">
               <CountUp value={a.totals.countedVotes} />
             </dd>
-            <dt className="mt-1.5 kicker text-muted">counted votes</dt>
+            <dt className="mt-2 kicker text-muted">counted votes</dt>
           </div>
           <div>
             <dd className="font-mono text-3xl sm:text-4xl font-semibold tabular-nums text-ink-strong leading-none">
               <CountUp value={a.totals.votingSessions} />
             </dd>
-            <dt className="mt-1.5 kicker text-muted">voting sessions</dt>
+            <dt className="mt-2 kicker text-muted">voting sessions</dt>
+          </div>
+          <div className="ml-auto flex items-center gap-1.5 self-center">
+            <span className="inline-block size-1.5 rounded-full bg-accent shadow-[var(--glow)]" aria-hidden />
+            <span className="font-mono text-[0.625rem] font-semibold uppercase tracking-[0.2em] text-accent">
+              Live
+            </span>
           </div>
         </dl>
-        <p className="mt-4 text-muted text-sm">
+        <p
+          className="hero-line mt-4 text-muted text-sm"
+          style={{ "--i": 3 } as React.CSSProperties}
+        >
           The tables below sum to exactly the vote count. Win rates carry Wilson 95% intervals
           and stay hidden until n≥{MIN_N}; full inclusion rules in Methods at the bottom.
         </p>
@@ -231,7 +244,7 @@ export default async function ResultsPage({
           const open = graded.length - concurs - overruled;
           return (
             <section className="mt-8 scroll-mt-6" id="house-view">
-              <h2 className="kicker text-muted">The House View</h2>
+              <h2 className="kicker text-muted"><span className="text-ink-strong">01</span> · The House View</h2>
               <div className="mt-2 rounded-card border-l-[3px] border-rule-strong bg-wash px-5 py-4">
                 <p className="text-sm leading-relaxed text-pretty">
                   This study is not neutral. On {HOUSE_VIEW[0].registered} the desk put{" "}
@@ -250,7 +263,7 @@ export default async function ResultsPage({
         })()}
 
         <section className="card-reveal mt-8">
-          <h2 className="kicker text-muted">Attribute head-to-heads</h2>
+          <h2 className="kicker text-muted"><span className="text-ink-strong">02</span> · Attribute head-to-heads</h2>
           <div className="mt-2 rounded-card border border-card-border bg-card px-5 py-2">
             {/* Every desk-covered contrast renders from vote zero — un-voted
                 pairs show an empty collecting bar under the desk's call, so
@@ -284,7 +297,7 @@ export default async function ResultsPage({
         </section>
 
         <section className="card-reveal mt-8">
-          <h2 className="kicker text-muted">Executives vs. analysts</h2>
+          <h2 className="kicker text-muted"><span className="text-ink-strong">03</span> · Executives vs. analysts</h2>
           <p className="mt-1 text-sm text-muted">
             The disagreement view: what leaders want vs. what analysts write. Appears once both
             segments clear n≥{MIN_N} on a contrast.
@@ -333,7 +346,7 @@ export default async function ResultsPage({
         </section>
 
         <section className="card-reveal mt-8">
-          <h2 className="kicker text-muted">Top telling per finding</h2>
+          <h2 className="kicker text-muted"><span className="text-ink-strong">04</span> · Top telling per finding</h2>
           <p className="mt-1 text-sm text-muted">
             Variants only ever compete within their own finding, so ratings don&apos;t compare
             across findings — no global leaderboard, by design.
@@ -352,7 +365,7 @@ export default async function ResultsPage({
         </section>
 
         <section className="card-reveal mt-8">
-          <h2 className="kicker text-muted">Study log</h2>
+          <h2 className="kicker text-muted"><span className="text-ink-strong">05</span> · Study log</h2>
           <p className="mt-1 text-sm text-muted">
             Formal analysis runs, newest first — published findings cite a snapshot id so anyone
             can ask for the exact numbers behind a claim.
@@ -368,7 +381,7 @@ export default async function ResultsPage({
         </section>
 
         <section className="mt-10" id="methods">
-          <h2 className="kicker text-muted">Methods</h2>
+          <h2 className="kicker text-muted"><span className="text-ink-strong">06</span> · Methods</h2>
           <div className="mt-2 rounded-card border-l-[3px] border-rule-strong bg-wash px-5 py-4 text-sm text-muted space-y-3">
             <p>
               <strong className="text-foreground">What counts.</strong> A vote counts toward the
