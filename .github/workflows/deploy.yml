@@ -57,9 +57,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          # Pin the CLI: vercel@latest (54.20.1) started crashing `link` with
-          # "TypeError: reading 'value'" during team resolution on 2026-07-04.
-          npm i -g vercel@54.19.0
+          npm i -g vercel@latest
           vercel project add judgment-call --token "$VERCEL_TOKEN" 2>/dev/null || true
           vercel link --yes --project judgment-call --token "$VERCEL_TOKEN"
 
