@@ -17,6 +17,15 @@ export default function Landing() {
   // Returning visitor: offer to continue instead of a cold start. Progress was
   // always kept server-side — this just makes that visible.
   useEffect(() => {
+    // The edition line: live public totals (same numbers as /results). This is
+    // the first-timer's social proof, so it must load for EVERYONE — not gated
+    // behind the returning-visitor session check below.
+    fetch("/api/crowd")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d?.totals && setTotals(d.totals))
+      .catch(() => {});
+
+    // Returning visitor: offer to continue where they left off.
     const id = getSessionId();
     if (!id) return;
     fetch(`/api/results?sessionId=${encodeURIComponent(id)}`)
@@ -24,11 +33,6 @@ export default function Landing() {
       .then((d) => {
         if (d && d.voteCount > 0) setReturning({ segment: d.segment, voteCount: d.voteCount });
       })
-      .catch(() => {});
-    // The edition line: live public totals (same numbers as /results).
-    fetch("/api/crowd")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d?.totals && setTotals(d.totals))
       .catch(() => {});
   }, []);
 
@@ -71,12 +75,16 @@ export default function Landing() {
             <>
               A live study of data storytelling ·{" "}
               {/* Mechanical counter: the live total ticks up from 0 on load —
-                  a small "this is live" heartbeat, reduced-motion safe. */}
-              <span
-                className="count"
-                style={{ "--num": totals.countedVotes } as React.CSSProperties}
-              />{" "}
-              calls logged · ≈90 seconds
+                  a small "this is live" heartbeat, reduced-motion safe. The
+                  number + its unit never break across a line. */}
+              <span className="whitespace-nowrap">
+                <span
+                  className="count text-ink-strong"
+                  style={{ "--num": totals.countedVotes } as React.CSSProperties}
+                />{" "}
+                calls logged
+              </span>{" "}
+              · ≈90 seconds
             </>
           ) : (
             "A live study of data storytelling · No sign-up · ≈90 seconds"
