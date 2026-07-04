@@ -16,6 +16,7 @@ type PairDto = {
     domain: string;
     contextSnippet: string;
     sourceLabel: string;
+    sourceUrl: string | null;
   };
   variantA: { id: string; text: string };
   variantB: { id: string; text: string };
@@ -258,26 +259,43 @@ function SwipeInner() {
           <ResultsCard results={results} onKeepGoing={keepGoing} />
         ) : pair ? (
           <div key={pair.variantA.id} className="pair-in">
-            {/* Context header: the "wire copy" panel. */}
-            <button
-              onClick={() => setSnippetExpanded((v) => !v)}
-              className="w-full text-left rounded-card border-l-[3px] border-rule-strong bg-wash px-4 py-3 mb-4 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-            >
-              <p className="kicker text-muted mb-1.5">The finding</p>
-              <Snippet
-                ref={snippetRef}
-                markdown={pair.finding.contextSnippet}
-                className={`text-sm leading-relaxed ${snippetExpanded ? "" : "line-clamp-3"}`}
-              />
-              <p className="mt-1.5 flex items-center justify-between gap-2 font-mono text-xs text-muted">
-                <span>{pair.finding.sourceLabel}</span>
-                {(snippetTruncated || snippetExpanded) && (
-                  <span className="shrink-0 font-semibold text-accent">
-                    {snippetExpanded ? "Less ▴" : "Full data ▾"}
-                  </span>
+            {/* Context header: the "wire copy" panel. The expand control is a
+                button; the source line sits outside it so a real-data source
+                can carry a live link (anchors can't nest in buttons). */}
+            <div className="rounded-card border-l-[3px] border-rule-strong bg-wash mb-4">
+              <button
+                onClick={() => setSnippetExpanded((v) => !v)}
+                className="w-full text-left px-4 pt-3 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+              >
+                <p className="kicker text-muted mb-1.5 flex items-center justify-between gap-2">
+                  <span>The finding</span>
+                  {(snippetTruncated || snippetExpanded) && (
+                    <span className="shrink-0 font-semibold normal-case tracking-normal text-accent">
+                      {snippetExpanded ? "Less ▴" : "Full data ▾"}
+                    </span>
+                  )}
+                </p>
+                <Snippet
+                  ref={snippetRef}
+                  markdown={pair.finding.contextSnippet}
+                  className={`text-sm leading-relaxed ${snippetExpanded ? "" : "line-clamp-3"}`}
+                />
+              </button>
+              <p className="px-4 pb-3 pt-1.5 font-mono text-xs text-muted">
+                {pair.finding.sourceUrl ? (
+                  <a
+                    href={pair.finding.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-card-border underline-offset-2 hover:text-foreground hover:decoration-rule-strong"
+                  >
+                    {pair.finding.sourceLabel} ↗
+                  </a>
+                ) : (
+                  pair.finding.sourceLabel
                 )}
               </p>
-            </button>
+            </div>
 
             <div className="mb-3 flex items-center gap-3" aria-hidden="false">
               <span className="h-px flex-1 bg-card-border" aria-hidden />

@@ -21,7 +21,7 @@
 import { readFileSync } from "fs";
 import Anthropic from "@anthropic-ai/sdk";
 import { PrismaClient } from "@prisma/client";
-import { planFinding, type FindingPlan } from "../src/lib/generation/planner";
+import { fidelityAllowed, planFinding, type FindingPlan } from "../src/lib/generation/planner";
 import {
   validateGeneration,
   type GeneratedVariant,
@@ -40,6 +40,7 @@ type InputFinding = {
   contextSnippet: string;
   sourceLabel: string;
   truthSummary: string;
+  sourceUrl?: string | null; // set for ingested findings; drives the fidelity guard
 };
 
 const TAG_ENUM = {
@@ -164,6 +165,7 @@ function buildUserPrompt(finding: InputFinding, plan: FindingPlan): string {
         : `Variant ${p.slot}: change only ${p.changedAttribute} vs the base -> ${JSON.stringify(p.profile)}`
     )
     .join("\n");
+  const hasOverclaim = plan.some((p) => p.profile.fidelity === "overclaimed");
   return `FINDING
 title: ${finding.title}
 TRUTH_SUMMARY: ${finding.truthSummary}
@@ -171,7 +173,11 @@ CONTEXT_SNIPPET: ${finding.contextSnippet}
 sourceLabel: ${finding.sourceLabel}
 
 PLAN (write text to each profile exactly; echo the tags verbatim)
-${planText}`;
+${planText}${
+    hasOverclaim
+      ? ""
+      : `\n\nNOTE: this plan contains NO overclaimed variant (real named-entity finding). Every variant is faithful; every entailment is "entailed".`
+  }`;
 }
 
 async function callModel(system: string, messages: Anthropic.MessageParam[]) {
@@ -205,7 +211,8 @@ async function generateFinding(
   existingFindingId?: string
 ): Promise<void> {
   const hints = await latestCoverageHints();
-  const plan = planFinding(seedIndex, hints);
+  // Real named-entity findings never get the overclaimed spoke (planner doc).
+  const plan = planFinding(seedIndex, hints, { allowFidelity: fidelityAllowed(finding) });
   const system = await buildSystemPrompt();
   const messages: Anthropic.MessageParam[] = [
     { role: "user", content: buildUserPrompt(finding, plan) },

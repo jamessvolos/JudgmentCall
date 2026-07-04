@@ -38,6 +38,7 @@ export async function GET(request: Request) {
       domain: pair.finding.domain,
       contextSnippet: pair.finding.contextSnippet,
       sourceLabel: pair.finding.sourceLabel,
+      sourceUrl: pair.finding.sourceUrl,
     },
     variantA: { id: pair.variantA.id, text: pair.variantA.text },
     variantB: { id: pair.variantB.id, text: pair.variantB.text },

@@ -270,11 +270,20 @@ export default async function ResultsPage() {
               before anything is published as a finding.
             </p>
             <p>
-              <strong className="text-foreground">Disclosure.</strong> All findings use realistic
-              but fictional data. A small share of tellings are deliberately written to subtly
-              exceed their underlying data; that contrast is measured as a separate, blinded
-              experiment and reported with its own methods when the sample is defensible —
-              which tellings those are is never revealed while voting.
+              <strong className="text-foreground">Sources.</strong> Findings mix real public data
+              — SEC filings, federal economic series — with realistic fictional scenarios
+              (marked &ldquo;fictional&rdquo; on the card). Real-data cards link their source,
+              every telling is validated against the underlying numbers before it can serve, and
+              real-data findings stop serving 90 days after retrieval so stale figures never
+              circulate.
+            </p>
+            <p>
+              <strong className="text-foreground">Disclosure.</strong> A small share of tellings
+              are deliberately written to subtly exceed their underlying data; that contrast is
+              measured as a separate, blinded experiment and reported with its own methods when
+              the sample is defensible — which tellings those are is never revealed while
+              voting. Deliberately overclaimed tellings are never attached to findings about
+              real, named companies; they appear only on aggregate-data and fictional findings.
             </p>
           </div>
         </section>

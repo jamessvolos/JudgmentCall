@@ -51,14 +51,27 @@ function rotate<T>(values: readonly T[], by: number): T {
 }
 
 /**
+ * The real-data guard: fidelity plants (deliberately overclaimed tellings)
+ * are never attached to findings about real, NAMED entities — an overclaim
+ * about an actual company's filing is a false statement about a real firm,
+ * not a craft experiment. Aggregate/macro sources (FRED, BLS) and fictional
+ * findings keep the fidelity spoke.
+ */
+export function fidelityAllowed(finding: { sourceUrl?: string | null }): boolean {
+  return !finding.sourceUrl?.includes("sec.gov");
+}
+
+/**
  * Plan the 6-variant set for the finding at `seedIndex` (its position in the
  * generated deck — pass a monotonically increasing counter). Deterministic:
  * the same index always yields the same plan, so regeneration is reproducible.
  */
 export function planFinding(
   seedIndex: number,
-  coverageHints?: Exclude<AttributeKey, "fidelity">[] // starvation-ranked, thinnest first
+  coverageHints?: Exclude<AttributeKey, "fidelity">[], // starvation-ranked, thinnest first
+  opts?: { allowFidelity?: boolean }
 ): FindingPlan {
+  const allowFidelity = opts?.allowFidelity ?? true;
   // Rotate the base profile so no attribute value is "always the base".
   const base: AttributeProfile = {
     leadType: rotate(LEAD_TYPES, seedIndex),
@@ -99,9 +112,14 @@ export function planFinding(
     });
   }
 
-  // Single spokes until we have 5 variants (base + 4 craft spokes).
-  for (const key of singles) {
-    if (plan.length >= 5) break;
+  // Single spokes: up to 4 craft spokes when the fidelity spoke follows,
+  // one extra when it doesn't (named-entity findings) so the star stays
+  // 6 variants and the craft coverage actually widens.
+  const craftBudget = allowFidelity ? 5 : 6;
+  // When the doubled attribute only had one alternative (2-valued) the
+  // skipped attribute is promoted back in so the star stays full.
+  for (const key of [...singles, skipped]) {
+    if (plan.length >= craftBudget) break;
     const alt = VALUES[key].find((v) => v !== base[key])!;
     plan.push({
       slot: slot++,
@@ -111,13 +129,16 @@ export function planFinding(
     });
   }
 
-  // The fidelity spoke: identical profile to base, overclaimed.
-  plan.push({
-    slot: slot++,
-    role: "spoke",
-    changedAttribute: "fidelity",
-    profile: { ...base, fidelity: "overclaimed" },
-  });
+  // The fidelity spoke: identical profile to base, overclaimed. Skipped for
+  // real named-entity findings (see fidelityAllowed).
+  if (allowFidelity) {
+    plan.push({
+      slot: slot++,
+      role: "spoke",
+      changedAttribute: "fidelity",
+      profile: { ...base, fidelity: "overclaimed" },
+    });
+  }
 
   return plan;
 }

@@ -39,7 +39,9 @@ async function fred(seriesId: string): Promise<Draft> {
 async function edgar(cik: string): Promise<Draft> {
   const padded = cik.padStart(10, "0");
   const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${padded}.json`;
-  const res = await fetch(url, { headers: { "User-Agent": "JudgmentCall research contact@example.com" } });
+  // SEC asks for a real contact in the UA; override via SEC_CONTACT in prod.
+  const contact = process.env.SEC_CONTACT ?? "contact@example.com";
+  const res = await fetch(url, { headers: { "User-Agent": `JudgmentCall research ${contact}` } });
   if (!res.ok) throw new Error(`SEC EDGAR ${res.status}`);
   const data = await res.json();
   const revenues =
