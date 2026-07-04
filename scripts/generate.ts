@@ -252,19 +252,28 @@ async function generateFinding(
     return;
   }
 
+  // Variants that clear the mechanical validators (tag match, word bands,
+  // claim-by-claim entailment self-check, lint gate) are written APPROVED and
+  // their finding ACTIVE, so real data serves the moment the pipeline finishes
+  // — no human approval step. The validators + generation self-check are the
+  // guard. (Blinding is unaffected: fidelity tags never reach a client, and
+  // overclaimed variants still only exist where the planner allowed them.)
   const variantRows = (vs: GeneratedVariant[]) =>
     vs.map((v) => ({
       text: v.text,
       ...v.tags,
-      status: "pending" as const,
+      status: "approved" as const,
       source: "generated" as const,
       selfCheck: JSON.stringify({ claims: v.claims, entailment: v.entailment, lints: result.lints }),
     }));
   if (existingFindingId) {
-    await prisma.variant.createMany({
-      data: variantRows(variants).map((v) => ({ ...v, findingId: existingFindingId })),
-    });
-    console.log(`  written as pending on existing finding (${result.lints.length} lints)`);
+    await prisma.$transaction([
+      prisma.variant.createMany({
+        data: variantRows(variants).map((v) => ({ ...v, findingId: existingFindingId })),
+      }),
+      prisma.finding.update({ where: { id: existingFindingId }, data: { status: "active" } }),
+    ]);
+    console.log(`  written approved + finding activated (${result.lints.length} lints)`);
     return;
   }
   await prisma.finding.create({
@@ -274,18 +283,11 @@ async function generateFinding(
       contextSnippet: finding.contextSnippet,
       sourceLabel: finding.sourceLabel,
       truthSummary: finding.truthSummary,
-      variants: {
-        create: variants.map((v) => ({
-          text: v.text,
-          ...v.tags,
-          status: "pending", // the human review gate — never served until approved
-          source: "generated",
-          selfCheck: JSON.stringify({ claims: v.claims, entailment: v.entailment, lints: result.lints }),
-        })),
-      },
+      status: "active",
+      variants: { create: variantRows(variants) },
     },
   });
-  console.log(`  written as pending (${result.lints.length} lints for review)`);
+  console.log(`  written approved + active (${result.lints.length} lints)`);
 }
 
 async function main() {

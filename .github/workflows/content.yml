@@ -101,6 +101,13 @@ jobs:
           fi
           npx tsx scripts/generate.ts --submitted
 
+      # No human review gate: promote anything still pending/submitted so real
+      # data serves immediately. Idempotent; never touches rejected variants.
+      - name: Activate content (no approval gate)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx tsx scripts/activate-content.ts
+
       - name: Queue summary
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -109,10 +116,10 @@ jobs:
           import { PrismaClient } from '@prisma/client';
           const p = new PrismaClient();
           (async () => {
-            const submitted = await p.finding.count({ where: { status: 'submitted' } });
+            const active = await p.finding.count({ where: { status: 'active' } });
+            const approved = await p.variant.count({ where: { status: 'approved' } });
             const pending = await p.variant.count({ where: { status: 'pending' } });
-            console.log(\`submitted findings: \${submitted} · variants awaiting review: \${pending}\`);
-            console.log('Review queue: https://judgment-call.vercel.app/admin/review');
+            console.log(\`active findings: \${active} · approved variants: \${approved} · still pending: \${pending}\`);
             await p.\$disconnect();
           })();
           "
