@@ -1,0 +1,143 @@
+# Study integrity
+
+Judgment Call publishes numbers a stranger is invited to trust. This document is
+the authoritative record of *how* that trust is protected: the layered defenses
+that keep low-effort or adversarial voting from distorting a published result,
+the wall between raw votes and public outputs, and the risks we have accepted
+(and why). It is the counterpart to `INSIGHT-PRINCIPLES.md` (what a good insight
+*is*) — this is what keeps the measurement of taste *honest*.
+
+Prime directive: **nothing here may change what a voter sees or how a vote is
+generated or scored.** Integrity is enforced at intake and at aggregation, never
+by altering the blinded voting experience. When a protection would require
+touching the voting flow, it is redesigned to avoid it or declined.
+
+---
+
+## The two choke points
+
+Every integrity control lives at one of two places. Nothing in between is trusted.
+
+1. **Intake** (`src/app/api/vote/route.ts` → `recordVote` in `src/lib/repo.ts`):
+   what is allowed into the ledger, and how each row is flagged.
+2. **Aggregation** (`src/lib/analytics.ts`, `src/lib/results.ts` via
+   `computeAnalyticsCached`): which ledger rows are allowed to reach a published
+   number.
+
+The ledger itself is append-only truth: every vote is stored, flags and all.
+Filtering happens on the *read*, so a mistake in a filter is always recoverable
+from the ledger and never corrupts the underlying record.
+
+---
+
+## Defense in depth (what exists today)
+
+| Layer | Control | Where | Effect |
+|---|---|---|---|
+| Rate | `MAX_VOTES_PER_MINUTE = 30` → 429 | vote route | caps single-session flooding |
+| Effort | can't-decide throttle (`>2` undecided of last `5` → next undecided rejected) | vote route | forces genuine calls, kills abstain-spam |
+| Effort | latency floor `LOW_ATTENTION_MS = 800` → `lowAttention` | vote route | sub-0.8s taps flagged |
+| Independence | `isRepeat` (pair already seen this session) | `hasSeenPair` | non-independent re-judgements flagged |
+| Idempotency | `clientVoteId` UNIQUE; duplicate insert → `P2002`, settle rolls back | repo / vote route | retries & double-taps can't double-count Elo/XP/tally |
+| Fairness | A/B side flipped 50/50 per render (`Math.random() < 0.5`) | `matchmaking.ts:232` | neutralizes left/right position bias |
+| Trust boundary | contrast key computed server-side from stored tags, never from the client | vote route | client can't mislabel what a vote is about |
+| Forensics | salted SHA-256 IP digest; **stores `null` in prod without a real salt** | `hashIp` | post-hoc sybil analysis without holding raw IPs |
+| Publication | `MIN_N = 30` suppression + Wilson 95% intervals + "TOO CLOSE TO CALL" straddle | `analytics.ts` | thin/uncertain contrasts never assert |
+
+### What reaches a published number
+
+A vote contributes to a public tally **iff**: `winnerId != null` **and**
+`lowAttention = false` **and** `isRepeat = false` **and** `deckId = null` (bring-
+your-own-data decks are private, never in the public study), its `contrastAttrs`
+is a single key, and that key is not the blinded fidelity attribute. This filter
+(`getAnalyticsComparisons`, `repo.ts`) is the one contract every published craft
+number depends on — replicate it, never re-derive it.
+
+Consequences worth stating plainly:
+- **Low-attention and repeat votes are excluded from every published tally** —
+  they cannot move a public preference number.
+- **The blinded fidelity dimension is dropped before analytics** — it is never
+  in a public output, so ranking or displaying craft contrasts can expose
+  nothing about the hidden experiment (bundle guard + canonical grep enforce the
+  client side; this filter enforces the server side).
+- **Drill attempts never enter analytics**, and **learner behavior never feeds
+  generation or scoring** — the training room is isolated from the study.
+
+---
+
+## Risk register
+
+Prioritized by expected damage to published credibility × ease of exploitation.
+Each risk lists its current mitigation and the residual we knowingly accept.
+
+1. **Cross-session sybil / ballot-stuffing.** A session id is client-generated,
+   so one actor can open many sessions and push a contrast.
+   *Mitigation:* `MIN_N` + Wilson intervals mean a handful of extra votes can't
+   manufacture a "resolved" result; the 30/min cap bounds per-session throughput;
+   the salted IP digest supports post-hoc forensics.
+   *Residual (accepted):* no *active* per-IP dedup in aggregation — deliberately,
+   because NAT/shared-IP false positives would silently drop honest votes, and
+   the stakes (a public taste leaderboard) don't justify that harm. **Highest-
+   value future round:** a read-only offline scan that flags any session
+   contributing an outsized share of a single contrast's `n`, as a monitoring
+   signal — no live-path change.
+
+2. **Low-effort voting.** Rapid, thoughtless taps.
+   *Mitigation:* latency floor → `lowAttention`, excluded from all tallies;
+   can't-decide throttle forces real calls.
+   *Residual:* `lowAttention` votes still move Elo (by design — Elo is noise-
+   tolerant and self-corrects; the *tally* is the protected public surface). Open
+   question: whether Elo should exclude them too, for consistency.
+
+3. **Self-reported segment abuse.** Segment (executive/analyst/…) is self-declared.
+   *Mitigation:* segment only ever *splits* the disagreement view, which is itself
+   gated at `n ≥ 30` per segment; it never gates voting or reweights the headline
+   number.
+   *Residual:* low — worst case is a cosmetic skew in a segment split that already
+   requires 30 observations to appear.
+
+4. **Repeat / double-tap inflation.** *Mitigated:* `isRepeat` exclusion +
+   `clientVoteId` idempotency. No residual known.
+
+5. **Position bias.** *Mitigated:* 50/50 A/B flip per render. No residual known.
+
+6. **Blinding leakage into a public output.** *Mitigated:* fidelity dropped before
+   analytics; bundle guard + canonical grep block the client side. This is the
+   one risk that outranks all optimization — see `DESIGN.md` / `INSIGHT-PRINCIPLES.md`.
+
+7. **Stale or misleading public numbers.** *Mitigated:* `computeAnalyticsCached`
+   keys on a data-version (comparison count + latest id + approved-variant count),
+   so a published number can never lag the ledger a reader could check; `MIN_N`
+   suppression + honest intervals prevent over-claiming from thin data.
+
+---
+
+## How this doc is load-bearing
+
+- The **intake filter** and the **published-number filter** above are the two
+  invariants every integrity change must preserve. If a future optimization
+  (e.g. a Wave-2 aggregate table, see `PERF-WAVES.md`) changes *how* a number is
+  computed, it must reproduce the intake filter byte-for-byte and reconcile
+  against the ledger — the ledger stays authoritative.
+- When a new attack or bias is discovered, it is added to the risk register with
+  its mitigation and residual, so the study's defensibility is auditable in one
+  place rather than reconstructed from code comments.
+
+---
+
+## Amendment log
+
+- **2026-07-05** — First articulation (v1). No code change. Catalogued the
+  existing defense-in-depth (rate cap, can't-decide throttle, latency floor,
+  repeat + idempotency, server-side contrast, 50/50 position flip, salted-IP
+  forensics, `MIN_N`/Wilson publication suppression), documented the intake →
+  aggregation isolation and the exact "reaches a published number" contract, and
+  opened the prioritized risk register. Verified the posture against the code:
+  position bias is already neutralized (`matchmaking.ts` 50/50 flip), fidelity is
+  dropped before analytics, drill attempts and BYO decks are isolated from the
+  public study. Assessment: study health is **strong** — the machinery is mature
+  and no live-path change clears the "clear integrity gain + zero risk to the
+  blinded experience + lowest added attack surface" bar this round. The single
+  highest-value *future* action is a read-only anomaly-scan script for the
+  cross-session sybil residual (risk #1); it is deferred as it wants production
+  ledger access to be meaningful, not a code change makeable or verifiable here.
