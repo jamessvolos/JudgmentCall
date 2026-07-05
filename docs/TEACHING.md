@@ -157,3 +157,34 @@ that keeps it from the study is absolute:
   bullet 3 (difficulty escalation) both still want a deeper item pool; an
   active-recall "name the family before the reveal" beat is a credit-free
   candidate for a future round.
+- **2026-07-04** — **Critical fix: drill grading was inverted** + **active-recall
+  beat**. While screenshot-verifying the recall beat (below), the drill's spot
+  grading was found inverted since launch (commit 8d3ba6d, no test): the item
+  asks "Which telling exceeds the data?" but grading was `picked === faithfulSide`
+  — it rewarded picking the FAITHFUL telling. A learner who correctly caught the
+  overclaim was told "It got you," lost rating, and (with the new recall beat)
+  would have been "taught" about a miss they didn't make. The drill was training
+  the *inverse* of its purpose. Fixed to reward the OVERCLAIMED (non-faithful)
+  side; extracted the side-derivation + grading into a pure, tested module
+  (`src/lib/drill-grade.ts`, shared by the GET serving path and the POST grading
+  path so they can't drift) with `scripts/drill-grade.test.ts` (wired into
+  `npm test`) locking the direction. Drill rating/XP are training-only (never in
+  analytics), so fixing forward is safe. Verified end-to-end: drove 8 sessions
+  (both hash branches) — picking the overclaim now grades correct, zero
+  violations.
+
+  Alongside it, shipped the **active-recall "name the move" beat** (the next
+  credit-free candidate named last round). After the spot verdict, the pattern
+  is no longer revealed passively — the learner first attempts to NAME the
+  overclaim family from chips (the device/explanation/tell stay hidden until
+  they answer or hit "just show me"), then the reveal marks their guess ✓/✗.
+  This is retrieval practice on the charter's core "spot it AND name how" goal —
+  attempting recall before the answer is what makes the pattern stick. The
+  naming is formative: the drill rating stays settled on the spot, never
+  re-graded, so a correct spotter is never penalised for mis-naming. Items whose
+  device classifies as "other" (not a nameable family) skip the recall. All in
+  `/drill`; blinding held (canonical grep clean, guard confirms teaching chunk
+  drill-only), screenshotted both phases in light + dark. Open / next: an
+  active-recall unit could later feed a per-family *naming* accuracy read
+  (separate from the spot rating) once the item pool deepens; the selection half
+  of mastery bullet 2 + difficulty escalation still wait on that pool.

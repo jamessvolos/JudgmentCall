@@ -43,6 +43,19 @@ type VerdictDto = {
   xp: number;
 };
 
+// The five nameable overclaim families, canonical order — the choices for the
+// "name the move" recall beat on the verdict (retrieval practice: attempting to
+// name the pattern before it's revealed makes it stick). "other" is a
+// classifier fallback, not a nameable pattern, so it is never offered and items
+// that land there skip the recall.
+const RECALL_FAMILIES: OverclaimFamily["id"][] = [
+  "cause",
+  "single_cause",
+  "extrapolation",
+  "certainty",
+  "base_rate",
+];
+
 export default function DrillPage() {
   const router = useRouter();
   const [drill, setDrill] = useState<DrillDto | null>(null);
@@ -56,6 +69,10 @@ export default function DrillPage() {
   const verdictRef = useRef<HTMLDivElement | null>(null);
   const prefetched = useRef<DrillDto | null>(null);
   const [oldRating, setOldRating] = useState<number | null>(null);
+  // The learner's "name the move" recall guess for the current verdict: null =
+  // not yet answered (recall prompt showing), a family id = guessed that,
+  // "skip" = chose to reveal without guessing. Reset per drill.
+  const [familyGuess, setFamilyGuess] = useState<OverclaimFamily["id"] | "skip" | null>(null);
 
   const loadDrill = useCallback(async (): Promise<DrillDto> => {
     const sessionId = sessionIdRef.current!;
@@ -77,6 +94,7 @@ export default function DrillPage() {
       withViewTransition(() => {
         setVerdict(null);
         setPicked(null);
+        setFamilyGuess(null);
         setDrill(next);
       });
       renderedAt.current = nowMs();
@@ -423,32 +441,92 @@ export default function DrillPage() {
                     </span>
                   </p>
                 </div>
-                {/* Teach at two levels: the item-specific device, and the
-                    recognizable FAMILY it belongs to with a transferable tell,
-                    so the learner leaves with a pattern, not just this answer. */}
-                <p className="mt-3 flex items-baseline gap-2">
-                  <span className="kicker text-muted shrink-0">Pattern</span>
-                  <span className="font-mono text-xs font-semibold text-ink-strong">
-                    {overclaimFamily(verdict.device).name}
-                  </span>
-                </p>
-                <p className="mt-1 flex items-baseline gap-2">
-                  <span className="kicker text-muted shrink-0">Device</span>
-                  <span className="font-mono text-xs text-muted">{verdict.device}</span>
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-pretty">{verdict.explanation}</p>
-                <div className="mt-3 rounded-chip border-l-2 border-accent/50 bg-wash py-2 pl-3 pr-2">
-                  <p className="kicker text-accent">Carry it forward</p>
-                  <p className="mt-1 text-sm leading-relaxed text-pretty text-muted">
-                    {overclaimFamily(verdict.device).tell}
-                  </p>
-                </div>
-                <button
-                  onClick={fetchDrill}
-                  className="cta-glow mt-4 w-full rounded-card bg-accent px-4 py-3 font-mono text-sm font-semibold text-on-accent"
-                >
-                  Next drill →
-                </button>
+                {(() => {
+                  const trueFamily = overclaimFamily(verdict.device);
+                  const recallable = trueFamily.id !== "other";
+                  const revealed = !recallable || familyGuess !== null;
+                  const guessed = familyGuess !== null && familyGuess !== "skip";
+                  const namedIt = guessed && familyGuess === trueFamily.id;
+
+                  // Retrieval beat: the learner attempts to NAME the pattern
+                  // before it's revealed (the charter's "spot it AND name how").
+                  // The device / explanation / tell give the family away, so
+                  // they stay hidden until the guess (or a "show me"). The drill
+                  // rating is already settled on the spot — naming is formative,
+                  // never re-graded — so a correct spotter is never penalised for
+                  // mis-naming.
+                  if (!revealed) {
+                    return (
+                      <div className="mt-4">
+                        <p className="kicker text-muted">Now — name the move</p>
+                        <p className="mt-1 text-xs text-muted">
+                          Which overclaim pattern was it? Your rating is already in — naming it is
+                          just how it sticks.
+                        </p>
+                        <div className="mt-2.5 flex flex-wrap gap-2">
+                          {RECALL_FAMILIES.map((id) => (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => setFamilyGuess(id)}
+                              className="rounded-chip border border-card-border bg-wash px-3 py-1.5 font-mono text-xs text-ink-strong transition hover:border-rule-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                            >
+                              {OVERCLAIM_FAMILIES[id].name}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFamilyGuess("skip")}
+                          className="mt-2.5 font-mono text-[0.6875rem] text-muted underline decoration-muted/40 underline-offset-2 hover:text-ink-strong"
+                        >
+                          just show me →
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  // Revealed: the pattern (with a ✓/✗ on the recall attempt),
+                  // the item-specific device, the explanation, and the tell.
+                  return (
+                    <>
+                      <p className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span className="kicker text-muted shrink-0">Pattern</span>
+                        <span className="font-mono text-xs font-semibold text-ink-strong">
+                          {trueFamily.name}
+                        </span>
+                        {guessed && (
+                          <span
+                            className={`font-mono text-[0.6875rem] ${namedIt ? "text-accent" : "text-danger"}`}
+                          >
+                            {namedIt
+                              ? "· you named it ✓"
+                              : `· you said ${OVERCLAIM_FAMILIES[familyGuess as OverclaimFamily["id"]].name}`}
+                          </span>
+                        )}
+                      </p>
+                      <p className="mt-1 flex items-baseline gap-2">
+                        <span className="kicker text-muted shrink-0">Device</span>
+                        <span className="font-mono text-xs text-muted">{verdict.device}</span>
+                      </p>
+                      <p className="mt-2 text-sm leading-relaxed text-pretty">
+                        {verdict.explanation}
+                      </p>
+                      <div className="mt-3 rounded-chip border-l-2 border-accent/50 bg-wash py-2 pl-3 pr-2">
+                        <p className="kicker text-accent">Carry it forward</p>
+                        <p className="mt-1 text-sm leading-relaxed text-pretty text-muted">
+                          {trueFamily.tell}
+                        </p>
+                      </div>
+                      <button
+                        onClick={fetchDrill}
+                        className="cta-glow mt-4 w-full rounded-card bg-accent px-4 py-3 font-mono text-sm font-semibold text-on-accent"
+                      >
+                        Next drill →
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>

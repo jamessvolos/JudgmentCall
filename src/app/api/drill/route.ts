@@ -1,5 +1,5 @@
-import { createHash } from "crypto";
 import { withTiming } from "@/lib/timing";
+import { faithfulSideFor, isCorrectDrillCall } from "@/lib/drill-grade";
 import { NextResponse } from "next/server";
 import {
   getDrillFamilyProgress,
@@ -16,12 +16,8 @@ import {
 // here and only here.
 
 // Which side the faithful telling renders on is deterministic per
-// (session, item) so the answer can be re-derived at grading time without
-// storing per-serve state: even digest → faithful first.
-function faithfulFirst(sessionId: string, itemId: string): boolean {
-  const h = createHash("sha256").update(`${sessionId}:${itemId}`).digest();
-  return h[0] % 2 === 0;
-}
+// (session, item) — see faithfulSideFor in @/lib/drill-grade, shared with the
+// grading path so the two can't drift.
 
 // GET /api/drill?sessionId=... — next unattempted item, sides shuffled.
 async function getHandler(request: Request) {
@@ -43,16 +39,15 @@ async function getHandler(request: Request) {
       familyProgress: await getDrillFamilyProgress(sessionId),
     });
   }
-  const flip = !faithfulFirst(sessionId, item.id);
-  const texts = [item.faithfulText, item.overclaimedText];
+  const faithful = faithfulSideFor(sessionId, item.id);
   return NextResponse.json({
     item: {
       id: item.id,
       title: item.title,
       contextSnippet: item.contextSnippet,
       sourceLabel: item.sourceLabel,
-      a: flip ? texts[1] : texts[0],
-      b: flip ? texts[0] : texts[1],
+      a: faithful === "a" ? item.faithfulText : item.overclaimedText,
+      b: faithful === "b" ? item.faithfulText : item.overclaimedText,
     },
     remaining,
     drillRating: Math.round(session.drillRating),
@@ -78,8 +73,15 @@ async function postHandler(request: Request) {
     return NextResponse.json({ error: "already attempted" }, { status: 409 });
   }
 
-  const faithfulSide = faithfulFirst(sessionId, item.id) ? "a" : "b";
-  const correct = picked === faithfulSide;
+  const faithfulSide = faithfulSideFor(sessionId, item.id);
+  // Correct = picked the OVERCLAIMED (non-faithful) side — the telling that
+  // exceeds the data. This was previously `picked === faithfulSide`, which
+  // rewarded picking the FAITHFUL telling: inverted against the on-screen
+  // question ("Which telling exceeds the data?") and the drill's whole purpose,
+  // so a learner who correctly caught the overclaim was told "It got you" and
+  // lost rating. Drill rating/XP are training-only (never in analytics), so
+  // fixing forward is safe. See @/lib/drill-grade (+ its test).
+  const correct = isCorrectDrillCall(picked, faithfulSide);
   const latency = Number.isFinite(latencyMs) ? Math.max(0, Math.round(latencyMs)) : 0;
   const result = await recordDrillAttempt({
     sessionId,
