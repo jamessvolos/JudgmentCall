@@ -285,15 +285,31 @@ export default async function ResultsPage({
             across findings — no global leaderboard, by design.
           </p>
           <div className="mt-2 space-y-3">
-            {a.leaderboard.map((row) => (
-              <div key={row.findingId} className="rounded-card border border-card-border bg-card p-4">
-                <p className="text-xs text-muted">{row.findingTitle}</p>
-                <p className="mt-1 font-serif text-[1.0625rem] leading-relaxed text-ink-strong text-pretty">{row.text}</p>
-                <p className="mt-2 font-mono text-xs text-muted tabular-nums">
-                  Elo {Math.round(row.elo)} · {row.wins}W–{row.losses}L
-                </p>
-              </div>
-            ))}
+            {a.leaderboard.map((row) => {
+              const total = row.wins + row.losses;
+              const winShare = total > 0 ? row.wins / total : 0;
+              return (
+                <div key={row.findingId} className="rounded-card border border-card-border bg-card p-4">
+                  <p className="text-xs text-muted">{row.findingTitle}</p>
+                  <p className="mt-1 font-serif text-[1.0625rem] leading-relaxed text-ink-strong text-pretty">{row.text}</p>
+                  {/* Win-share bar: an honest read of head-to-head record (not a
+                      time trend — per-variant Elo history isn't stored). */}
+                  {total > 0 && (
+                    <div
+                      className="mt-2.5 flex h-1.5 overflow-hidden rounded-[2px] bg-card-border"
+                      role="img"
+                      aria-label={`Won ${Math.round(winShare * 100)}% of ${total} head-to-heads`}
+                    >
+                      <div className="h-full bg-accent/70" style={{ width: `${winShare * 100}%` }} />
+                    </div>
+                  )}
+                  <p className="mt-2 font-mono text-xs text-muted tabular-nums">
+                    Elo {Math.round(row.elo)} · {row.wins}W–{row.losses}L
+                    {total > 0 ? ` · ${Math.round(winShare * 100)}% win rate` : ""}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </section>
 

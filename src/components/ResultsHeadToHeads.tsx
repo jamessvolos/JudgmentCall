@@ -147,30 +147,59 @@ export function ResultsHeadToHeads({
   minN: number;
 }) {
   const [seg, setSeg] = useState<"overall" | "executive" | "analyst">("overall");
+  const [sort, setSort] = useState<"decisiveness" | "voted" | "az">("decisiveness");
   const rows = seg === "executive" ? executive : seg === "analyst" ? analyst : overall;
+
+  // Hard rule: suppressed rows are one uniform block, always pinned to the
+  // bottom in EVERY sort mode. Sorting only ever reorders the resolved/sampled
+  // rows above them; the incoming order is already decisiveness-ranked.
+  const active = rows.filter((r) => !r.suppressed);
+  const suppressed = rows.filter((r) => r.suppressed);
+  const sortedActive =
+    sort === "voted"
+      ? [...active].sort((a, b) => b.n - a.n)
+      : sort === "az"
+        ? [...active].sort((a, b) => a.valueALabel.localeCompare(b.valueALabel))
+        : active; // "decisiveness" — keep the server's decisiveness order
+  const displayRows = [...sortedActive, ...suppressed];
 
   return (
     <>
-      <div
-        className="mt-3 inline-flex rounded-chip border border-card-border p-0.5"
-        role="tablist"
-        aria-label="Filter head-to-heads by who was voting"
-      >
-        {SEGMENTS.map((s) => (
-          <button
-            key={s.id}
-            role="tab"
-            aria-selected={seg === s.id}
-            onClick={() => setSeg(s.id)}
-            className={`rounded-chip px-3 py-1 font-mono text-xs transition ${
-              seg === s.id
-                ? "bg-card text-ink-strong shadow-[var(--shadow-card)]"
-                : "text-muted hover:text-ink-strong"
-            }`}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <div
+          className="inline-flex rounded-chip border border-card-border p-0.5"
+          role="tablist"
+          aria-label="Filter head-to-heads by who was voting"
+        >
+          {SEGMENTS.map((s) => (
+            <button
+              key={s.id}
+              role="tab"
+              aria-selected={seg === s.id}
+              onClick={() => setSeg(s.id)}
+              className={`rounded-chip px-3 py-1 font-mono text-xs transition ${
+                seg === s.id
+                  ? "bg-card text-ink-strong shadow-[var(--shadow-card)]"
+                  : "text-muted hover:text-ink-strong"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <label className="flex items-center gap-1.5 font-mono text-xs text-muted">
+          <span className="sr-only sm:not-sr-only">Sort</span>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as "decisiveness" | "voted" | "az")}
+            aria-label="Sort head-to-heads"
+            className="rounded-chip border border-card-border bg-card px-2 py-1 font-mono text-xs text-ink-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
-            {s.label}
-          </button>
-        ))}
+            <option value="decisiveness">Most decisive</option>
+            <option value="voted">Most voted</option>
+            <option value="az">A–Z</option>
+          </select>
+        </label>
       </div>
 
       {seg !== "overall" && (
@@ -181,7 +210,7 @@ export function ResultsHeadToHeads({
       )}
 
       <div className="mt-2 rounded-card border border-card-border bg-card px-5 py-2">
-        {rows.map((r) => (
+        {displayRows.map((r) => (
           <ContrastRow key={`${seg}:${r.key}`} row={r} minN={minN} />
         ))}
       </div>
