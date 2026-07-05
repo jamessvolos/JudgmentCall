@@ -35,8 +35,8 @@ Teaching happens at two levels, always together:
 | Family | The pattern | The tell (how to catch it) |
 |---|---|---|
 | **Cause from correlation** | Co-movement promoted to causation | What else changed in the same window — and did anything rule the alternatives out? |
-| **One cause of many** | Several drivers moved; one gets the credit | Look for the drivers that got quietly dropped. |
-| **Projecting past the data** | A line through one or two points, or a narrow sample generalized | How many observations are there — would they hold outside the slice measured? |
+| **Single-cause story** | Several drivers moved; one gets the credit | Look for the drivers that got quietly dropped. |
+| **Overreach** | A line through one or two points, or a narrow sample generalized | How many observations are there — would they hold outside the slice measured? |
 | **Certainty inflation** | A noisy or provisional reading spoken as settled | Watch for "is / will / guarantees" where the data supports "so far / may". |
 | **Base-rate neglect** | A raw count with no denominator | Ask "out of how many?" — the rate can move opposite the count. |
 

@@ -25,12 +25,12 @@ export const OVERCLAIM_FAMILIES: Record<OverclaimFamily["id"], OverclaimFamily> 
   },
   single_cause: {
     id: "single_cause",
-    name: "One cause of many",
+    name: "Single-cause story",
     tell: "When several drivers moved at once, crediting a single one is a choice, not a finding. Look for the drivers that got quietly dropped.",
   },
   extrapolation: {
     id: "extrapolation",
-    name: "Projecting past the data",
+    name: "Overreach",
     tell: "A line drawn through one or two points, or from a narrow sample to everyone. Ask how many observations there are — and whether they'd hold outside the slice that was measured.",
   },
   certainty: {

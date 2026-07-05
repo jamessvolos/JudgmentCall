@@ -167,7 +167,7 @@ export default function SubmitPage() {
       <div className="mx-auto w-full max-w-6xl">
         {/* Masthead */}
         <div className="hero-line" style={{ "--i": 0 } as React.CSSProperties}>
-          <p className="kicker text-muted">Judgment Call · Bring your own data</p>
+          <p className="kicker text-muted">Judgment Call · Bring your data</p>
           <h1 className="mt-2 font-sans font-semibold text-ink-strong text-[clamp(2rem,4.6vw,3.25rem)] leading-[1.02] tracking-[-0.03em] text-balance">
             Run this on your numbers
           </h1>

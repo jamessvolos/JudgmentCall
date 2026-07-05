@@ -86,7 +86,7 @@ function ContrastRow({ stat }: { stat: ValuePairStat }) {
           </a>
         </p>
         <p className="font-mono text-xs text-muted shrink-0 tabular-nums">
-          {stat.suppressed ? `COLLECTING — ${stat.n}/${MIN_N}` : `n=${stat.n}`}
+          {stat.suppressed ? `JURY'S STILL OUT — ${stat.n}/${MIN_N}` : `n=${stat.n}`}
         </p>
       </div>
       {stat.suppressed ? (
