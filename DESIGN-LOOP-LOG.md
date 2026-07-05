@@ -54,3 +54,36 @@ violates instrument discipline); promoting the §01 tally into a hero readout
 (decorative duplication, downstream of this fix). Momentum: strong; the public
 surfaces (landing just reimagined as the Live Console, results now self-ranking)
 cohere around earned-light + Wilson-honest instruments.
+
+## 2026-07-04 · Fresh-eyes pass on Review + voting surface — converged (no change)
+
+**Explored.** Fresh-eyed the two energy surfaces not touched earlier this
+session: drove a 10-vote session and screenshotted **/review** (light + dark,
+1280 + 390), and re-checked the **/swipe voting surface** at a mid-run state.
+
+**Why no change (all clear a high bar already).**
+- **/review** reads as polished and coherent with the reimagined landing +
+  ranked results: masthead + datum beam, the "vs the desk 5/8" readout, and
+  per-call caliper rows *self-differentiated by verdict stamp* (HUNG JURY /
+  WITH THE ROOM / YOU OVERRULED THE DESK / DESK CONCURS), so unlike the results
+  aggregate it needs no re-ranking — and a personal run is inherently
+  chronological, so reordering would misrepresent it. Hard rule held: the two
+  `JURY'S STILL OUT` rows render uniformly (hatched, no caliper dot), the
+  collecting state intact.
+- **/swipe voting cards** confirmed perfectly neutral — identical border /
+  bg-card / serif / top rule-mark, zero color/accent/motion between them; tally
+  and finding panel disciplined. The most-protected surface; left untouched.
+- **Poster** was reimagined as a "big swing" in a prior session and rebuilt in
+  lockstep with its OG twin; not re-opened this round.
+
+**Move attempted / result.** A genuine fresh-eyes critique, not a change: no
+frontier/aliveness leap presents itself that clears the hard-rule bar without
+manufacturing. Convergence recorded per the stop condition — not changing to
+stay busy.
+
+**Momentum.** Strong. The public surfaces cohere around the DATUM instrument
+language after this session's landing reimagining + results decisiveness
+ranking. Next candidates when a real opportunity surfaces: elevating the
+/review personal-stat readout toward the /results lit-instrument treatment
+(coherence, medium leverage) and a fresh poster pass — both deferred as
+polish, not leaps, this round.
