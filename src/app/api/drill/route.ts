@@ -11,7 +11,6 @@ import {
   getDrillItem,
   getNextDrillItem,
   getSession,
-  getSkillProgress,
   hasAttemptedDrill,
   recordDrillAttempt,
 } from "@/lib/repo";
@@ -55,7 +54,7 @@ async function getHandler(request: Request) {
   const session = await getSession(sessionId);
   if (!session) return NextResponse.json({ error: "unknown session" }, { status: 404 });
 
-  const { item, remaining } = await getNextDrillItem(sessionId, { mode, skill });
+  const { item, remaining, skillProgress } = await getNextDrillItem(sessionId, { mode, skill });
   if (!item) {
     // Cleared the (filtered) pool: return the per-skill map for the recap.
     return NextResponse.json({
@@ -63,7 +62,7 @@ async function getHandler(request: Request) {
       remaining: 0,
       drillRating: Math.round(session.drillRating),
       drillCount: session.drillCount,
-      skillProgress: await getSkillProgress(sessionId),
+      skillProgress,
     });
   }
 
@@ -97,7 +96,7 @@ async function getHandler(request: Request) {
     remaining,
     drillRating: Math.round(session.drillRating),
     drillCount: session.drillCount,
-    skillProgress: await getSkillProgress(sessionId),
+    skillProgress,
   });
 }
 

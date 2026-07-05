@@ -9,7 +9,6 @@ import { XP, drillElo, levelFor, updateAbility, type LevelInfo } from "./progres
 // teaching.ts holds fidelity vocabulary but is a pure module; imported here on
 // the SERVER only (repo.ts uses Prisma, so it never enters a client bundle) to
 // classify drill devices into families. The bundle guard enforces this.
-import { overclaimFamily, OVERCLAIM_FAMILIES, type OverclaimFamily } from "./teaching";
 import { withTxRetry } from "./tx-retry";
 import type { Finding, Variant, Comparison, Session, DrillItem } from "@prisma/client";
 
@@ -620,8 +619,9 @@ export type { DrillItem };
  *   3. anything left.
  *  Within the chosen tier, selection leans softly toward items near the learner's
  *  drill rating so difficulty ramps (bullet 3, partial). null when done.
- *  Server-only: overclaimFamily (fidelity vocabulary) never reaches a client
- *  bundle through repo.ts (Prisma-bound, guard-enforced). */
+ *  Also returns the session's per-skill progress, tallied from the SAME attempts
+ *  scan (so /api/drill needn't read drillAttempt a second time for the recap).
+ *  Server-only (Prisma-bound); no fidelity vocabulary crosses into a client bundle. */
 export async function getNextDrillItem(
   sessionId: string,
   opts?: { mode?: string; skill?: string }
@@ -629,6 +629,7 @@ export async function getNextDrillItem(
   item: DrillItem | null;
   remaining: number;
   session: Session | null;
+  skillProgress: SkillProgressRow[];
 }> {
   const [attempts, session] = await Promise.all([
     prisma.drillAttempt.findMany({
@@ -637,6 +638,8 @@ export async function getNextDrillItem(
     }),
     prisma.session.findUnique({ where: { id: sessionId } }),
   ]);
+  // Per-skill recap map, derived from the attempts we just fetched — no second scan.
+  const skillProgress = tallySkillProgress(attempts);
   const seen = attempts.map((a) => a.drillItemId);
   const pool = await prisma.drillItem.findMany({
     where: {
@@ -646,7 +649,7 @@ export async function getNextDrillItem(
       ...(opts?.skill ? { skill: opts.skill } : {}),
     },
   });
-  if (pool.length === 0) return { item: null, remaining: 0, session };
+  if (pool.length === 0) return { item: null, remaining: 0, session, skillProgress };
 
   // Per-skill history: how many of each skill the learner faced and caught, so
   // we can tell an unfaced skill from a faced-but-missed one.
@@ -691,22 +694,22 @@ export async function getNextDrillItem(
       break;
     }
   }
-  return { item: chosen, remaining: pool.length, session };
+  return { item: chosen, remaining: pool.length, session, skillProgress };
 }
 
 export type SkillProgressRow = { id: string; attempted: number; caught: number };
 
 /**
- * Per-skill drill progress for a session, keyed off each attempted item's stored
- * `skill` (fidelity family or craft flaw). Returns only skills actually faced;
- * the client merges against the full SKILLS registry so the map is complete.
- * Server-only — no teaching vocabulary crosses into a client bundle here.
+ * Per-skill caught/attempted tally from a session's already-fetched attempts,
+ * keyed off each item's stored `skill` (an empty default folds to "unknown").
+ * Pure (no DB) so getNextDrillItem can hand the /api/drill recap its skill map
+ * from the SAME drillAttempt scan it makes for selection, instead of a second
+ * identical read. The client merges the result against the full SKILLS registry
+ * so the map is complete. Server-only — no teaching vocabulary here.
  */
-export async function getSkillProgress(sessionId: string): Promise<SkillProgressRow[]> {
-  const attempts = await prisma.drillAttempt.findMany({
-    where: { sessionId },
-    select: { correct: true, item: { select: { skill: true } } },
-  });
+function tallySkillProgress(
+  attempts: { correct: boolean; item: { skill: string } }[]
+): SkillProgressRow[] {
   const acc = new Map<string, { attempted: number; caught: number }>();
   for (const a of attempts) {
     const key = a.item.skill || "unknown";
@@ -720,49 +723,6 @@ export async function getSkillProgress(sessionId: string): Promise<SkillProgress
 
 export async function getDrillItem(id: string): Promise<DrillItem | null> {
   return prisma.drillItem.findUnique({ where: { id } });
-}
-
-export type FamilyProgress = {
-  id: OverclaimFamily["id"];
-  name: string;
-  attempted: number;
-  caught: number;
-};
-
-/**
- * Per-family drill progress for a session: how many items of each overclaim
- * family the learner has faced and how many they caught. Each attempted item's
- * device string is classified into its family at read time (no schema change),
- * so this works on existing data. Returns all five families in canonical order
- * — including unpracticed ones (attempted 0) — so the skill map is complete;
- * `other` appears only if something classified there. Server-only: teaching.ts
- * (fidelity vocabulary) never enters a client bundle through this path.
- */
-export async function getDrillFamilyProgress(sessionId: string): Promise<FamilyProgress[]> {
-  const attempts = await prisma.drillAttempt.findMany({
-    where: { sessionId },
-    select: { correct: true, item: { select: { device: true } } },
-  });
-  const acc = new Map<OverclaimFamily["id"], { attempted: number; caught: number }>();
-  for (const id of Object.keys(OVERCLAIM_FAMILIES) as OverclaimFamily["id"][]) {
-    acc.set(id, { attempted: 0, caught: 0 });
-  }
-  for (const a of attempts) {
-    const cell = acc.get(overclaimFamily(a.item.device).id)!;
-    cell.attempted++;
-    if (a.correct) cell.caught++;
-  }
-  const order: OverclaimFamily["id"][] = [
-    "cause",
-    "single_cause",
-    "extrapolation",
-    "certainty",
-    "base_rate",
-    "other",
-  ];
-  return order
-    .filter((id) => id !== "other" || acc.get("other")!.attempted > 0)
-    .map((id) => ({ id, name: OVERCLAIM_FAMILIES[id].name, ...acc.get(id)! }));
 }
 
 export async function hasAttemptedDrill(sessionId: string, drillItemId: string): Promise<boolean> {

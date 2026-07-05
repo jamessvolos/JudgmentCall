@@ -283,3 +283,46 @@ remove `getDrillFamilyProgress`, now orphaned by the new API. Both are cleanups,
 not live-study perf; deferred until the drill path shows a real profiling signal.
 Ledger truth + blinding untouched; standing thresholds (50k aggregate / 100k
 snapshot) still far off at the study's current volume.
+
+### Round reflection — 2026-07-05 · drill read-path tidy (shipped)
+
+**Why this round wasn't a no-op.** The standing anti-churn policy keys on the hot
+paths being unchanged; since the note above, `getNextDrillItem` *was* changed
+(missed-skill reinforcement, mastery bullet 2), which re-opened the drill read
+path for audit and made the two parked candidates directly actionable.
+
+**Chosen improvement (both parked candidates, one coherent change).** The
+`/api/drill` GET was scanning `drillAttempt` for the session **twice** per
+request — once in `getNextDrillItem` and again in `getSkillProgress` — and after
+the reinforcement change `getNextDrillItem` already fetches the exact rows
+(`correct` + `item.skill`) the recap needs. So: (1) `getNextDrillItem` now derives
+the per-skill recap from the attempts it already has (new pure `tallySkillProgress`
+helper) and returns it; the route drops both `getSkillProgress` calls — **one
+`drillAttempt` scan per drill GET instead of two.** (2) Removed the orphaned
+`getDrillFamilyProgress` + `FamilyProgress` type (zero callers since the Training
+Room rebuild), which also retired the last `overclaimFamily` / `OVERCLAIM_FAMILIES`
+use in `repo.ts` — so the `./teaching` import is gone from `repo.ts` entirely, a
+small **blinding-surface reduction** (fewer server files carrying fidelity vocab).
+
+**Why it won the decision lens.** Highest-confidence-safe available: the drill
+path is non-published, non-analytics, non-blinding (attempts never enter the
+ledger), so there is *zero* staleness or published-number risk by construction;
+the change is a pure refactor with identical output; and it also tightens the
+blinding audit surface. Minimal surface (two files), and it's exactly the
+follow-up the prior reflection recorded.
+
+**Verification.** tsc + lint clean; full build clean; blinding grep empty (exit 1);
+bundle guard PASS (~203 KB, teaching chunk still drill-only); `drill-content.test`
+35/35. Live-study safety audit: no study/published-number path touched
+(`analytics.ts`, `results.ts`, `/api/vote|pair|crowd|results` unchanged);
+ledger remains the single source of truth; drill attempts still never enter
+analytics; no aggregate/cache introduced, so no staleness surface. **Functional
+proof:** drove 5 drill attempts across skills, then asserted the refactored GET's
+`skillProgress` equals an independent `drillAttempt` DB recount — MATCH (identical).
+
+**Remaining opportunities.** None actionable now. The drill GET still runs two
+*distinct* queries (attempts + pool) which is inherent, not redundant. The
+threshold-gated big items (Wave 2 aggregate tables @~50k, snapshot serving @~100k)
+stay correctly deferred; the standing ops check (confirm the prod Neon URL is the
+`-pooler` endpoint) is config, not code. Standing anti-churn policy still holds,
+now re-keyed to this note's state.
