@@ -238,41 +238,7 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* 4 · THE SPECIMEN — one call, up close. Obeys the instrument rule:
-            the demonstrative pair emits nothing (no accent, no beam, no glow). */}
-        <section className="rise mt-12" style={{ "--i": 1 } as React.CSSProperties}>
-          <p className="kicker text-muted">One call, up close</p>
-          <p className="mt-1 font-sans text-lg font-semibold text-ink-strong tracking-[-0.01em]">
-            One finding, two tellings. Which would you pick?
-          </p>
-          <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-card border border-card-border bg-card-border sm:grid-cols-2">
-            <div className="bg-card p-5">
-              <p className="kicker text-muted mb-2">Telling A</p>
-              <p className="font-serif text-[1.0625rem] leading-[1.58] text-ink-strong text-pretty">
-                Remote-first teams shipped 12% more releases last quarter.
-              </p>
-            </div>
-            <div className="bg-card p-5">
-              <p className="kicker text-muted mb-2">Telling B</p>
-              <p className="font-serif text-[1.0625rem] leading-[1.58] text-ink-strong text-pretty">
-                Are we finally seeing the payoff from remote work? Over the last quarter,
-                remote-first teams appear to have edged ahead on shipping cadence — by something in
-                the low double digits.
-              </p>
-            </div>
-          </div>
-          <p className="mt-3 text-sm leading-relaxed text-pretty">
-            <span className="text-muted">Most people assume they&apos;d side with the room. </span>
-            <span className="font-semibold text-ink-strong">
-              Most don&apos;t.
-            </span>{" "}
-            <span className="text-muted">
-              Both tellings are equally true — the only difference is style.
-            </span>
-          </p>
-        </section>
-
-        {/* 5 · THE CONSOLE — the six other surfaces (Vote lives in the hero now) */}
+        {/* THE CONSOLE — the six other surfaces (Vote lives in the hero now) */}
         <section className="mt-12">
           <div className="mb-4 flex items-center gap-3">
             <p className="kicker text-muted">Six ways to go deeper</p>
