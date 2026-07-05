@@ -139,6 +139,21 @@ export default function TrainingRoom() {
   const [runCorrect, setRunCorrect] = useState(0);
   const [runSkills, setRunSkills] = useState<string[]>([]);
 
+  // active-recall "name the move" beat: after the pick is graded, the learner
+  // names the pattern before it's revealed. Formative only — never re-grades the
+  // drill rating; it measures the "name how" half of the skill separately.
+  const [named, setNamed] = useState<string | null>(null);
+  const [nameSkipped, setNameSkipped] = useState(false);
+  const [runNamed, setRunNamed] = useState(0);
+  const [runNamedCorrect, setRunNamedCorrect] = useState(0);
+
+  function nameTheMove(skillId: string) {
+    if (named !== null || nameSkipped || !item) return;
+    setNamed(skillId);
+    setRunNamed((n) => n + 1);
+    if (skillId === item.skill) setRunNamedCorrect((c) => c + 1);
+  }
+
   const progressFor = useCallback(
     (id: string) => progress.find((p) => p.id === id) ?? { id, attempted: 0, caught: 0 },
     [progress]
@@ -193,7 +208,11 @@ export default function TrainingRoom() {
     setRunSkills([]);
     setRunDone(0);
     setRunCorrect(0);
+    setRunNamed(0);
+    setRunNamedCorrect(0);
     setVerdict(null);
+    setNamed(null);
+    setNameSkipped(false);
     try {
       const it = await fetchItem(m, skill);
       if (!it) {
@@ -240,6 +259,8 @@ export default function TrainingRoom() {
 
   async function next() {
     setVerdict(null);
+    setNamed(null);
+    setNameSkipped(false);
     if (runDone >= RUN_LENGTH) {
       await loadDashboard().catch(() => {});
       setPhase("recap");
@@ -309,6 +330,10 @@ export default function TrainingRoom() {
           submitting={submitting}
           runDone={runDone}
           rating={rating}
+          named={named}
+          nameSkipped={nameSkipped}
+          onName={nameTheMove}
+          onSkipName={() => setNameSkipped(true)}
           onSubmit={submit}
           onNext={next}
         />
@@ -318,6 +343,8 @@ export default function TrainingRoom() {
         <Recap
           done={runDone}
           correct={runCorrect}
+          named={runNamed}
+          namedCorrect={runNamedCorrect}
           ratingDelta={rating - runStartRating}
           rating={rating}
           skills={runSkills}
@@ -471,6 +498,10 @@ function Run({
   submitting,
   runDone,
   rating,
+  named,
+  nameSkipped,
+  onName,
+  onSkipName,
   onSubmit,
   onNext,
 }: {
@@ -479,10 +510,19 @@ function Run({
   submitting: boolean;
   runDone: number;
   rating: number;
+  named: string | null;
+  nameSkipped: boolean;
+  onName: (skillId: string) => void;
+  onSkipName: () => void;
   onSubmit: (body: Record<string, unknown>) => void;
   onNext: () => void;
 }) {
   const skill = skillFor(item.skill);
+  // Active-recall gate: once graded, the learner names the pattern before it's
+  // shown. Chips are scoped to the item's family (already visible in the header),
+  // making it a clean 1-of-5 retrieval rather than a 1-of-10 guess.
+  const naming = !!verdict && named === null && !nameSkipped;
+  const nameOptions = skill.family === "craft" ? CRAFT_SKILLS : FIDELITY_SKILLS;
   return (
     <div className="rise mt-6">
       {/* run header */}
@@ -544,27 +584,76 @@ function Run({
                 {verdict.ratingDelta} → {verdict.drillRating}
               </span>
             </p>
-            <p className="mt-2 font-sans text-sm font-semibold text-ink-strong">
-              {skill.name}
-              {verdict.device ? <span className="font-normal text-muted"> · {verdict.device}</span> : null}
-            </p>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted text-pretty">{verdict.explanation}</p>
+
+            {naming ? (
+              /* ACTIVE RECALL — name the pattern before it's revealed. Formative:
+                 the spot rating is already settled, so a mis-name never costs it. */
+              <div className="mt-3">
+                <p className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">
+                  Now name the move
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {nameOptions.map((id) => (
+                    <button
+                      key={id}
+                      onClick={() => onName(id)}
+                      className="rounded-chip border border-card-border px-3 py-1.5 font-mono text-xs text-ink-strong transition hover:border-rule-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
+                      {SKILLS[id].short}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={onSkipName}
+                  className="mt-2 font-mono text-[0.6875rem] text-muted underline decoration-card-border underline-offset-2 hover:text-ink-strong"
+                >
+                  just show me
+                </button>
+              </div>
+            ) : (
+              <>
+                {named !== null && (
+                  <p
+                    className={`mt-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em] ${
+                      named === item.skill ? "text-accent" : "text-danger"
+                    }`}
+                  >
+                    {named === item.skill
+                      ? "Named it ✓"
+                      : `You said “${skillFor(named).short}” ✗`}
+                  </p>
+                )}
+                <p className="mt-2 font-sans text-sm font-semibold text-ink-strong">
+                  {skill.name}
+                  {verdict.device ? (
+                    <span className="font-normal text-muted"> · {verdict.device}</span>
+                  ) : null}
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted text-pretty">
+                  {verdict.explanation}
+                </p>
+              </>
+            )}
           </div>
 
-          {/* carry-it-forward tell */}
-          <div className="mt-3 rounded-card border-l-2 border-accent/50 bg-wash py-2 pl-3 pr-2">
-            <p className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">
-              Carry it forward
-            </p>
-            <p className="mt-1 text-sm leading-relaxed text-ink-strong text-pretty">{skill.tell}</p>
-          </div>
+          {/* carry-it-forward tell — only once the pattern is revealed */}
+          {!naming && (
+            <div className="mt-3 rounded-card border-l-2 border-accent/50 bg-wash py-2 pl-3 pr-2">
+              <p className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">
+                Carry it forward
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-ink-strong text-pretty">{skill.tell}</p>
+            </div>
+          )}
 
-          <button
-            onClick={onNext}
-            className="cta-glow mt-4 w-full rounded-card bg-accent px-4 py-3 font-semibold text-on-accent active:scale-[0.99]"
-          >
-            {runDone >= RUN_LENGTH ? "See your recap →" : "Next call →"}
-          </button>
+          {!naming && (
+            <button
+              onClick={onNext}
+              className="cta-glow mt-4 w-full rounded-card bg-accent px-4 py-3 font-semibold text-on-accent active:scale-[0.99]"
+            >
+              {runDone >= RUN_LENGTH ? "See your recap →" : "Next call →"}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -690,6 +779,8 @@ function ListChoices({
 function Recap({
   done,
   correct,
+  named,
+  namedCorrect,
   ratingDelta,
   rating,
   skills,
@@ -698,6 +789,8 @@ function Recap({
 }: {
   done: number;
   correct: number;
+  named: number;
+  namedCorrect: number;
   ratingDelta: number;
   rating: number;
   skills: string[];
@@ -721,6 +814,11 @@ function Recap({
           rating {ratingDelta >= 0 ? "+" : ""}
           {ratingDelta} → {rating} · {drillRank(rating)}
         </p>
+        {named > 0 && (
+          <p className="mt-1 font-mono text-xs text-muted tabular-nums">
+            named the pattern {namedCorrect} of {named}
+          </p>
+        )}
       </div>
 
       {practiced.length > 0 && (

@@ -123,8 +123,13 @@ Per-skill progress is now a live **mastery map** on the Training Room dashboard
 (caught/attempted per skill, grouped by family) plus a **session recap** (skills
 practiced + carry-forward tells for the ones missed) — the visible skill map the
 model called for. Tapping any skill drills that skill alone (curriculum focus).
-The active-recall "name the move" beat from the old single-mode drill was **not**
-carried into the rebuild; re-adding it is a named next candidate.
+The active-recall "name the move" beat, dropped in the Training Room rebuild, is
+now **restored and generalized**: after any item is graded, the learner names the
+pattern from chips scoped to the item's family (a 1-of-5 retrieval, scaffolded by
+the family shown in the header) before the pattern is revealed; the reveal then
+marks the guess ✓/✗ and the recap reports "named the pattern X of Y." It is
+formative — the drill rating is settled on the pick, so a mis-name never costs it,
+which keeps the two halves of the skill (spot vs. name) independently measured.
 
 ---
 
@@ -339,3 +344,36 @@ that keeps it from the study is absolute:
   the move" beat dropped in the Training Room rebuild is still the standout
   surface candidate (retrieval practice on "name how"), now the top named next
   item. Blinding held throughout; drill attempts still never enter analytics.
+- **2026-07-05** — Surface, part 1: **active-recall "name the move" beat restored**
+  (the round's chosen candidate, and the standout surface item named last round).
+  With the credit-free *selection* policy complete (bullets 1–3 shipped), the
+  highest-value lever moved from *which* item to serve to *how* the learner
+  engages it. The charter's one-sentence definition is "notice when a telling
+  asserts more than its data holds, **and name how**" — but the rebuilt drill only
+  *revealed* the pattern passively; the "name how" half was never actively
+  retrieved. Restored (and generalized beyond the old spot-only version): once an
+  item is graded, the pattern name / device / explanation / tell are withheld and
+  the learner first **names the move** from chips scoped to the item's family
+  (fidelity → the 5 overclaim moves; craft → the 5 craft flaws), a clean 1-of-5
+  retrieval scaffolded by the family already shown in the header. The reveal then
+  marks the guess ✓/✗ against the truth, and the recap adds a "named the pattern
+  X of Y" read beside "X of Y caught" — so both halves of the skill are measured
+  separately. Crucially **formative**: the drill rating is settled on the spot
+  pick and never re-graded, so a correct spotter who mis-names is never penalised
+  (verified on screen — a +15 spot stood while the name was marked ✗); a "just
+  show me" skip is always available. Why it won the decision lens: highest impact
+  on the core teaching goal (retrieval practice is the best-evidenced learning
+  intervention, and this is the *only* place the "name how" half is trained, not
+  just shown); credit-free (reuses the SKILLS registry + the item's stored skill,
+  no new content); and drill-only by construction, so zero blinding risk. Verified:
+  drove spot items in both themes — fidelity items surface the 5 fidelity chips,
+  craft items the 5 craft chips (family-scoping correct), both reveal phases gate
+  the pattern properly; tsc, lint, build, canonical grep empty, bundle guard PASS
+  (teaching chunk still drill-only, ~202 KB), drill-content 35/35. Screenshotted
+  the naming phase + marked reveal in light and dark. How it advances the arc: the
+  mastery model's *selection* is complete; this opens the *engagement* dimension —
+  turning each item from a recognition task into recognition **plus** recall.
+  Next candidates: persist naming accuracy into a durable per-skill read once the
+  pool deepens (today it's a session-local tally), and the standing content lever
+  (more obvious-tier items). Blinding held; drill attempts still never enter
+  analytics; the naming tally is client-only and never POSTed.
