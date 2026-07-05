@@ -275,21 +275,6 @@ export default function Landing() {
               </Link>
             ))}
           </div>
-
-          {/* 6 · THE DESK — one real craft stance, on the record */}
-          <div className="mt-8 rounded-card border-l-[3px] border-rule-strong bg-wash px-5 py-4">
-            <p className="kicker text-muted">The desk, on the record</p>
-            <p className="mt-2 font-serif text-lg leading-snug text-ink-strong text-pretty">
-              &ldquo;Lead with the figure. A telling that hides its number is asking for trust it
-              hasn&apos;t earned yet.&rdquo;
-            </p>
-            <Link
-              href="/results#house-view"
-              className="mt-2 inline-block font-mono text-xs text-accent hover:underline"
-            >
-              Agree or overrule →
-            </Link>
-          </div>
         </section>
       </div>
     </main>
