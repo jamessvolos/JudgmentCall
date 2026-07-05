@@ -87,3 +87,34 @@ ranking. Next candidates when a real opportunity surfaces: elevating the
 /review personal-stat readout toward the /results lit-instrument treatment
 (coherence, medium leverage) and a fresh poster pass — both deferred as
 polish, not leaps, this round.
+
+## 2026-07-04 · Poster fresh-eyed — full surface coverage; converged (no change)
+
+**Explored.** Closed the one coverage gap: drove two full 10-vote runs to fire
+the milestone **poster** (TastePoster) and screenshotted it in light + dark —
+the surface deferred every prior round this session. With it, every energy
+surface has now been fresh-eyed this session: landing (reimagined as the Live
+Console), results (§02 ranked by decisiveness), review (examined), the voting
+cards (confirmed neutral), and the poster.
+
+**Poster read + hard-rules audit.** A polished "printed spec plate": corner
+registration marks, serial (NO. 3146), a generated serif persona title, five
+dot-leader CRAFT attribute rows (length / lead / numbers / caveats / so-what),
+the honest "leanings, not findings" line, and the blinding-safe "the public
+link shows this poster only — never your individual votes." Hard rules hold: no
+voting cards, no collecting-state to split, instruments disciplined, entrance-
+only motion (nothing loops, theme-stable poster tokens by design), and only the
+five craft attributes appear — no fidelity attribute, no experiment leakage.
+
+**Result.** No frontier/aliveness leap presents itself on any surface that
+clears the hard-rule bar without manufacturing — the public surfaces are mature
+and cohere around the DATUM instrument language after this session's landing
+reimagining + results ranking. Fully-informed convergence.
+
+**Standing policy to avoid churn.** All energy surfaces are now covered and
+coherent. Absent a *new* surface, new content/personas to show, or a specific
+named opportunity worth implementing (the two on file — elevating the /review
+personal-stat readout, a poster refresh — are polish, not leaps, and the
+/review one is a semantic mismatch: /review is personal, not "live"), further
+design rounds should converge quickly rather than re-drive a full screenshot
+sweep. The next real entry should coincide with a genuine bold move.
