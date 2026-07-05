@@ -252,3 +252,34 @@ snapshot thresholds, this loop is a no-op — re-checking is fine, but do not
 re-log or edit for its own sake. The next entry should coincide with a real
 change, a crossed threshold, or a newly-surfaced hot path (e.g. a production
 profiling signal from the `withTiming` `[perf]` logs / Server-Timing headers).
+
+### Round reflection — 2026-07-05 · Training Room surface assessed (no change)
+
+A newly-surfaced path (the `/drill` rebuild into the Training Room) is the reason
+this entry exists rather than a silent no-op. Assessment:
+
+- **The study's published-number paths are untouched.** `analytics.ts`,
+  `results.ts`, and the `/api/vote|pair|crowd|results` handlers have zero diff
+  across the Training Room build — so the ledger, the version-keyed analytics
+  memo + CDN caching, and every blinding invariant on published numbers are
+  unaffected. The build added columns to `DrillItem` (not in the analytics path)
+  and a mode-aware `/api/drill`; drill attempts still never enter analytics.
+- **The drill path is a cold, non-published surface.** `/api/drill` GET now does
+  two `drillAttempt.findMany` scans per request (`getNextDrillItem` +
+  `getSkillProgress`), each on `@@index([sessionId])` over a per-session table
+  bounded by the pool size (≤35 rows). It is user-paced training traffic, not a
+  study hot path, and touches no published number — so `withTiming` wraps it for
+  observability but it needs no caching or aggregate table.
+- **Bundle unchanged.** The Training Room is its own route chunk (guard-confirmed
+  ~200 KB shared JS, teaching content drill-only); no shared-bundle growth.
+
+**Chosen action: none — converge.** No change clears the "clear value + full
+live-study safety bar + lowest risk" gate: the study paths didn't move, and the
+drill path's minor double-scan is negligible (two indexed reads of a ≤35-row
+table on a user-paced request) — optimizing it now would be premature. Recorded
+two low-priority candidates for a future round: (1) fold `getSkillProgress` into
+the attempts `getNextDrillItem` already fetches, saving one drill-GET query; (2)
+remove `getDrillFamilyProgress`, now orphaned by the new API. Both are cleanups,
+not live-study perf; deferred until the drill path shows a real profiling signal.
+Ledger truth + blinding untouched; standing thresholds (50k aggregate / 100k
+snapshot) still far off at the study's current volume.
