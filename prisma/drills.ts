@@ -8,6 +8,8 @@
 // All data fictional, like the study findings. This module is prisma-only
 // (seed + sync); it never ships to a client bundle.
 
+import { DRILL_POOL } from "./drills-pool";
+
 export type DrillChoice = { text: string; correct: boolean; rationale: string };
 
 export type DrillSeed = {
@@ -27,7 +29,7 @@ export type DrillSeed = {
   choices?: DrillChoice[];
 };
 
-export const DRILL_SEEDS: DrillSeed[] = [
+const DRILL_BASE: DrillSeed[] = [
   {
     title: "Churn after the price change",
     mode: "spot",
@@ -125,6 +127,10 @@ export const DRILL_SEEDS: DrillSeed[] = [
     device: "attributing a residual without a control",
   },
 ];
+
+// The full pool the Training Room serves: six hand-authored base items plus the
+// deep authored/reviewed pool (spot + fix + calibrate across all ten skills).
+export const DRILL_SEEDS: DrillSeed[] = [...DRILL_BASE, ...DRILL_POOL];
 
 // Idempotent content sync: upsert every seed by its stable title. Runs on every
 // build (see scripts/prod-init.ts) so the pool ships without a reseed — and the
