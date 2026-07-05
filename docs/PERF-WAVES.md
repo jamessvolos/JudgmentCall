@@ -232,3 +232,23 @@ pooled (`-pooler`) endpoint, which is a config/ops check, not a code
 change this loop can make. Ledger remains the source of truth; no caching
 or staleness surface was added; blinding untouched. Convergence recorded
 per the stop condition — not forcing a change.
+
+### Round reflection — 2026-07-04 · re-check, still converged
+
+Loop re-fired. The only code change since the convergence above was the drill
+completion screen's missed-family reinforcement (`drill/page.tsx`) — a
+client-side filter/map over ≤6 families whose data (`OVERCLAIM_FAMILIES`) was
+already in the drill chunk, so the bundle held at ~198 KB (guard-confirmed) and
+no hot path, query, index, or schema changed. Vote volume is still ~768,
+far below the 50k/100k thresholds that gate the deferred aggregate-table and
+snapshot-serving work. A fresh look at other candidates (read-path error
+handling, bundle trim, N+1) surfaces nothing clearing the "clear value + full
+safety bar + lowest risk" gate. No change.
+
+**Standing policy to avoid churn:** while the hot paths (vote settle, the
+analytics read path + its CDN/memo caching, the client bundle) are unchanged
+since this note **and** vote volume stays below the documented aggregate/
+snapshot thresholds, this loop is a no-op — re-checking is fine, but do not
+re-log or edit for its own sake. The next entry should coincide with a real
+change, a crossed threshold, or a newly-surfaced hot path (e.g. a production
+profiling signal from the `withTiming` `[perf]` logs / Server-Timing headers).
