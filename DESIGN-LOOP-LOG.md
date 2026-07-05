@@ -12,6 +12,49 @@ aurora — stillness = precision); everything blinding-safe.
 
 ---
 
+## 2026-07-05 · The Training Room — a new energy surface (10-wave build)
+
+**Move (radical, structural).** Rebuilt `/drill` from a single 6-item "spot the
+overclaim" quiz into **The Training Room**, a data-insight skills studio, over a
+10-wave build. New: a skill dashboard (rating + rank, a mode picker, and a full
+per-skill mastery map grouped into two families — fidelity vs craft), three
+playable exercise modes (Spot / Fix / Calibrate), a deep authored+reviewed item
+pool (6 → 35 items across 3 modes and 10 skills, difficulty-tiered), a
+tappable skill map that drills a single skill (curriculum "practice this
+weakness"), and a session recap (skills practiced + carry-forward tells for
+missed skills). Backed by a mode-aware serving/grading API and a per-skill
+progress aggregate; content ships via an idempotent build-time sync.
+
+**Why it's a win (high leverage, new surface).** This is the "10x the training"
+mandate realized: a data scientist now has a reason to return — different *types*
+of insight learning (catch the overreach, repair the telling, calibrate the
+claim) across a visible mastery map, not one repeated quiz. The Calibrate mode in
+particular teaches base-rate-aware claim calibration, exactly the DS judgment the
+product is about. Verified end-to-end (all three modes grade correctly via the
+live API) and shipped to production.
+
+**Hard-rules + blinding audit.** The Training Room is `/drill` — the sanctioned
+teaching surface, wholly separate from the study. The voting-card neutrality rule
+governs the STUDY's two cards on `/swipe` (untouched here); the drill's spot-mode
+A/B is *meant* to differentiate after an answer (that's the teaching), which is
+allowed only on this surface and always has been. No STILL COLLECTING / JURY'S
+STILL OUT state exists on the drill. Instruments (rating, difficulty pips,
+mastery bars) are disciplined and static. Motion is entrance-only (`rise`), no
+continuous loops, reduced-motion respected. Blinding held under the strongest
+test: the drill is where overclaim vocabulary is *permitted*, and the bundle
+guard confirms the teaching chunk stays drill-only while the canonical grep on
+client chunks is empty — so none of the new craft/fidelity content leaked to a
+study surface. Six test suites pass incl. a new content-integrity test (every
+choice item has exactly one correct answer).
+
+**Learned / momentum.** The biggest "bold" moves this session were *architecture*
+— reframing a quiz as a studio with a skill map and multiple exercise types —
+more than visual effects, consistent with the landing lesson. Momentum: strong; a
+whole new energy surface now exists and coheres with the DATUM language. Future
+polish candidates (deferred, not leaps): an active-recall "name the move" beat
+before the reveal, difficulty-escalation tuning as attempts accumulate, and a
+concept-card intro when a single skill is focused.
+
 ## 2026-07-05 · Landing restructured — action-first, single start point
 
 **Move (bold, structural).** Reworked the landing hero after a fresh read (and
