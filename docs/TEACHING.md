@@ -188,3 +188,24 @@ that keeps it from the study is absolute:
   active-recall unit could later feed a per-family *naming* accuracy read
   (separate from the spot rating) once the item pool deepens; the selection half
   of mastery bullet 2 + difficulty escalation still wait on that pool.
+- **2026-07-04** — Curriculum, part 4: **measure the "name how" half**. Last
+  round added the active-recall "name the move" beat (the learner names the
+  overclaim family before the reveal) but nothing *measured* naming skill — the
+  charter's "How it knows a learner is improving" section covered only the SPOT
+  dimension (drill rating + the radar's caught/attempted). Added a session-local
+  **"Named the pattern: X of Y"** read on the completion screen, tallied from the
+  recall guesses already collected in-session (chip clicks; "just show me"
+  doesn't count). Now the end screen reports both halves of the skill: the drill
+  rating + radar for *spotting*, and naming accuracy for *naming how*. These are
+  genuinely independent — a learner can catch an overclaim yet misname the
+  pattern (verified: a blind-guess run caught 4/5 families but named 0/6). No
+  schema change, no credits: it's a client tally accumulated across the mounted
+  drill session (a mid-session refresh just restarts it — acceptable for a
+  formative read). Deepens the existing recall beat rather than adding surface.
+  Blinding held: confined to the `/drill` completion screen; canonical grep
+  clean, guard confirms teaching chunk drill-only, screenshotted light + dark.
+  Remaining arc: bullet-2 *selection* (re-serve missed families) + bullet-3
+  difficulty escalation still wait on a deeper item pool (generation credits);
+  persisting naming accuracy into a durable per-family read also waits on that
+  pool to be non-noisy. The credit-free improvements to the current drill are
+  now largely exhausted — expect this loop to converge until the pool deepens.

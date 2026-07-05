@@ -73,6 +73,11 @@ export default function DrillPage() {
   // not yet answered (recall prompt showing), a family id = guessed that,
   // "skip" = chose to reveal without guessing. Reset per drill.
   const [familyGuess, setFamilyGuess] = useState<OverclaimFamily["id"] | "skip" | null>(null);
+  // Running "name how" tally across this session's drills (NOT reset per drill):
+  // how many patterns the learner named correctly, out of the ones they guessed.
+  // Measures the second half of the skill (spot it AND name how); shown at the
+  // end. Formative + client-only — a mid-session refresh just restarts it.
+  const [naming, setNaming] = useState<{ named: number; guessed: number }>({ named: 0, guessed: 0 });
 
   const loadDrill = useCallback(async (): Promise<DrillDto> => {
     const sessionId = sessionIdRef.current!;
@@ -240,6 +245,15 @@ export default function DrillPage() {
             <p className="mt-2 font-mono text-sm text-muted tabular-nums">
               Final drill rating: {drill.drillRating} · {drill.drillCount} attempted
             </p>
+            {/* The other half of the skill: spotting is the rating above; this
+                is whether you could NAME the pattern when you tried (the recall
+                beat). Session-local, shown only if you named at least one. */}
+            {naming.guessed > 0 && (
+              <p className="mt-1 font-mono text-sm text-muted tabular-nums">
+                Named the pattern:{" "}
+                <span className="text-ink-strong">{naming.named}</span> of {naming.guessed}
+              </p>
+            )}
 
             {/* The skill map: where the learner is fluent across the five
                 overclaim families, and which to come back to. Drill-world only. */}
@@ -468,7 +482,13 @@ export default function DrillPage() {
                             <button
                               key={id}
                               type="button"
-                              onClick={() => setFamilyGuess(id)}
+                              onClick={() => {
+                                setFamilyGuess(id);
+                                setNaming((t) => ({
+                                  named: t.named + (id === trueFamily.id ? 1 : 0),
+                                  guessed: t.guessed + 1,
+                                }));
+                              }}
                               className="rounded-chip border border-card-border bg-wash px-3 py-1.5 font-mono text-xs text-ink-strong transition hover:border-rule-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                             >
                               {OVERCLAIM_FAMILIES[id].name}
