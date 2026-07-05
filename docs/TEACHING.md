@@ -102,9 +102,11 @@ Status after the Training Room build (the deeper pool that gated this arc now
 exists — 35 items, multiple per skill):
 1. **Cover all skills before repeating** — DONE: `getNextDrillItem` prefers an
    item whose *skill* the session hasn't faced yet.
-2. **Extra reps on missed skills** — NOW FEASIBLE, not yet done. With multiple
-   items per skill the drill can finally re-serve a learner's *missed* skills as
-   extra reps, not merely cover unseen ones. **This is the top open item.**
+2. **Extra reps on missed skills** — DONE: once every skill has been faced,
+   `getNextDrillItem` enters a *weak tier* — it serves only skills the learner
+   MISSED (caught < attempted), biased toward the most-missed skills, before it
+   will re-serve a mastered one. Verified: after a session faced all ten skills
+   and missed two, 100% of the next draws landed on those two (vs 20% uniform).
 3. **Escalate difficulty** — PARTIAL: selection soft-weights toward items near the
    learner's drill rating so runs ramp rather than random-walk; a stricter
    "clear the easy tier within a skill before the hard tier" ladder is still open.
@@ -270,3 +272,31 @@ that keeps it from the study is absolute:
   bullet 3 partial; **bullet 2 (re-serve missed skills as extra reps) is now
   feasible and is the top open item**, with the active-recall "name the move"
   beat (dropped in the rebuild) the other named next candidate.
+- **2026-07-05** — Curriculum, part 5: **missed-skill reinforcement selection**
+  (mastery-model bullet 2, the round's chosen top open item). `getNextDrillItem`
+  was two-tier — cover an unfaced *skill* first (bullet 1), else fall back to the
+  whole unseen pool with a soft rating weight. That fallback treated a skill the
+  learner had just *missed* the same as one they'd aced: reinforcement landed on
+  random survivors, not weak spots. Now it is three-tier: (1) unfaced skill →
+  (2) **weak tier** — a skill faced but MISSED (`caught < attempted`), and within
+  it items are weighted by miss count so a skill missed twice is retried harder
+  than one missed once → (3) anything left. Rationale by the decision lens: this
+  is the single highest-impact move on the arc (it's *the* named top open item),
+  it needed no new items or credits (reads the `correct` flag already stored on
+  every `DrillAttempt`), and it is zero-risk to blinding (entirely inside one
+  server function; the `/api/drill` response shape is untouched, no fidelity
+  vocabulary moves). How it advances the arc: with bullet 1 (cover all) already
+  shipped, a learner who has now seen every skill stops getting round-robin
+  repeats and instead gets drilled on exactly the skills they're failing — the
+  "learned one family, not the skill" failure the charter warns about, closed
+  from the other side. Verified empirically: a session that faced all ten skills
+  and missed two drew the next item from those two 100% of the time (uniform
+  would be 20%); full gate green (tsc, lint, build, canonical grep empty, bundle
+  guard PASS — teaching chunk still drill-only, 35-item content test passes).
+  What this taught about the model: the three tiers now realize bullets 1 and 2
+  cleanly and 3 partially; the remaining arc is a genuine *difficulty ladder*
+  (bullet 3 — "clear the easy tier of a skill before its hard tier"), which the
+  current soft rating-weight only approximates. That is the next high-value
+  candidate, and unlike past rounds it is now feasible on the 35-item pool (three
+  difficulty tiers already exist in the content). The credit-free selection
+  policy is otherwise close to complete.

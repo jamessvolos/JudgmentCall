@@ -610,10 +610,16 @@ export async function getPairConsensus(
 
 export type { DrillItem };
 
-/** Next active drill item this session hasn't attempted, chosen family-diverse:
- *  an overclaim family the learner hasn't faced yet is preferred over one they
- *  already have (TEACHING.md mastery model, bullet 1 — "cover all families
- *  before repeating one"), random within the preferred set; null when done.
+/** Next active drill item this session hasn't attempted, chosen by a three-tier
+ *  mastery-model policy (TEACHING.md):
+ *   1. an item whose SKILL the learner hasn't faced yet ("cover all before
+ *      repeating one" — bullet 1); else
+ *   2. an item in a skill the learner has faced but MISSED (caught < attempted),
+ *      biased toward the most-missed skills ("extra reps on missed skills" —
+ *      bullet 2); else
+ *   3. anything left.
+ *  Within the chosen tier, selection leans softly toward items near the learner's
+ *  drill rating so difficulty ramps (bullet 3, partial). null when done.
  *  Server-only: overclaimFamily (fidelity vocabulary) never reaches a client
  *  bundle through repo.ts (Prisma-bound, guard-enforced). */
 export async function getNextDrillItem(
@@ -627,7 +633,7 @@ export async function getNextDrillItem(
   const [attempts, session] = await Promise.all([
     prisma.drillAttempt.findMany({
       where: { sessionId },
-      select: { drillItemId: true, item: { select: { skill: true } } },
+      select: { drillItemId: true, correct: true, item: { select: { skill: true } } },
     }),
     prisma.session.findUnique({ where: { id: sessionId } }),
   ]);
@@ -642,21 +648,38 @@ export async function getNextDrillItem(
   });
   if (pool.length === 0) return { item: null, remaining: 0, session };
 
-  // Skill-diverse: prefer an item whose SKILL the learner hasn't faced yet, so a
-  // short run touches distinct skills before any repeat (mastery-model bullet 1),
-  // now keyed off the item's stored skill rather than a device-string guess.
-  // Then, within the preferred set, lean toward items near the learner's drill
-  // rating so difficulty ramps rather than random-walks — but keep it soft
-  // (weighted, not hard-gated) so every item stays reachable.
-  const faced = new Set(attempts.map((a) => a.item.skill));
-  const fresh = pool.filter((it) => !faced.has(it.skill));
-  const candidates = fresh.length > 0 ? fresh : pool;
+  // Per-skill history: how many of each skill the learner faced and caught, so
+  // we can tell an unfaced skill from a faced-but-missed one.
+  const skillStats = new Map<string, { attempted: number; caught: number }>();
+  for (const a of attempts) {
+    const key = a.item.skill;
+    const cell = skillStats.get(key) ?? { attempted: 0, caught: 0 };
+    cell.attempted++;
+    if (a.correct) cell.caught++;
+    skillStats.set(key, cell);
+  }
+  const missesFor = (skill: string) => {
+    const s = skillStats.get(skill);
+    return s ? s.attempted - s.caught : 0;
+  };
+
+  // Tier the pool. Bullet 1 first: cover skills never faced. Only once every
+  // skill has been seen do we spend reps on the ones the learner MISSED
+  // (bullet 2) — reinforcement lands on weak spots, not random survivors.
+  const fresh = pool.filter((it) => !skillStats.has(it.skill));
+  const weak = pool.filter((it) => missesFor(it.skill) > 0);
+  const candidates = fresh.length > 0 ? fresh : weak.length > 0 ? weak : pool;
+  const weakTier = fresh.length === 0 && weak.length > 0;
+
   const rating = session?.drillRating ?? 1200;
   const weighted = candidates.map((it) => {
     // closeness in [0,1]: 1 when the item rating equals the learner's, decaying
     // with distance (400 Elo ≈ half weight). Floor keeps far items reachable.
     const closeness = 1 / (1 + Math.abs(it.rating - rating) / 400);
-    return { it, w: 0.25 + closeness };
+    // In the weak tier, give the most-missed skills proportionally more reps so
+    // a skill missed twice is retried harder than one missed once.
+    const missBoost = weakTier ? 0.5 * missesFor(it.skill) : 0;
+    return { it, w: 0.25 + closeness + missBoost };
   });
   const total = weighted.reduce((s, x) => s + x.w, 0);
   let roll = Math.random() * total;
