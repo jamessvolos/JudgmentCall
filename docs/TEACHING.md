@@ -48,6 +48,31 @@ gets fluent in the drill is fluent in exactly what the generator can plant.
 (keyword rules, `other` fallback, never throws) — so richer, item-specific
 device wording still teaches a stable pattern.
 
+### Two skill families, three exercise modes (the Training Room)
+
+The drill is now **the Training Room** (`src/app/drill/page.tsx`) — a skills
+studio, not a single quiz. The five overclaim families above are the **FIDELITY**
+family ("is the claim honest?"). Alongside them sits a **CRAFT** family ("is the
+insight *well told*?") drawn from `INSIGHT-PRINCIPLES.md`'s failure taxonomy —
+buried lede, false precision, missing so-what, absent caveat, padding. Both live
+in the `SKILLS` registry in `src/lib/teaching.ts` (each with an id, family, name,
+transferable `tell`, and a curriculum `concept` blurb), drill-client-only.
+
+The learner practices across **three modes**, each a different kind of retrieval:
+
+- **Spot** — which of two tellings exceeds the data (the original task).
+- **Fix** — pick the repair that stays true without going soft (multiple choice,
+  each option with a rationale on reveal).
+- **Calibrate** — pick the strongest claim the data actually supports (a
+  timid→overreaching ladder; teaches uncertainty calibration).
+
+The pool (`prisma/drills.ts` + `prisma/drills-pool.ts`, authored + adversarially
+reviewed) is **35 items** across the three modes, all ten skills, and three
+difficulty tiers. Items carry `mode` / `skill` / `difficulty` columns and sync to
+production idempotently on every build; grading for all modes is locked in
+`drill-grade.ts` (+ `drill-content.test.ts`, which asserts every choice item has
+exactly one correct answer).
+
 ---
 
 ## How it knows a learner is improving
@@ -73,10 +98,23 @@ items at or above their current rating. The drill should:
 2. spend extra reps on the families a learner misses,
 3. escalate difficulty only once the easy items in a family are reliably caught.
 
-Round-by-round, the loop moves the product toward this. The first rounds are
-about *teaching depth per drill* (families + tells, shipped); later rounds add
-the *curriculum* (family coverage tracking, targeted item selection, a
-per-family progress read on the "you've cleared every drill" screen).
+Status after the Training Room build (the deeper pool that gated this arc now
+exists — 35 items, multiple per skill):
+1. **Cover all skills before repeating** — DONE: `getNextDrillItem` prefers an
+   item whose *skill* the session hasn't faced yet.
+2. **Extra reps on missed skills** — NOW FEASIBLE, not yet done. With multiple
+   items per skill the drill can finally re-serve a learner's *missed* skills as
+   extra reps, not merely cover unseen ones. **This is the top open item.**
+3. **Escalate difficulty** — PARTIAL: selection soft-weights toward items near the
+   learner's drill rating so runs ramp rather than random-walk; a stricter
+   "clear the easy tier within a skill before the hard tier" ladder is still open.
+
+Per-skill progress is now a live **mastery map** on the Training Room dashboard
+(caught/attempted per skill, grouped by family) plus a **session recap** (skills
+practiced + carry-forward tells for the ones missed) — the visible skill map the
+model called for. Tapping any skill drills that skill alone (curriculum focus).
+The active-recall "name the move" beat from the old single-mode drill was **not**
+carried into the rebuild; re-adding it is a named next candidate.
 
 ---
 
@@ -209,3 +247,26 @@ that keeps it from the study is absolute:
   persisting naming accuracy into a durable per-family read also waits on that
   pool to be non-noisy. The credit-free improvements to the current drill are
   now largely exhausted — expect this loop to converge until the pool deepens.
+- **2026-07-05** — **The Training Room** (10-wave build). The drill was rebuilt
+  from a single 6-item spot quiz into a skills studio, and in the process the
+  pool-depth blocker this arc kept hitting was removed: subagent authoring (not
+  the app's blocked generation credits) produced a reviewed **35-item** pool.
+  What shipped: (1) a second skill **family** — CRAFT (buried lede, false
+  precision, missing so-what, absent caveat, padding) beside the five FIDELITY
+  families, all in a unified `SKILLS` registry; (2) two new **modes** — Fix (pick
+  the faithful repair) and Calibrate (pick the strongest supported claim) — so a
+  learner now trains three kinds of retrieval, not one; (3) a **mastery map**
+  (per-skill caught/attempted, both families) and a **session recap** with
+  carry-forward tells, delivering the visible skill map the model called for;
+  (4) **curriculum focus** — tapping a skill drills it alone; (5) skill-diverse
+  selection re-keyed off the stored `skill` column plus rating-soft-weighting for
+  a gentle difficulty ramp. Data model: `DrillItem` gained `mode`/`skill`/
+  `difficulty`/`choices`, synced idempotently on build. Grading for all modes is
+  locked (`drill-grade.ts` + `drill-content.test.ts`). Blinding held under the
+  strongest test — the drill is where overclaim vocabulary is *permitted*, and
+  the bundle guard confirms the teaching chunk stays drill-only while the
+  canonical grep on client chunks is empty; drill attempts still never enter
+  analytics. Deployed to production. Mastery-arc re-map above: bullet 1 done,
+  bullet 3 partial; **bullet 2 (re-serve missed skills as extra reps) is now
+  feasible and is the top open item**, with the active-recall "name the move"
+  beat (dropped in the rebuild) the other named next candidate.
