@@ -1,557 +1,745 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Snippet } from "@/components/Snippet";
-import { getSessionId, nowMs } from "@/lib/session-client";
-import { withViewTransition } from "@/lib/view-transition";
-// Drill-world only (fidelity vocabulary) — the sanctioned training surface.
-import { overclaimFamily, OVERCLAIM_FAMILIES, type OverclaimFamily } from "@/lib/teaching";
+import Link from "next/link";
+import { getOrCreateSessionId, nowMs } from "@/lib/session-client";
+import {
+  SKILLS,
+  FIDELITY_SKILLS,
+  CRAFT_SKILLS,
+  skillFor,
+  type SkillId,
+} from "@/lib/teaching";
 
-// "Spot the overclaim" — the training room. Clearly labeled as NOT the study:
-// items are purpose-built, feedback is immediate, and attempts never touch
-// the public analytics. This is the one place the product says right/wrong.
+// The Training Room — a data-insight skills studio. A separate world from the
+// study: items never enter the voting pool, attempts never touch analytics, and
+// this is the ONE surface where right/wrong feedback and overclaim vocabulary
+// are allowed. Three exercise modes (spot / fix / calibrate) across two skill
+// families (fidelity + craft), a per-skill mastery map, and a session recap.
 
-type DrillItemDto = {
+type ServedChoice = { i: number; text: string };
+type Item = {
   id: string;
+  mode: "spot" | "fix" | "calibrate";
+  skill: string;
+  difficulty: number;
   title: string;
   contextSnippet: string;
   sourceLabel: string;
-  a: string;
-  b: string;
+  prompt: string;
+  a?: string;
+  b?: string;
+  choices?: ServedChoice[];
 };
-
-type FamilyProgressDto = { id: string; name: string; attempted: number; caught: number };
-
-type DrillDto = {
-  item: DrillItemDto | null;
+type SkillProgress = { id: string; attempted: number; caught: number };
+type DrillGet = {
+  item: Item | null;
   remaining: number;
   drillRating: number;
   drillCount: number;
-  familyProgress?: FamilyProgressDto[];
+  skillProgress: SkillProgress[];
 };
-
-type VerdictDto = {
+type RevealChoice = { i: number; text: string; correct: boolean; rationale: string };
+type Verdict = {
   correct: boolean;
-  faithfulSide: "a" | "b";
-  device: string;
+  mode: string;
+  skill: string;
+  faithfulSide?: "a" | "b";
+  device?: string;
   explanation: string;
+  choices?: RevealChoice[];
+  correctIndex?: number;
+  pickedIndex?: number;
   drillRating: number;
   ratingDelta: number;
   drillCount: number;
   xp: number;
 };
 
-// The five nameable overclaim families, canonical order — the choices for the
-// "name the move" recall beat on the verdict (retrieval practice: attempting to
-// name the pattern before it's revealed makes it stick). "other" is a
-// classifier fallback, not a nameable pattern, so it is never offered and items
-// that land there skip the recall.
-const RECALL_FAMILIES: OverclaimFamily["id"][] = [
-  "cause",
-  "single_cause",
-  "extrapolation",
-  "certainty",
-  "base_rate",
+const MODES: { id: string; label: string; blurb: string }[] = [
+  { id: "", label: "Mixed", blurb: "A bit of everything" },
+  { id: "spot", label: "Spot", blurb: "Catch the overreach" },
+  { id: "fix", label: "Fix", blurb: "Repair the telling" },
+  { id: "calibrate", label: "Calibrate", blurb: "Strongest safe claim" },
 ];
+const RUN_LENGTH = 8; // items before the recap
 
-export default function DrillPage() {
-  const router = useRouter();
-  const [drill, setDrill] = useState<DrillDto | null>(null);
-  const [verdict, setVerdict] = useState<VerdictDto | null>(null);
-  const [picked, setPicked] = useState<"a" | "b" | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(false);
-  const [liveMessage, setLiveMessage] = useState("");
-  const renderedAt = useRef(0);
+function drillRank(rating: number): string {
+  if (rating >= 1500) return "Sharp eye";
+  if (rating >= 1350) return "Reads the fine print";
+  if (rating >= 1200) return "Finding the range";
+  return "Warming up";
+}
+
+// Minimal **bold** renderer for the data readout (content is trusted, authored).
+function Snippet({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.startsWith("**") && p.endsWith("**") ? (
+          <strong key={i} className="font-semibold text-ink-strong">
+            {p.slice(2, -2)}
+          </strong>
+        ) : (
+          <span key={i}>{p}</span>
+        )
+      )}
+    </>
+  );
+}
+
+function MasteryBar({ caught, attempted }: { caught: number; attempted: number }) {
+  const pct = attempted > 0 ? Math.round((caught / attempted) * 100) : 0;
+  return (
+    <div className="mt-1 h-1.5 w-full overflow-hidden rounded-[2px] bg-wash">
+      {attempted > 0 && (
+        <div
+          className="h-full rounded-[2px] bg-accent/70"
+          style={{ width: `${Math.max(6, pct)}%` }}
+          aria-hidden
+        />
+      )}
+    </div>
+  );
+}
+
+function DiffPips({ n }: { n: number }) {
+  return (
+    <span className="inline-flex gap-0.5 align-middle" aria-label={`difficulty ${n} of 3`}>
+      {[1, 2, 3].map((i) => (
+        <span
+          key={i}
+          className={`inline-block size-1.5 rounded-full ${i <= n ? "bg-muted" : "bg-card-border"}`}
+        />
+      ))}
+    </span>
+  );
+}
+
+export default function TrainingRoom() {
   const sessionIdRef = useRef<string | null>(null);
-  const verdictRef = useRef<HTMLDivElement | null>(null);
-  const prefetched = useRef<DrillDto | null>(null);
-  const [oldRating, setOldRating] = useState<number | null>(null);
-  // The learner's "name the move" recall guess for the current verdict: null =
-  // not yet answered (recall prompt showing), a family id = guessed that,
-  // "skip" = chose to reveal without guessing. Reset per drill.
-  const [familyGuess, setFamilyGuess] = useState<OverclaimFamily["id"] | "skip" | null>(null);
-  // Running "name how" tally across this session's drills (NOT reset per drill):
-  // how many patterns the learner named correctly, out of the ones they guessed.
-  // Measures the second half of the skill (spot it AND name how); shown at the
-  // end. Formative + client-only — a mid-session refresh just restarts it.
-  const [naming, setNaming] = useState<{ named: number; guessed: number }>({ named: 0, guessed: 0 });
+  const renderedAt = useRef<number>(0);
 
-  const loadDrill = useCallback(async (): Promise<DrillDto> => {
-    const sessionId = sessionIdRef.current!;
-    const res = await fetch(`/api/drill?sessionId=${encodeURIComponent(sessionId)}`);
-    if (!res.ok) throw new Error();
-    return res.json();
+  const [phase, setPhase] = useState<"loading" | "dashboard" | "run" | "recap">("loading");
+  const [rating, setRating] = useState(1200);
+  const [count, setCount] = useState(0);
+  const [progress, setProgress] = useState<SkillProgress[]>([]);
+  const [error, setError] = useState(false);
+
+  const [mode, setMode] = useState<string>("");
+  const [item, setItem] = useState<Item | null>(null);
+  const [verdict, setVerdict] = useState<Verdict | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // run counters
+  const [runStartRating, setRunStartRating] = useState(1200);
+  const [runDone, setRunDone] = useState(0);
+  const [runCorrect, setRunCorrect] = useState(0);
+  const [runSkills, setRunSkills] = useState<string[]>([]);
+
+  const progressFor = useCallback(
+    (id: string) => progress.find((p) => p.id === id) ?? { id, attempted: 0, caught: 0 },
+    [progress]
+  );
+
+  const loadDashboard = useCallback(async () => {
+    const sid = sessionIdRef.current!;
+    const res = await fetch(`/api/drill?sessionId=${encodeURIComponent(sid)}`);
+    if (!res.ok) throw new Error("load failed");
+    const data: DrillGet = await res.json();
+    setRating(data.drillRating);
+    setCount(data.drillCount);
+    setProgress(data.skillProgress ?? []);
   }, []);
 
-  const fetchDrill = useCallback(async () => {
-    if (!sessionIdRef.current) return;
+  const fetchItem = useCallback(async (m: string): Promise<Item | null> => {
+    const sid = sessionIdRef.current!;
+    const q = m ? `&mode=${m}` : "";
+    const res = await fetch(`/api/drill?sessionId=${encodeURIComponent(sid)}${q}`);
+    if (!res.ok) throw new Error("fetch failed");
+    const data: DrillGet = await res.json();
+    setProgress(data.skillProgress ?? []);
+    setRating(data.drillRating);
+    setCount(data.drillCount);
+    return data.item;
+  }, []);
+
+  // bootstrap: ensure a session exists (training works standalone), load the map
+  useEffect(() => {
+    const sid = getOrCreateSessionId();
+    sessionIdRef.current = sid;
+    (async () => {
+      try {
+        await fetch("/api/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: sid, segment: "other" }),
+        });
+        await loadDashboard();
+        setPhase("dashboard");
+      } catch {
+        setError(true);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function startRun(m: string) {
+    setMode(m);
+    setRunStartRating(rating);
+    setRunSkills([]);
+    setRunDone(0);
+    setRunCorrect(0);
+    setVerdict(null);
     try {
-      // The GET is idempotent, so the copy prefetched while the user read the
-      // explanation is safe to consume; fall back to a live fetch. Always
-      // await (even the cached copy) so state never updates synchronously
-      // inside the mount effect.
-      const cached = prefetched.current;
-      prefetched.current = null;
-      const next = await (cached ? Promise.resolve(cached) : loadDrill());
-      withViewTransition(() => {
-        setVerdict(null);
-        setPicked(null);
-        setFamilyGuess(null);
-        setDrill(next);
+      const it = await fetchItem(m);
+      if (!it) {
+        setItem(null);
+        setPhase("recap");
+        return;
+      }
+      setItem(it);
+      renderedAt.current = nowMs();
+      setPhase("run");
+    } catch {
+      setError(true);
+    }
+  }
+
+  async function submit(body: Record<string, unknown>) {
+    if (!item || submitting || verdict) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/drill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: sessionIdRef.current,
+          drillId: item.id,
+          latencyMs: Math.round(nowMs() - renderedAt.current),
+          ...body,
+        }),
       });
+      if (!res.ok) throw new Error("grade failed");
+      const v: Verdict = await res.json();
+      setVerdict(v);
+      setRating(v.drillRating);
+      setCount(v.drillCount);
+      setRunSkills((prev) => (prev.includes(v.skill) ? prev : [...prev, v.skill]));
+      setRunCorrect((c) => c + (v.correct ? 1 : 0));
+      setRunDone((d) => d + 1);
+    } catch {
+      setError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function next() {
+    setVerdict(null);
+    if (runDone >= RUN_LENGTH) {
+      await loadDashboard().catch(() => {});
+      setPhase("recap");
+      return;
+    }
+    try {
+      const it = await fetchItem(mode);
+      if (!it) {
+        setPhase("recap");
+        return;
+      }
+      setItem(it);
       renderedAt.current = nowMs();
     } catch {
       setError(true);
     }
-  }, [loadDrill]);
+  }
 
-  useEffect(() => {
-    const sessionId = getSessionId();
-    if (!sessionId) {
-      router.replace("/");
-      return;
-    }
-    sessionIdRef.current = sessionId;
-    // Initial data load on mount; every setState is behind an await (same
-    // shape as /swipe, which the rule accepts).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchDrill();
-  }, [router, fetchDrill]);
+  // -------------------------------------------------------------- views
+  if (error) {
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-2xl items-center justify-center px-5">
+        <div className="text-center">
+          <p className="text-muted">Something went sideways loading the room.</p>
+          <button
+            onClick={() => location.reload()}
+            className="mt-3 rounded-chip border border-card-border px-4 py-2 font-mono text-sm hover:border-rule-strong"
+          >
+            Try again
+          </button>
+        </div>
+      </main>
+    );
+  }
 
-  // Verdict is the one moment the product says right/wrong: move focus onto
-  // it (the picked button just went disabled, which drops focus to <body>)
-  // and speak the result + rating change.
-  useEffect(() => {
-    if (!verdict) return;
-    verdictRef.current?.focus();
-    // Prefetch the next item while the explanation is being read — free RTT.
-    loadDrill()
-      .then((d) => (prefetched.current = d))
-      .catch(() => {});
-  }, [verdict, loadDrill]);
-
-  const attempt = useCallback(
-    async (side: "a" | "b") => {
-      const sessionId = sessionIdRef.current;
-      if (!drill?.item || !sessionId || submitting || verdict) return;
-      setSubmitting(true);
-      setPicked(side);
-      setOldRating(drill.drillRating);
-      try {
-        const res = await fetch("/api/drill", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId,
-            drillId: drill.item.id,
-            picked: side,
-            latencyMs: Math.round(nowMs() - renderedAt.current),
-          }),
-        });
-        if (!res.ok) throw new Error();
-        const data: VerdictDto = await res.json();
-        setLiveMessage(
-          `${data.correct ? "Correct" : "Incorrect"}. ${
-            data.correct
-              ? ""
-              : `The overclaim was the ${data.faithfulSide === "a" ? "second" : "first"} telling. `
-          }Rating ${data.ratingDelta >= 0 ? "up" : "down"} ${Math.abs(data.ratingDelta)}, now ${data.drillRating}.`
-        );
-        withViewTransition(() => setVerdict(data));
-      } catch {
-        setError(true);
-        setPicked(null);
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [drill, submitting, verdict]
-  );
-
-  // Keyboard parity with /swipe: 1/left = first telling, 2/right = second.
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (!drill?.item || submitting || verdict) return;
-      if (e.key === "1" || e.key === "ArrowLeft") attempt("a");
-      else if (e.key === "2" || e.key === "ArrowRight") attempt("b");
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [drill, submitting, verdict, attempt]);
-
-  const headerRating = verdict ? verdict.drillRating : (drill?.drillRating ?? 0);
+  if (phase === "loading") {
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-2xl items-center justify-center px-5">
+        <p className="font-mono text-sm text-muted">Opening the Training Room…</p>
+      </main>
+    );
+  }
 
   return (
-    <main className="flex-1 px-4 py-8 sm:py-12">
-      <div className="mx-auto w-full max-w-2xl">
-        <p className="sr-only" aria-live="polite">
-          {liveMessage}
-        </p>
-        <div className="flex items-end justify-between pb-2">
-          <p className="masthead text-ink-strong">Judgment Call</p>
-          {drill && (
-            <p
-              className="font-mono text-xs text-muted tabular-nums"
-              style={{ viewTransitionName: "drill-rating" }}
-            >
-              drill rating{" "}
-              <span
-                aria-hidden
-                className="count"
-                style={{ "--num": String(headerRating) } as React.CSSProperties}
-              />
-              <span className="sr-only">{headerRating}</span>
-            </p>
-          )}
-        </div>
-        <div className="double-rule" aria-hidden />
-
-        {/* Quarantine banner: this is training, not the study. */}
-        <div className="mt-4 rounded-card border border-card-border bg-wash px-4 py-2.5">
-          <p className="kicker text-muted">Training room — not part of the study</p>
-          <p className="mt-1 text-xs text-muted">
-            One of these tellings subtly exceeds its data. Spot it. Immediate feedback, separate
-            rating — none of this touches the public results.
-          </p>
-        </div>
-
-        {error && (
-          <p className="mt-6 text-sm text-danger">
-            Something broke.{" "}
-            <button onClick={fetchDrill} className="font-semibold text-accent hover:underline">
-              Retry
-            </button>
-          </p>
-        )}
-
-        {!drill && !error && (
-          <div aria-hidden className="mt-5 animate-pulse">
-            <div className="rounded-card bg-card-border/50 h-20 mb-4" />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-card bg-card-border/50 h-40" />
-              <div className="rounded-card bg-card-border/50 h-40" />
-            </div>
-          </div>
-        )}
-
-        {drill && !drill.item && (
-          <div className="mt-8 text-center">
-            <p className="font-sans text-xl font-semibold text-ink-strong tracking-[-0.02em] text-balance">
-              You&apos;ve cleared every drill.
-            </p>
-            <p className="mt-2 font-mono text-sm text-muted tabular-nums">
-              Final drill rating: {drill.drillRating} · {drill.drillCount} attempted
-            </p>
-            {/* The other half of the skill: spotting is the rating above; this
-                is whether you could NAME the pattern when you tried (the recall
-                beat). Session-local, shown only if you named at least one. */}
-            {naming.guessed > 0 && (
-              <p className="mt-1 font-mono text-sm text-muted tabular-nums">
-                Named the pattern:{" "}
-                <span className="text-ink-strong">{naming.named}</span> of {naming.guessed}
-              </p>
-            )}
-
-            {/* The skill map: where the learner is fluent across the five
-                overclaim families, and which to come back to. Drill-world only. */}
-            {drill.familyProgress && drill.familyProgress.length > 0 && (
-              <div className="mt-7 mx-auto w-full max-w-xs">
-                <p className="kicker text-muted mb-3">Your overclaim radar</p>
-                <ul className="space-y-2.5 text-left">
-                  {drill.familyProgress.map((f) => (
-                    <li key={f.id} className="flex items-center gap-3">
-                      <span className="flex-1 text-sm text-ink-strong">{f.name}</span>
-                      {f.attempted === 0 ? (
-                        <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-muted">
-                          not yet
-                        </span>
-                      ) : (
-                        <>
-                          <span className="flex gap-1" aria-hidden>
-                            {Array.from({ length: f.attempted }).map((_, i) => (
-                              <span
-                                key={i}
-                                className={`inline-block size-2 rounded-full ${
-                                  i < f.caught ? "bg-accent" : "border border-rule-strong"
-                                }`}
-                              />
-                            ))}
-                          </span>
-                          <span className="sr-only">
-                            {f.caught} of {f.attempted} caught
-                          </span>
-                        </>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-3 font-mono text-[0.6875rem] leading-relaxed text-muted">
-                  Filled = caught. Come back to the families you missed.
-                </p>
-              </div>
-            )}
-
-            {/* Consolidation: re-teach the transferable tell for exactly the
-                families the learner MISSED (caught < attempted), at the
-                reflective moment. The item pool is too small to re-serve those
-                families as extra reps (mastery-model bullet 2, deferred on a
-                deeper pool), so we reinforce the pattern instead. Drill-world
-                only — OVERCLAIM_FAMILIES lives in teaching.ts. */}
-            {(() => {
-              const missed = (drill.familyProgress ?? []).filter(
-                (f) => f.attempted > 0 && f.caught < f.attempted
-              );
-              const faced = (drill.familyProgress ?? []).some((f) => f.attempted > 0);
-              if (!faced) return null;
-              if (missed.length === 0) {
-                return (
-                  <p className="mt-6 font-mono text-xs text-accent">
-                    Clean sweep — you caught every pattern you faced.
-                  </p>
-                );
-              }
-              return (
-                <div className="mt-6 mx-auto w-full max-w-sm text-left">
-                  <p className="kicker text-muted mb-2.5">Patterns to carry forward</p>
-                  <ul className="space-y-2.5">
-                    {missed.map((f) => {
-                      const fam = OVERCLAIM_FAMILIES[f.id as OverclaimFamily["id"]];
-                      if (!fam) return null;
-                      return (
-                        <li
-                          key={f.id}
-                          className="rounded-chip border-l-2 border-accent/50 bg-wash py-2 pl-3 pr-2"
-                        >
-                          <p className="font-mono text-xs font-semibold text-ink-strong">{f.name}</p>
-                          <p className="mt-1 text-sm leading-relaxed text-pretty text-muted">
-                            {fam.tell}
-                          </p>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              );
-            })()}
-
-            <Link
-              href="/swipe"
-              className="mt-6 inline-block rounded-card bg-accent px-6 py-3 font-mono text-sm font-semibold text-on-accent"
-            >
-              Back to the study →
-            </Link>
-          </div>
-        )}
-
-        {drill?.item && (
-          <div key={drill.item.id} className="pair-in mt-5">
-            <div className="rounded-card border-l-[3px] border-rule-strong bg-wash px-4 py-3 mb-4">
-              <p className="kicker text-muted mb-1.5">The data</p>
-              <Snippet markdown={drill.item.contextSnippet} className="text-sm leading-relaxed" />
-              <p className="mt-1.5 font-mono text-xs text-muted">{drill.item.sourceLabel}</p>
-            </div>
-
-            <div className="mb-3 flex items-center gap-3">
-              <span className="h-px flex-1 bg-card-border" aria-hidden />
-              <p className="kicker text-muted">Which telling exceeds the data?</p>
-              <span className="h-px flex-1 bg-card-border" aria-hidden />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(["a", "b"] as const).map((side) => {
-                const text = drill.item![side];
-                const isFaithful = verdict && verdict.faithfulSide === side;
-                const isOverclaimed = verdict && verdict.faithfulSide !== side;
-                return (
-                  <button
-                    key={side}
-                    onClick={() => attempt(side)}
-                    disabled={submitting || !!verdict}
-                    style={{
-                      touchAction: "manipulation",
-                      // Tint, not transparency: post-verdict is a comparison
-                      // moment, both tellings must stay fully legible. Invalid
-                      // color-mix is dropped at parse time → bg-card fallback.
-                      ...(isOverclaimed
-                        ? { background: "color-mix(in oklab, var(--danger) 7%, var(--card))" }
-                        : {}),
-                    }}
-                    className={`relative select-none rounded-card border bg-card p-5 text-left shadow-[var(--shadow-card)] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
-                      verdict
-                        ? isOverclaimed
-                          ? "verdict-culprit border-danger"
-                          : "border-card-border"
-                        : `transition-all duration-200 ${
-                            picked === side
-                              ? "border-rule-strong scale-[0.99]"
-                              : "border-card-border hover:border-rule-strong hover:shadow-[var(--shadow-lift)] active:scale-[0.99]"
-                          }`
-                    }`}
-                  >
-                    <span aria-hidden className="mb-3 block h-0.5 w-[34px] bg-rule-strong" />
-                    <p className="font-serif text-[1.0625rem] leading-[1.58] text-ink-strong text-pretty">
-                      {text}
-                    </p>
-                    {verdict && (
-                      <span
-                        aria-hidden
-                        className={`stamp-in absolute -right-1 -top-2.5 rounded-chip border-2 bg-card px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-[0.18em] ${
-                          isFaithful
-                            ? "border-rule-strong text-rule-strong"
-                            : "border-danger text-danger"
-                        }`}
-                        // Beat 0: the culprit stamp presses first; the
-                        // acquittal lands one beat later.
-                        style={isFaithful ? { animationDelay: "200ms" } : undefined}
-                      >
-                        {isFaithful ? "FAITHFUL" : "OVERCLAIMED"}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {!verdict && (
-              <p className="mt-3 hidden sm:block text-center font-mono text-xs text-muted">
-                Keyboard: <kbd className="rounded-chip border border-card-border px-1">1</kbd>{" "}
-                first · <kbd className="rounded-chip border border-card-border px-1">2</kbd> second
-              </p>
-            )}
-
-            {verdict && (
-              <div
-                ref={verdictRef}
-                tabIndex={-1}
-                className="verdict-card-in mt-4 rounded-card border border-card-border bg-card p-5 focus:outline-none"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <p
-                    className={`font-mono text-sm font-semibold ${verdict.correct ? "text-accent" : "text-danger"}`}
-                  >
-                    {verdict.correct ? "Called it." : "It got you."}
-                  </p>
-                  {/* Ledger correction: old → new, delta as a graded chip. */}
-                  <p className="font-mono tabular-nums text-right">
-                    <span className="text-sm text-muted">
-                      {oldRating ?? verdict.drillRating - verdict.ratingDelta}
-                    </span>
-                    <span className="text-muted"> → </span>
-                    <span className="text-xl font-semibold text-ink-strong">
-                      {verdict.drillRating}
-                    </span>
-                    <span
-                      className={`ml-2 rounded-chip border px-1 text-[10px] align-middle ${
-                        verdict.ratingDelta >= 0
-                          ? "border-accent text-accent"
-                          : "border-danger text-danger"
-                      }`}
-                    >
-                      {verdict.ratingDelta >= 0 ? "+" : ""}
-                      {verdict.ratingDelta}
-                    </span>
-                  </p>
-                </div>
-                {(() => {
-                  const trueFamily = overclaimFamily(verdict.device);
-                  const recallable = trueFamily.id !== "other";
-                  const revealed = !recallable || familyGuess !== null;
-                  const guessed = familyGuess !== null && familyGuess !== "skip";
-                  const namedIt = guessed && familyGuess === trueFamily.id;
-
-                  // Retrieval beat: the learner attempts to NAME the pattern
-                  // before it's revealed (the charter's "spot it AND name how").
-                  // The device / explanation / tell give the family away, so
-                  // they stay hidden until the guess (or a "show me"). The drill
-                  // rating is already settled on the spot — naming is formative,
-                  // never re-graded — so a correct spotter is never penalised for
-                  // mis-naming.
-                  if (!revealed) {
-                    return (
-                      <div className="mt-4">
-                        <p className="kicker text-muted">Now — name the move</p>
-                        <p className="mt-1 text-xs text-muted">
-                          Which overclaim pattern was it? Your rating is already in — naming it is
-                          just how it sticks.
-                        </p>
-                        <div className="mt-2.5 flex flex-wrap gap-2">
-                          {RECALL_FAMILIES.map((id) => (
-                            <button
-                              key={id}
-                              type="button"
-                              onClick={() => {
-                                setFamilyGuess(id);
-                                setNaming((t) => ({
-                                  named: t.named + (id === trueFamily.id ? 1 : 0),
-                                  guessed: t.guessed + 1,
-                                }));
-                              }}
-                              className="rounded-chip border border-card-border bg-wash px-3 py-1.5 font-mono text-xs text-ink-strong transition hover:border-rule-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                            >
-                              {OVERCLAIM_FAMILIES[id].name}
-                            </button>
-                          ))}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setFamilyGuess("skip")}
-                          className="mt-2.5 font-mono text-[0.6875rem] text-muted underline decoration-muted/40 underline-offset-2 hover:text-ink-strong"
-                        >
-                          just show me →
-                        </button>
-                      </div>
-                    );
-                  }
-
-                  // Revealed: the pattern (with a ✓/✗ on the recall attempt),
-                  // the item-specific device, the explanation, and the tell.
-                  return (
-                    <>
-                      <p className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <span className="kicker text-muted shrink-0">Pattern</span>
-                        <span className="font-mono text-xs font-semibold text-ink-strong">
-                          {trueFamily.name}
-                        </span>
-                        {guessed && (
-                          <span
-                            className={`font-mono text-[0.6875rem] ${namedIt ? "text-accent" : "text-danger"}`}
-                          >
-                            {namedIt
-                              ? "· you named it ✓"
-                              : `· you said ${OVERCLAIM_FAMILIES[familyGuess as OverclaimFamily["id"]].name}`}
-                          </span>
-                        )}
-                      </p>
-                      <p className="mt-1 flex items-baseline gap-2">
-                        <span className="kicker text-muted shrink-0">Device</span>
-                        <span className="font-mono text-xs text-muted">{verdict.device}</span>
-                      </p>
-                      <p className="mt-2 text-sm leading-relaxed text-pretty">
-                        {verdict.explanation}
-                      </p>
-                      <div className="mt-3 rounded-chip border-l-2 border-accent/50 bg-wash py-2 pl-3 pr-2">
-                        <p className="kicker text-accent">Carry it forward</p>
-                        <p className="mt-1 text-sm leading-relaxed text-pretty text-muted">
-                          {trueFamily.tell}
-                        </p>
-                      </div>
-                      <button
-                        onClick={fetchDrill}
-                        className="cta-glow mt-4 w-full rounded-card bg-accent px-4 py-3 font-mono text-sm font-semibold text-on-accent"
-                      >
-                        Next drill →
-                      </button>
-                    </>
-                  );
-                })()}
-              </div>
-            )}
-          </div>
-        )}
+    <main className="mx-auto min-h-dvh w-full max-w-2xl px-5 py-10">
+      {/* masthead */}
+      <div className="flex items-center gap-3">
+        <span className="h-px flex-1 bg-rule-strong/40" aria-hidden />
+        <p className="masthead text-ink-strong">The Training Room</p>
+        <span className="h-px flex-1 bg-rule-strong/40" aria-hidden />
       </div>
+      <div className="double-rule mt-3" aria-hidden />
+
+      {phase === "dashboard" && (
+        <Dashboard
+          rating={rating}
+          count={count}
+          progressFor={progressFor}
+          onStart={startRun}
+        />
+      )}
+
+      {phase === "run" && item && (
+        <Run
+          item={item}
+          verdict={verdict}
+          submitting={submitting}
+          runDone={runDone}
+          rating={rating}
+          onSubmit={submit}
+          onNext={next}
+        />
+      )}
+
+      {phase === "recap" && (
+        <Recap
+          done={runDone}
+          correct={runCorrect}
+          ratingDelta={rating - runStartRating}
+          rating={rating}
+          skills={runSkills}
+          progressFor={progressFor}
+          onAgain={() => setPhase("dashboard")}
+        />
+      )}
     </main>
+  );
+}
+
+// ------------------------------------------------------------- Dashboard
+function Dashboard({
+  rating,
+  count,
+  progressFor,
+  onStart,
+}: {
+  rating: number;
+  count: number;
+  progressFor: (id: string) => SkillProgress;
+  onStart: (mode: string) => void;
+}) {
+  const [mode, setMode] = useState<string>("");
+  return (
+    <div className="rise mt-6">
+      <div className="text-center">
+        <p className="kicker text-muted">Sharpen how you read and write data insights</p>
+        <div className="mt-3">
+          <span className="block font-mono text-[clamp(2.25rem,7vw,3.25rem)] font-semibold leading-none text-accent tabular-nums">
+            {rating}
+          </span>
+          <p className="mt-1.5 font-mono text-xs text-muted">
+            skill rating · {drillRank(rating)} · {count} call{count === 1 ? "" : "s"} logged
+          </p>
+        </div>
+      </div>
+
+      {/* mode picker */}
+      <div className="mt-8">
+        <p className="kicker text-muted mb-3">Choose a drill</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {MODES.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setMode(m.id)}
+              aria-pressed={mode === m.id}
+              className={`rounded-card border px-3 py-3 text-left transition ${
+                mode === m.id
+                  ? "border-rule-strong bg-card shadow-[var(--shadow-card)]"
+                  : "border-card-border bg-card/40 hover:border-rule-strong"
+              }`}
+            >
+              <span className="block font-sans text-sm font-semibold text-ink-strong">
+                {m.label}
+              </span>
+              <span className="mt-0.5 block font-mono text-[0.6875rem] leading-tight text-muted">
+                {m.blurb}
+              </span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => onStart(mode)}
+          className="cta-glow mt-4 w-full rounded-card bg-accent px-4 py-4 text-base font-semibold text-on-accent active:scale-[0.98]"
+        >
+          Start training →
+        </button>
+      </div>
+
+      {/* skill map */}
+      <div className="mt-10">
+        <div className="mb-3 flex items-center gap-3">
+          <p className="kicker text-muted">Your skill map</p>
+          <span className="h-px flex-1 bg-card-border" aria-hidden />
+        </div>
+        <SkillGroup title="Fidelity — is the claim honest?" ids={FIDELITY_SKILLS} progressFor={progressFor} />
+        <div className="mt-5">
+          <SkillGroup title="Craft — is the insight well told?" ids={CRAFT_SKILLS} progressFor={progressFor} />
+        </div>
+      </div>
+
+      <div className="mt-8 text-center">
+        <Link href="/" className="font-mono text-xs text-muted hover:text-ink-strong">
+          ← back to Judgment Call
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function SkillGroup({
+  title,
+  ids,
+  progressFor,
+}: {
+  title: string;
+  ids: SkillId[];
+  progressFor: (id: string) => SkillProgress;
+}) {
+  return (
+    <div>
+      <p className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">{title}</p>
+      <div className="mt-2 space-y-2">
+        {ids.map((id) => {
+          const s = SKILLS[id];
+          const p = progressFor(id);
+          return (
+            <div key={id} className="rounded-card border border-card-border bg-card p-3">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-sans text-sm font-semibold text-ink-strong">{s.name}</span>
+                <span className="shrink-0 font-mono text-[0.6875rem] text-muted tabular-nums">
+                  {p.attempted > 0 ? `${p.caught}/${p.attempted} caught` : "not yet faced"}
+                </span>
+              </div>
+              <MasteryBar caught={p.caught} attempted={p.attempted} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------- Run
+function Run({
+  item,
+  verdict,
+  submitting,
+  runDone,
+  rating,
+  onSubmit,
+  onNext,
+}: {
+  item: Item;
+  verdict: Verdict | null;
+  submitting: boolean;
+  runDone: number;
+  rating: number;
+  onSubmit: (body: Record<string, unknown>) => void;
+  onNext: () => void;
+}) {
+  const skill = skillFor(item.skill);
+  return (
+    <div className="rise mt-6">
+      {/* run header */}
+      <div className="flex items-center justify-between font-mono text-xs text-muted">
+        <span>
+          Call {runDone + (verdict ? 0 : 1)} of {RUN_LENGTH}
+        </span>
+        <span className="tabular-nums">{rating} rating</span>
+      </div>
+
+      {/* mode + skill + difficulty chips */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="rounded-chip border border-accent/40 bg-wash px-2 py-0.5 font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-accent">
+          {item.mode}
+        </span>
+        <span className="rounded-chip border border-card-border px-2 py-0.5 font-mono text-[0.6875rem] text-muted">
+          {skill.family}
+        </span>
+        <span className="ml-auto inline-flex items-center gap-1.5 font-mono text-[0.6875rem] text-muted">
+          difficulty <DiffPips n={item.difficulty} />
+        </span>
+      </div>
+
+      {/* data readout */}
+      <div className="well mt-4 rounded-card bg-wash px-4 py-3">
+        <p className="kicker text-muted">{item.sourceLabel}</p>
+        <p className="mt-1.5 font-mono text-[0.8125rem] leading-relaxed text-ink-strong text-pretty">
+          <Snippet text={item.contextSnippet} />
+        </p>
+      </div>
+
+      <p className="mt-5 font-sans text-lg font-semibold text-ink-strong tracking-[-0.01em] text-pretty">
+        {item.prompt}
+      </p>
+
+      {/* mode-specific interaction */}
+      {item.mode === "spot" ? (
+        <SpotChoices item={item} verdict={verdict} submitting={submitting} onSubmit={onSubmit} />
+      ) : (
+        <ListChoices item={item} verdict={verdict} submitting={submitting} onSubmit={onSubmit} />
+      )}
+
+      {/* verdict reveal */}
+      {verdict && (
+        <div className="rise mt-6">
+          <div
+            className={`rounded-card border-l-[3px] px-4 py-3 ${
+              verdict.correct ? "border-accent bg-wash" : "border-danger bg-danger/5"
+            }`}
+          >
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em]">
+              {verdict.correct ? (
+                <span className="text-accent">Called it.</span>
+              ) : (
+                <span className="text-danger">It got you.</span>
+              )}
+              <span className="ml-2 text-muted tabular-nums">
+                {verdict.ratingDelta >= 0 ? "+" : ""}
+                {verdict.ratingDelta} → {verdict.drillRating}
+              </span>
+            </p>
+            <p className="mt-2 font-sans text-sm font-semibold text-ink-strong">
+              {skill.name}
+              {verdict.device ? <span className="font-normal text-muted"> · {verdict.device}</span> : null}
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted text-pretty">{verdict.explanation}</p>
+          </div>
+
+          {/* carry-it-forward tell */}
+          <div className="mt-3 rounded-card border-l-2 border-accent/50 bg-wash py-2 pl-3 pr-2">
+            <p className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">
+              Carry it forward
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-ink-strong text-pretty">{skill.tell}</p>
+          </div>
+
+          <button
+            onClick={onNext}
+            className="cta-glow mt-4 w-full rounded-card bg-accent px-4 py-3 font-semibold text-on-accent active:scale-[0.99]"
+          >
+            {runDone >= RUN_LENGTH ? "See your recap →" : "Next call →"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SpotChoices({
+  item,
+  verdict,
+  submitting,
+  onSubmit,
+}: {
+  item: Item;
+  verdict: Verdict | null;
+  submitting: boolean;
+  onSubmit: (body: Record<string, unknown>) => void;
+}) {
+  return (
+    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {(["a", "b"] as const).map((side) => {
+        const isOverclaim = verdict && verdict.faithfulSide && verdict.faithfulSide !== side;
+        const stamp = verdict
+          ? isOverclaim
+            ? "exceeds the data"
+            : "stays in bounds"
+          : null;
+        return (
+          <button
+            key={side}
+            disabled={!!verdict || submitting}
+            onClick={() => onSubmit({ picked: side })}
+            className={`rounded-card border bg-card p-4 text-left transition disabled:cursor-default ${
+              verdict
+                ? isOverclaim
+                  ? "border-accent"
+                  : "border-card-border opacity-70"
+                : "border-card-border hover:-translate-y-px hover:border-rule-strong hover:shadow-[var(--shadow-lift)]"
+            }`}
+          >
+            <p className="kicker text-muted mb-2">Telling {side.toUpperCase()}</p>
+            <p className="font-serif text-[1.0625rem] leading-[1.58] text-ink-strong text-pretty">
+              {side === "a" ? item.a : item.b}
+            </p>
+            {stamp && (
+              <p
+                className={`mt-2 font-mono text-[0.625rem] uppercase tracking-[0.14em] ${
+                  isOverclaim ? "text-accent" : "text-muted"
+                }`}
+              >
+                {stamp}
+              </p>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ListChoices({
+  item,
+  verdict,
+  submitting,
+  onSubmit,
+}: {
+  item: Item;
+  verdict: Verdict | null;
+  submitting: boolean;
+  onSubmit: (body: Record<string, unknown>) => void;
+}) {
+  // Before the verdict, render the served (shuffled) choices. After, render the
+  // revealed choices (with correct + rationale) in the same order the learner saw.
+  const servedOrder = item.choices ?? [];
+  const revealById = new Map((verdict?.choices ?? []).map((c) => [c.i, c]));
+  return (
+    <div className="mt-4 space-y-2">
+      {servedOrder.map((c) => {
+        const rc = revealById.get(c.i);
+        const picked = verdict?.pickedIndex === c.i;
+        const correct = rc?.correct;
+        return (
+          <div key={c.i}>
+            <button
+              disabled={!!verdict || submitting}
+              onClick={() => onSubmit({ pickedIndex: c.i })}
+              className={`w-full rounded-card border bg-card p-3.5 text-left transition disabled:cursor-default ${
+                verdict
+                  ? correct
+                    ? "border-accent"
+                    : picked
+                      ? "border-danger opacity-90"
+                      : "border-card-border opacity-60"
+                  : "border-card-border hover:border-rule-strong hover:shadow-[var(--shadow-lift)]"
+              }`}
+            >
+              <div className="flex items-start gap-2.5">
+                {verdict && (
+                  <span
+                    aria-hidden
+                    className={`mt-0.5 font-mono text-xs font-bold ${correct ? "text-accent" : picked ? "text-danger" : "text-muted"}`}
+                  >
+                    {correct ? "✓" : picked ? "✗" : "·"}
+                  </span>
+                )}
+                <span className="font-serif text-[1rem] leading-[1.5] text-ink-strong text-pretty">
+                  {rc ? rc.text : c.text}
+                </span>
+              </div>
+            </button>
+            {rc && (
+              <p className="mt-1 pl-3.5 text-[0.8125rem] leading-relaxed text-muted text-pretty">
+                {rc.rationale}
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------- Recap
+function Recap({
+  done,
+  correct,
+  ratingDelta,
+  rating,
+  skills,
+  progressFor,
+  onAgain,
+}: {
+  done: number;
+  correct: number;
+  ratingDelta: number;
+  rating: number;
+  skills: string[];
+  progressFor: (id: string) => SkillProgress;
+  onAgain: () => void;
+}) {
+  const practiced = skills.map((id) => skillFor(id));
+  const weak = skills
+    .map((id) => ({ s: skillFor(id), p: progressFor(id) }))
+    .filter(({ p }) => p.attempted > 0 && p.caught < p.attempted);
+  return (
+    <div className="rise mt-6">
+      <div className="text-center">
+        <p className="kicker text-muted">Session recap</p>
+        <p className="mt-3 font-sans text-2xl font-semibold text-ink-strong tracking-[-0.02em]">
+          {done === 0
+            ? "No calls this round"
+            : `${correct} of ${done} caught`}
+        </p>
+        <p className="mt-1 font-mono text-xs text-muted tabular-nums">
+          rating {ratingDelta >= 0 ? "+" : ""}
+          {ratingDelta} → {rating} · {drillRank(rating)}
+        </p>
+      </div>
+
+      {practiced.length > 0 && (
+        <div className="mt-8">
+          <p className="kicker text-muted mb-2">Skills you practiced</p>
+          <div className="flex flex-wrap gap-2">
+            {practiced.map((s) => (
+              <span
+                key={s.id}
+                className="rounded-chip border border-card-border bg-card px-2.5 py-1 font-mono text-xs text-ink-strong"
+              >
+                {s.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {weak.length > 0 && (
+        <div className="mt-6">
+          <p className="kicker text-muted mb-2">Patterns to carry forward</p>
+          <div className="space-y-2">
+            {weak.map(({ s }) => (
+              <div key={s.id} className="rounded-card border-l-2 border-accent/50 bg-wash py-2 pl-3 pr-2">
+                <p className="font-sans text-sm font-semibold text-ink-strong">{s.name}</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted text-pretty">{s.tell}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={onAgain}
+        className="cta-glow mt-8 w-full rounded-card bg-accent px-4 py-4 font-semibold text-on-accent active:scale-[0.98]"
+      >
+        Back to the skill map →
+      </button>
+      <div className="mt-4 text-center">
+        <Link href="/" className="font-mono text-xs text-muted hover:text-ink-strong">
+          ← back to Judgment Call
+        </Link>
+      </div>
+    </div>
   );
 }

@@ -616,7 +616,10 @@ export type { DrillItem };
  *  before repeating one"), random within the preferred set; null when done.
  *  Server-only: overclaimFamily (fidelity vocabulary) never reaches a client
  *  bundle through repo.ts (Prisma-bound, guard-enforced). */
-export async function getNextDrillItem(sessionId: string): Promise<{
+export async function getNextDrillItem(
+  sessionId: string,
+  opts?: { mode?: string; skill?: string }
+): Promise<{
   item: DrillItem | null;
   remaining: number;
   session: Session | null;
@@ -624,30 +627,72 @@ export async function getNextDrillItem(sessionId: string): Promise<{
   const [attempts, session] = await Promise.all([
     prisma.drillAttempt.findMany({
       where: { sessionId },
-      select: { drillItemId: true, item: { select: { device: true } } },
+      select: { drillItemId: true, item: { select: { skill: true } } },
     }),
     prisma.session.findUnique({ where: { id: sessionId } }),
   ]);
   const seen = attempts.map((a) => a.drillItemId);
   const pool = await prisma.drillItem.findMany({
-    where: { status: "active", id: { notIn: seen } },
+    where: {
+      status: "active",
+      id: { notIn: seen },
+      ...(opts?.mode ? { mode: opts.mode } : {}),
+      ...(opts?.skill ? { skill: opts.skill } : {}),
+    },
   });
   if (pool.length === 0) return { item: null, remaining: 0, session };
 
-  // Prefer an item whose overclaim family the learner hasn't faced yet, so a
-  // short session touches distinct families before any repeat (mastery-model
-  // bullet 1). Falls back to the full pool once every family has been seen, or
-  // when only one family remains. This covers *unseen* families; steering
-  // toward a learner's *missed* families + difficulty escalation still wait on
-  // a deeper item pool (see TEACHING.md).
-  const faced = new Set(attempts.map((a) => overclaimFamily(a.item.device).id));
-  const fresh = pool.filter((it) => !faced.has(overclaimFamily(it.device).id));
-  const choices = fresh.length > 0 ? fresh : pool;
-  return {
-    item: choices[Math.floor(Math.random() * choices.length)],
-    remaining: pool.length,
-    session,
-  };
+  // Skill-diverse: prefer an item whose SKILL the learner hasn't faced yet, so a
+  // short run touches distinct skills before any repeat (mastery-model bullet 1),
+  // now keyed off the item's stored skill rather than a device-string guess.
+  // Then, within the preferred set, lean toward items near the learner's drill
+  // rating so difficulty ramps rather than random-walks — but keep it soft
+  // (weighted, not hard-gated) so every item stays reachable.
+  const faced = new Set(attempts.map((a) => a.item.skill));
+  const fresh = pool.filter((it) => !faced.has(it.skill));
+  const candidates = fresh.length > 0 ? fresh : pool;
+  const rating = session?.drillRating ?? 1200;
+  const weighted = candidates.map((it) => {
+    // closeness in [0,1]: 1 when the item rating equals the learner's, decaying
+    // with distance (400 Elo ≈ half weight). Floor keeps far items reachable.
+    const closeness = 1 / (1 + Math.abs(it.rating - rating) / 400);
+    return { it, w: 0.25 + closeness };
+  });
+  const total = weighted.reduce((s, x) => s + x.w, 0);
+  let roll = Math.random() * total;
+  let chosen = weighted[0].it;
+  for (const x of weighted) {
+    roll -= x.w;
+    if (roll <= 0) {
+      chosen = x.it;
+      break;
+    }
+  }
+  return { item: chosen, remaining: pool.length, session };
+}
+
+export type SkillProgressRow = { id: string; attempted: number; caught: number };
+
+/**
+ * Per-skill drill progress for a session, keyed off each attempted item's stored
+ * `skill` (fidelity family or craft flaw). Returns only skills actually faced;
+ * the client merges against the full SKILLS registry so the map is complete.
+ * Server-only — no teaching vocabulary crosses into a client bundle here.
+ */
+export async function getSkillProgress(sessionId: string): Promise<SkillProgressRow[]> {
+  const attempts = await prisma.drillAttempt.findMany({
+    where: { sessionId },
+    select: { correct: true, item: { select: { skill: true } } },
+  });
+  const acc = new Map<string, { attempted: number; caught: number }>();
+  for (const a of attempts) {
+    const key = a.item.skill || "unknown";
+    const cell = acc.get(key) ?? { attempted: 0, caught: 0 };
+    cell.attempted++;
+    if (a.correct) cell.caught++;
+    acc.set(key, cell);
+  }
+  return [...acc.entries()].map(([id, v]) => ({ id, ...v }));
 }
 
 export async function getDrillItem(id: string): Promise<DrillItem | null> {
