@@ -141,13 +141,18 @@ model XpEvent {
 // are never served in the voting pool.
 model DrillItem {
   id              String         @id @default(cuid())
-  title           String
+  title           String         @unique // stable natural key for idempotent content sync
   contextSnippet  String
   sourceLabel     String
-  faithfulText    String
-  overclaimedText String
+  faithfulText    String // spot mode; "" for fix/calibrate
+  overclaimedText String // spot mode; "" for fix/calibrate
   explanation     String // the claims-ledger reveal shown after an attempt
-  device          String // the overclaim device used, e.g. "trend extrapolation"
+  device          String // the precise move, e.g. "trend extrapolation"; "" for calibrate
+  mode            String         @default("spot") // spot | fix | calibrate
+  skill           String         @default("") // skill id: fidelity family or craft flaw
+  difficulty      Int            @default(1) // 1 (obvious) .. 3 (subtle)
+  promptText      String? // mode-specific question; null falls back to a per-mode default
+  choices         String? // JSON [{text,correct,rationale}] for fix/calibrate; null for spot
   rating          Float          @default(1200)
   attempts        Int            @default(0)
   status          String         @default("active") // active | retired

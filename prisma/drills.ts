@@ -1,22 +1,38 @@
-// "Spot the overclaim" drill items — training content, fully separate from
-// study findings. Each pairs a faithful telling with an overclaimed one built
-// on exactly ONE overclaim device, and the explanation names the device and
-// walks the claims ledger (what was claimed vs. what the data supports).
-// All data fictional, like the study findings.
+// Training content for the Training Room — fully separate from study findings.
+// Items span three exercise MODES and two skill families:
+//   modes  : "spot" (which telling exceeds the data), "fix" (pick the faithful
+//            rewrite), "calibrate" (pick the strongest claim the data supports)
+//   skills : FIDELITY families (cause, single_cause, extrapolation, certainty,
+//            base_rate) + CRAFT flaws (buried_lede, false_precision,
+//            missing_sowhat, absent_caveat, padding)
+// All data fictional, like the study findings. This module is prisma-only
+// (seed + sync); it never ships to a client bundle.
+
+export type DrillChoice = { text: string; correct: boolean; rationale: string };
 
 export type DrillSeed = {
-  title: string;
+  title: string; // stable natural key — must be unique across the pool
+  mode: "spot" | "fix" | "calibrate";
+  skill: string;
+  difficulty: number; // 1 (obvious) .. 3 (subtle)
   contextSnippet: string;
   sourceLabel: string;
-  faithfulText: string;
-  overclaimedText: string;
+  prompt?: string; // the mode question; omitted → a per-mode default in the UI
   explanation: string;
-  device: string;
+  // spot mode:
+  faithfulText?: string;
+  overclaimedText?: string;
+  device?: string;
+  // fix / calibrate mode:
+  choices?: DrillChoice[];
 };
 
 export const DRILL_SEEDS: DrillSeed[] = [
   {
     title: "Churn after the price change",
+    mode: "spot",
+    skill: "cause",
+    difficulty: 2,
     contextSnippet:
       "**Meridian SaaS, Q2:** monthly churn 3.1% (was 2.6% pre-change) · price +12% in April · net revenue retention 104% (was 106%) · exit surveys: 41% of churned cite price",
     sourceLabel: "Meridian revenue ops dashboard (fictional)",
@@ -30,6 +46,9 @@ export const DRILL_SEEDS: DrillSeed[] = [
   },
   {
     title: "The pilot program's early results",
+    mode: "spot",
+    skill: "extrapolation",
+    difficulty: 2,
     contextSnippet:
       "**Fieldstone Logistics pilot, 6 weeks:** 2 depots (of 40) · on-time delivery 87% → 93% at pilot depots · control depots flat at 86% · pilot depots were volunteer sites",
     sourceLabel: "Fieldstone ops pilot readout (fictional)",
@@ -43,6 +62,9 @@ export const DRILL_SEEDS: DrillSeed[] = [
   },
   {
     title: "Support tickets after the redesign",
+    mode: "spot",
+    skill: "base_rate",
+    difficulty: 2,
     contextSnippet:
       "**Support volume, launch month:** tickets +18% MoM · seasonal norm for launch months: +10–15% · 'how do I…' category +42% · CSAT stable at 4.4",
     sourceLabel: "Helpdesk monthly export (fictional)",
@@ -56,6 +78,9 @@ export const DRILL_SEEDS: DrillSeed[] = [
   },
   {
     title: "The A/B test that 'won'",
+    mode: "spot",
+    skill: "certainty",
+    difficulty: 1,
     contextSnippet:
       "**Checkout copy test:** variant B conversion 4.6% vs A 4.4% · n = 3,900 per arm · 95% CI on the lift: −0.2pp to +0.6pp · test ran 11 of planned 14 days",
     sourceLabel: "Experiment platform readout (fictional)",
@@ -69,6 +94,9 @@ export const DRILL_SEEDS: DrillSeed[] = [
   },
   {
     title: "Headcount and shipping velocity",
+    mode: "spot",
+    skill: "extrapolation",
+    difficulty: 3,
     contextSnippet:
       "**Platform team, 2 quarters:** headcount 14 → 19 · story points shipped +9% · cycle time p50 unchanged · two new hires still onboarding · point inflation not audited",
     sourceLabel: "Engineering ops quarterly (fictional)",
@@ -82,6 +110,9 @@ export const DRILL_SEEDS: DrillSeed[] = [
   },
   {
     title: "Regional sales after the campaign",
+    mode: "spot",
+    skill: "single_cause",
+    difficulty: 2,
     contextSnippet:
       "**Northwest campaign, 8 weeks:** NW revenue +11% YoY · national revenue +8% YoY · campaign reached ~30% of NW accounts · no holdout group",
     sourceLabel: "Sales analytics weekly (fictional)",
@@ -94,3 +125,34 @@ export const DRILL_SEEDS: DrillSeed[] = [
     device: "attributing a residual without a control",
   },
 ];
+
+// Idempotent content sync: upsert every seed by its stable title. Runs on every
+// build (see scripts/prod-init.ts) so the pool ships without a reseed — and the
+// `update` path deliberately omits rating/attempts, preserving each item's
+// learned difficulty across content updates. Coerces mode-optional fields to the
+// non-null DB shape. Prisma-only import — this module never ships to a client.
+import type { PrismaClient } from "@prisma/client";
+
+export async function syncDrillItems(prisma: PrismaClient): Promise<number> {
+  for (const d of DRILL_SEEDS) {
+    const data = {
+      contextSnippet: d.contextSnippet,
+      sourceLabel: d.sourceLabel,
+      faithfulText: d.faithfulText ?? "",
+      overclaimedText: d.overclaimedText ?? "",
+      explanation: d.explanation,
+      device: d.device ?? "",
+      mode: d.mode,
+      skill: d.skill,
+      difficulty: d.difficulty,
+      promptText: d.prompt ?? null,
+      choices: d.choices ? JSON.stringify(d.choices) : null,
+    };
+    await prisma.drillItem.upsert({
+      where: { title: d.title },
+      create: { title: d.title, ...data },
+      update: data,
+    });
+  }
+  return DRILL_SEEDS.length;
+}

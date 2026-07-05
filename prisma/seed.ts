@@ -17,7 +17,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
-import { DRILL_SEEDS } from "./drills";
+import { syncDrillItems } from "./drills";
 import {
   ATTRIBUTE_KEYS,
   CAVEAT_PLACEMENTS,
@@ -715,17 +715,19 @@ async function main(): Promise<void> {
 
   // Idempotent re-seed: wipe in FK order. Comparisons reference variants, so
   // reseeding resets all votes — fine pre-launch, revisit before production.
+  // Wipe children before parents. Deck references Session (ownerSessionId) and
+  // owns Findings, so it must fall between findings and sessions — omitting it
+  // used to break a reseed on any DB that had a bring-your-own-data deck.
   await prisma.drillAttempt.deleteMany();
   await prisma.xpEvent.deleteMany();
   await prisma.comparison.deleteMany();
-  await prisma.session.deleteMany();
   await prisma.variant.deleteMany();
   await prisma.finding.deleteMany();
+  await prisma.deck.deleteMany();
+  await prisma.session.deleteMany();
   await prisma.drillItem.deleteMany();
 
-  for (const d of DRILL_SEEDS) {
-    await prisma.drillItem.create({ data: d });
-  }
+  await syncDrillItems(prisma);
 
   for (const f of findings) {
     await prisma.finding.create({
