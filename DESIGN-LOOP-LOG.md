@@ -201,3 +201,36 @@ personal-stat readout, a poster refresh — are polish, not leaps, and the
 /review one is a semantic mismatch: /review is personal, not "live"), further
 design rounds should converge quickly rather than re-drive a full screenshot
 sweep. The next real entry should coincide with a genuine bold move.
+
+## 2026-07-05 · Leaner landing fresh-eyed (converged — no design change)
+
+**Why this entry exists (not a silent no-op).** Since the last design pass the
+landing changed materially — three sections were removed via direct user
+requests (the optional seat-tagging well, the "One call, up close" specimen
+pair, and the "The desk, on the record" stance quote). That is a real change to
+an energy surface, so this round fresh-eyed the *new* leaner landing at both
+breakpoints × both themes rather than skipping.
+
+**Assessment.** The removals are a net improvement to focus, not a hole: the
+hero H1 now dominates and the eye goes straight to the single CTA, then the
+six-surface "go deeper" grid, then the footer — a clean, confident, action-first
+front door. Mobile (390) and desktop (1280) both flow without awkward gaps; the
+DATUM language (nameplate hairlines, azure datum beam, mono kickers, milled
+hover-lift cards) is intact and carries the page on its own. No composition
+defect the removals introduced needs a design fix, and re-adding a closing beat
+(e.g. the desk quote) would fight the deliberate simplification.
+
+**Hard-rules audit (passed).** Voting cards + STILL COLLECTING / JURY'S STILL
+OUT untouched (the edits were landing-only; /swipe and /results instruments did
+not move). Removing sections *removed* entrance motion and added none; the only
+sanctioned continuous loop (landing aurora) is intact and reduced-motion still
+honoured. Blinding: the removed blocks were craft-only marketing; canonical grep
+empty + bundle guard PASS on every commit. Other energy surfaces (results/House
+View, review, drill verdict, poster) are unchanged since their prior converged
+assessments.
+
+**Decision: converge, no design change.** No bold, hard-rule-safe frontier leap
+presents itself that wouldn't be token-tweaking or a fight with the user's
+simplification. Momentum: strong — the public surfaces remain coherent, and the
+landing is now tighter than before. The standing "next real entry should
+coincide with a genuine bold move (or a changed surface, as here)" policy holds.
