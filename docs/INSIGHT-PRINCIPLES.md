@@ -80,6 +80,40 @@ be wrong about it in public.*
 
 ---
 
+## The spine: figure, then catch, then move
+
+The five convictions aren't five independent dials — three of them contend for
+the front of the sentence. "Lead with the figure" (1) and "state the catch
+before the claim" (3) both reach for the opening, and "say what you'd do" (5)
+only pays off once the first two have earned it. The order that resolves the
+contention is the shape of nearly every strong telling:
+
+**figure → catch → move.**
+
+Lead with the number — it is the checkable fact, and opening on it spends no
+credibility. Name the limitation before you *interpret* the number, not
+necessarily before you state it: the risk being managed is the over-reading, so
+the catch has to reach the reader before the conclusion does, not before the
+digit. Then the so-what, last, underwritten by the two beats standing in front
+of it.
+
+Read this way, conviction 3 guards a subtler line than it first sounds. "Before
+the claim" means before the *conclusion the reader would draw* — a number-first
+telling that puts its hedge in the same breath as the figure has still stated
+the catch before the claim. The number may go first; only the meaning can't
+outrun its caveat. (This is why the rubric tags a hedge "up front" whether it
+sits *before or inside* the first claim sentence, and judges the lead on the
+first *non-caveat* clause: both orderings honour the spine.)
+
+It is also the cleaner lens on how tellings fail. Most of the craft failures
+below are a beat late, missing, or overrun: a buried lede is the figure arriving
+late; a fine-print caveat is the catch after the move; a missing so-what is the
+third beat dropped; the over-reached so-what is the third beat running past what
+the first two can support. The worked example next is exactly this spine, in
+order.
+
+---
+
 ## Worked example
 
 One finding, told two ways. Both are strictly faithful — this is a craft
@@ -321,3 +355,31 @@ disagreement; don't let them drift.
   below," which is both accurate and tightens blinding (a faithful telling no
   longer reads as carrying the hidden variable). Craft convictions unchanged;
   the pick on every stance is unchanged — only the stated boundary is restored.
+- **2026-07-05** — Added **"The spine: figure, then catch, then move."** The five
+  convictions were stated as independent defaults, but three of them silently
+  compete for the front of the sentence: lead-with-the-figure (1) and
+  catch-before-the-claim (3) both want the opening, and say-the-move (5) depends
+  on both. The doc never named the ordering that resolves them, though the worked
+  example has always embodied it. The new section states the spine (figure →
+  catch → move) and, in doing so, sharpens conviction 3: "before the claim" means
+  before the *conclusion*, not before the number — so a number-first telling with
+  its hedge in the same breath still honours it. This reconciles conviction 1 and
+  3 (previously readable as competing for slot one) and explains why the rubric
+  can tag a hedge "upfront" whether it sits before *or inside* the first claim
+  sentence while judging the lead on the first non-caveat clause. It also re-frames
+  the craft half of "How insights fail" as the spine with a beat late, missing, or
+  overrun — a stronger organizing idea than "each failure is the shadow of a
+  conviction." Convictions unchanged; the picks and the rubric are unchanged.
+  **Propagation deliberately withheld this round after gap analysis of all four
+  surfaces:** the House View caveat stance already says "before the claim" (not
+  "the number") and needs nothing; the rubric's `upfront`/`leadType` definitions
+  already accommodate both spine orderings; and the generator must *not* learn an
+  assembly order — it varies exactly one attribute per variant and must keep
+  producing question-first, implication-first, and so-what-implied tellings, so a
+  figure→catch→move instruction would fight the experimental design. The spine is
+  a reader-facing synthesis of the constitution, not a new constraint for the
+  surfaces to encode. Blinding-safe: the section is strictly the ordering of
+  number/caveat/so-what and touches only the eight *craft* failures; the ninth
+  (the exceedance) is deliberately excluded from the spine. Convergence: the four
+  surfaces are now tightly aligned; remaining refinements are likely to be
+  doc-only syntheses like this one until new data or a new device shape lands.
