@@ -83,3 +83,51 @@ none clearing the bar. No change.
 remain unchanged since this note **and** no re-open trigger has fired, this loop
 is a no-op — re-checking is fine, but do not re-log or edit for its own sake.
 The next entry here should coincide with an actual change or a fired trigger.
+
+## 2026-07-05 · Post-spine re-audit (converged — no surface change)
+
+**Context.** First loop round after the constitution gained "The spine: figure →
+catch → move" (`INSIGHT-PRINCIPLES.md` amendment log, 2026-07-05) — a doc-only
+synthesis that named the ordering resolving convictions 1, 3 and 5. This round's
+job was to (a) confirm the spine needs no propagation and (b) re-audit for
+anything new. Logging is warranted because the constitution changed since the
+standing-policy note above; this closes the spine's propagation question.
+
+**Spine propagation — resolved, none warranted.** The spine deliberately pushes
+to none of the four surfaces:
+- `generate.ts` must **not** learn an assembly order — it varies exactly one
+  attribute per variant and must keep emitting question-first, implication-first,
+  and so-what-implied tellings; a figure→catch→move instruction would fight the
+  experimental design (controlled one-attribute contrasts).
+- `house-view.ts` already frames the caveat stance as "before the *claim*" (not
+  "the number") — already spine-consistent.
+- `ATTRIBUTES.md` `upfront` ("before or inside the first claim sentence") and
+  `leadType` ("first *non-caveat* clause") already accommodate both spine
+  orderings (catch-before-number and number-then-catch-in-one-breath).
+- `lessons.ts` is strictly per-attribute; the spine is a cross-attribute
+  synthesis with no single-attribute home, and a whole-telling lesson surface
+  doesn't exist (adding one is scope creep, not a propagation).
+The spine is a reader-facing synthesis of the constitution, not a constraint for
+the surfaces to encode.
+
+**Structural convergence bound (new — worth recording once).** The five craft
+convictions are locked 1:1 to the five craft attributes, and the constitution's
+own falsifiability rule requires every principle to map to a live contrast on
+`/results`. So a *sixth* craft conviction with no corresponding attribute is
+inadmissible by the doc's own terms — e.g. "give the number a reference point /
+comparability," a real craft virtue, was considered this round and rejected on
+exactly that ground (no attribute → no mapped contrast → breaks falsifiability).
+This bounds every future round: admissible refinements are only **sharpenings of
+the five**, **new overclaim *device shapes*** (which extend the blinded fidelity
+taxonomy, not the craft convictions), or **amendments forced by data that
+overrules a stance**. A genuinely new craft conviction is out of scope until a
+new craft *attribute* is added to the study itself.
+
+**Decision.** Converge. No edits to the four surfaces or the constitution.
+
+**Re-open triggers** (unchanged): study data overruling a desk stance with a
+clean interval; a new craft attribute or a new overclaim device entering the
+taxonomy; the synthesis loop surfacing a durable aggregate pattern worth
+encoding; or a genuinely sharper distinction/example clearing the constitution
+bar. The standing anti-churn policy above still holds, now keyed to this note's
+state (constitution includes the spine; four surfaces unchanged).
