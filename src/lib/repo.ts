@@ -675,14 +675,25 @@ export async function getNextDrillItem(
   const weakTier = fresh.length === 0 && weak.length > 0;
 
   const rating = session?.drillRating ?? 1200;
+  // Difficulty ladder (mastery bullet 3): ramp the TARGET difficulty tier with
+  // the learner's demonstrated competence, and weight items by how close their
+  // AUTHORED difficulty (1 obvious .. 3 subtle) sits to it — so a learner meets
+  // the obvious overclaims first and only climbs to the subtle ones once they've
+  // cleared the easy tier. The drill rating self-gates the climb: it rises ~16
+  // per catch and falls ~16 per miss (K=32 at parity), so a struggling learner
+  // stays on tier 1 while a reliable one advances. Authored difficulty is the
+  // signal that matters here — the item Elo `rating` sits near its 1200 default
+  // until items accrue attempts, so it only *refines* the match once data exists.
+  const targetDifficulty = rating < 1240 ? 1 : rating < 1340 ? 2 : 3;
   const weighted = candidates.map((it) => {
-    // closeness in [0,1]: 1 when the item rating equals the learner's, decaying
-    // with distance (400 Elo ≈ half weight). Floor keeps far items reachable.
-    const closeness = 1 / (1 + Math.abs(it.rating - rating) / 400);
+    // Primary: proximity of the item's authored tier to the target (1, .5, .33).
+    const diffCloseness = 1 / (1 + Math.abs(it.difficulty - targetDifficulty));
+    // Secondary refiner: item-rating closeness, meaningful once ratings diverge.
+    const eloCloseness = 1 / (1 + Math.abs(it.rating - rating) / 400);
     // In the weak tier, give the most-missed skills proportionally more reps so
     // a skill missed twice is retried harder than one missed once.
     const missBoost = weakTier ? 0.5 * missesFor(it.skill) : 0;
-    return { it, w: 0.25 + closeness + missBoost };
+    return { it, w: 0.15 + diffCloseness + 0.35 * eloCloseness + missBoost };
   });
   const total = weighted.reduce((s, x) => s + x.w, 0);
   let roll = Math.random() * total;

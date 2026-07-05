@@ -107,9 +107,17 @@ exists — 35 items, multiple per skill):
    MISSED (caught < attempted), biased toward the most-missed skills, before it
    will re-serve a mastered one. Verified: after a session faced all ten skills
    and missed two, 100% of the next draws landed on those two (vs 20% uniform).
-3. **Escalate difficulty** — PARTIAL: selection soft-weights toward items near the
-   learner's drill rating so runs ramp rather than random-walk; a stricter
-   "clear the easy tier within a skill before the hard tier" ladder is still open.
+3. **Escalate difficulty** — DONE: `getNextDrillItem` now ramps a *target
+   difficulty tier* with the learner's drill rating (tier 1 below 1240, tier 2
+   below 1340, tier 3 above) and weights candidates by how close their AUTHORED
+   difficulty (1 obvious .. 3 subtle) sits to it. Since the rating rises ~16 per
+   catch and falls ~16 per miss, the climb self-gates — a struggling learner
+   stays on obvious items, a reliable one advances to subtle ones. Verified: the
+   difficulty-3 share of draws climbs 28% → 30% → 30% → 52% as the modelled
+   learner's rating rises from 1150 to 1420, and the difficulty-1 share falls
+   27% → 12% → 11%. (Previously selection keyed only off the item Elo `rating`,
+   which sits near its 1200 default until items accrue attempts — so the authored
+   difficulty tiers were effectively ignored and the ramp was inert.)
 
 Per-skill progress is now a live **mastery map** on the Training Room dashboard
 (caught/attempted per skill, grouped by family) plus a **session recap** (skills
@@ -300,3 +308,34 @@ that keeps it from the study is absolute:
   candidate, and unlike past rounds it is now feasible on the 35-item pool (three
   difficulty tiers already exist in the content). The credit-free selection
   policy is otherwise close to complete.
+- **2026-07-05** — Curriculum, part 6: **the difficulty ladder made real**
+  (mastery-model bullet 3, the round's chosen candidate). Selection *claimed* a
+  difficulty ramp but keyed it off each item's Elo `rating`, which sits at its
+  1200 default until items accrue attempts — so at the study's scale every item
+  looked equidistant to a new learner and the authored difficulty tiers (1
+  obvious .. 3 subtle) were effectively ignored. `getNextDrillItem` now derives a
+  *target tier* from the learner's drill rating (tier 1 < 1240, tier 2 < 1340,
+  tier 3 above) and weights candidates primarily by proximity of their AUTHORED
+  difficulty to that target, keeping the Elo-closeness as a lighter refiner for
+  when ratings do diverge. Because the drill rating moves ~±16 per call (K=32 at
+  parity), the climb self-gates: a learner who keeps missing stays on obvious
+  items; one who succeeds advances — the charter's "escalate only once the easy
+  tier is reliably caught," realized in aggregate. Why it won the decision lens:
+  it advances the exact next arc bullet, *deepens* an existing mechanism rather
+  than adding surface, is entirely server-side (zero blinding-UI risk, no
+  vocabulary moves), credit-free (uses the `difficulty` column + rating already
+  stored), and is invisible-by-design so it adds no learner friction. Verified
+  empirically (no UI to screenshot — the artifact is the distribution): the
+  difficulty-3 share of draws climbs 28% → 30% → 30% → 52% as the modelled
+  learner's rating rises 1150 → 1420, the difficulty-1 share falls 27% → 12% →
+  11%; full gate green (tsc, lint, build, canonical grep empty, guard PASS —
+  teaching chunk drill-only, 35-item content test passes). What this taught about
+  the model: with bullets 1–3 now all realized, the credit-free *selection*
+  policy is complete — a session covers unseen skills, reinforces missed ones,
+  and ramps difficulty with competence. The remaining levers are content and
+  surface, not selection: (a) the pool has only **6** obvious-tier (difficulty-1)
+  items, so a brand-new learner's on-ramp is content-limited — a future content
+  round adding more obvious items would sharpen it; (b) the active-recall "name
+  the move" beat dropped in the Training Room rebuild is still the standout
+  surface candidate (retrieval practice on "name how"), now the top named next
+  item. Blinding held throughout; drill attempts still never enter analytics.
