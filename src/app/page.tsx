@@ -35,7 +35,7 @@ const SURFACES: {
   live?: boolean;
 }[] = [
   {
-    n: "02",
+    n: "01",
     label: "Results",
     href: "/results",
     benefit: "See what the room values.",
@@ -43,35 +43,35 @@ const SURFACES: {
     live: true,
   },
   {
-    n: "03",
+    n: "02",
     label: "Review",
     href: "/review",
     benefit: "See where you're contrarian.",
     mode: "Your last run vs the room & the desk",
   },
   {
-    n: "04",
+    n: "03",
     label: "Train",
     href: "/drill",
     benefit: "Sharpen your eye.",
     mode: "Training room · spot the weaker telling · instant feedback",
   },
   {
-    n: "05",
+    n: "04",
     label: "House View",
     href: "/results#house-view",
     benefit: "Agree — or overrule the desk.",
     mode: `${HOUSE_VIEW_COUNT} preregistered calls on the record`,
   },
   {
-    n: "06",
+    n: "05",
     label: "Bring your data",
     href: "/submit",
     benefit: "Test your own story.",
     mode: "Turn a finding into a head-to-head",
   },
   {
-    n: "07",
+    n: "06",
     label: "Methods",
     href: "/results#methods",
     benefit: "See how it holds up.",
@@ -210,8 +210,7 @@ export default function Landing() {
             className="hero-line mt-6 font-sans font-semibold text-ink-strong text-[clamp(2.25rem,6.4vw,3.875rem)] leading-[1.0] tracking-[-0.03em] text-balance"
             style={{ "--i": 3 } as React.CSSProperties}
           >
-            Same finding, written two ways. Pick the better one.{" "}
-            <em className="not-italic text-muted">Ten calls, ninety seconds.</em>
+            Same finding, written two ways. Pick the better one.
           </h1>
           <p
             className="hero-line mx-auto mt-5 max-w-xl font-sans text-lg leading-[1.55] text-muted"
@@ -220,65 +219,16 @@ export default function Landing() {
             Find out what you actually like in a data story — and where you and the crowd
             don&apos;t agree.
           </p>
-        </div>
 
-        {/* 4 · THE SPECIMEN — one call, up close. Obeys the instrument rule:
-            the demonstrative pair emits nothing (no accent, no beam, no glow). */}
-        <section className="rise mt-12" style={{ "--i": 1 } as React.CSSProperties}>
-          <p className="kicker text-muted">One call, up close</p>
-          <p className="mt-1 font-sans text-lg font-semibold text-ink-strong tracking-[-0.01em]">
-            One finding, two tellings. Which would you pick?
-          </p>
-          <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-card border border-card-border bg-card-border sm:grid-cols-2">
-            <div className="bg-card p-5">
-              <p className="kicker text-muted mb-2">Telling A</p>
-              <p className="font-serif text-[1.0625rem] leading-[1.58] text-ink-strong text-pretty">
-                Remote-first teams shipped 12% more releases last quarter.
-              </p>
-            </div>
-            <div className="bg-card p-5">
-              <p className="kicker text-muted mb-2">Telling B</p>
-              <p className="font-serif text-[1.0625rem] leading-[1.58] text-ink-strong text-pretty">
-                Are we finally seeing the payoff from remote work? Over the last quarter,
-                remote-first teams appear to have edged ahead on shipping cadence — by something in
-                the low double digits.
-              </p>
-            </div>
-          </div>
-          <p className="mt-3 text-sm leading-relaxed text-pretty">
-            <span className="text-muted">Most people assume they&apos;d side with the room. </span>
-            <span className="font-semibold text-ink-strong">
-              Most don&apos;t.
-            </span>{" "}
-            <span className="text-muted">
-              Both tellings are equally true — the only difference is style.
-            </span>
-          </p>
-        </section>
-
-        {/* 5 · THE CONSOLE — the seven surfaces; hierarchy by layout + light */}
-        <section className="mt-12">
-          <div className="mb-4 flex items-center gap-3">
-            <p className="kicker text-muted">Seven ways in</p>
-            <span className="h-px flex-1 bg-card-border" aria-hidden />
-          </div>
-
-          {/* 01 VOTE — the full-width primary panel, the page's one earned glow */}
-          <div className="rounded-card border border-card-border bg-card p-5 shadow-[var(--shadow-card)]">
-            <div className="flex items-baseline gap-3">
-              <span className="font-mono text-sm text-muted tabular-nums">01</span>
-              <div>
-                <p className="font-sans text-xl font-semibold text-ink-strong tracking-[-0.01em]">
-                  Vote
-                </p>
-                <p className="kicker text-muted mt-1">The 90-second call · ten side-by-side picks</p>
-              </div>
-            </div>
-            <p className="mt-2 text-muted">See what you actually value.</p>
+          {/* Primary action — start is reachable immediately, no scroll to a lower panel */}
+          <div
+            className="hero-line mx-auto mt-8 max-w-md text-left"
+            style={{ "--i": 5 } as React.CSSProperties}
+          >
             <button
               onClick={start}
               disabled={pending}
-              className="cta-glow mt-4 w-full rounded-card bg-accent px-4 py-4 text-base font-semibold text-on-accent active:scale-[0.98] disabled:opacity-60"
+              className="cta-glow w-full rounded-card bg-accent px-4 py-4 text-base font-semibold text-on-accent active:scale-[0.98] disabled:opacity-60"
             >
               {pending
                 ? "Starting…"
@@ -318,9 +268,51 @@ export default function Landing() {
             </div>
             {error && <p className="mt-3 text-sm text-danger">{error}</p>}
           </div>
+        </div>
 
-          {/* 02–07 — the six secondary surfaces as milled, ink-only tiles */}
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* 4 · THE SPECIMEN — one call, up close. Obeys the instrument rule:
+            the demonstrative pair emits nothing (no accent, no beam, no glow). */}
+        <section className="rise mt-12" style={{ "--i": 1 } as React.CSSProperties}>
+          <p className="kicker text-muted">One call, up close</p>
+          <p className="mt-1 font-sans text-lg font-semibold text-ink-strong tracking-[-0.01em]">
+            One finding, two tellings. Which would you pick?
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-card border border-card-border bg-card-border sm:grid-cols-2">
+            <div className="bg-card p-5">
+              <p className="kicker text-muted mb-2">Telling A</p>
+              <p className="font-serif text-[1.0625rem] leading-[1.58] text-ink-strong text-pretty">
+                Remote-first teams shipped 12% more releases last quarter.
+              </p>
+            </div>
+            <div className="bg-card p-5">
+              <p className="kicker text-muted mb-2">Telling B</p>
+              <p className="font-serif text-[1.0625rem] leading-[1.58] text-ink-strong text-pretty">
+                Are we finally seeing the payoff from remote work? Over the last quarter,
+                remote-first teams appear to have edged ahead on shipping cadence — by something in
+                the low double digits.
+              </p>
+            </div>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-pretty">
+            <span className="text-muted">Most people assume they&apos;d side with the room. </span>
+            <span className="font-semibold text-ink-strong">
+              Most don&apos;t.
+            </span>{" "}
+            <span className="text-muted">
+              Both tellings are equally true — the only difference is style.
+            </span>
+          </p>
+        </section>
+
+        {/* 5 · THE CONSOLE — the six other surfaces (Vote lives in the hero now) */}
+        <section className="mt-12">
+          <div className="mb-4 flex items-center gap-3">
+            <p className="kicker text-muted">Six ways to go deeper</p>
+            <span className="h-px flex-1 bg-card-border" aria-hidden />
+          </div>
+
+          {/* The six surfaces as milled, ink-only tiles */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {SURFACES.map((s) => (
               <Link
                 key={s.n}
