@@ -12,6 +12,46 @@ aurora — stillness = precision); everything blinding-safe.
 
 ---
 
+## 2026-07-05 · Landing restructured — action-first, single start point
+
+**Move (bold, structural).** Reworked the landing hero after a fresh read (and
+direct user push that it "could be better"). Three coupled changes: (1) collapsed
+the two-tier headline to one clean bold statement — the muted full-size
+continuation had padded the H1 into a ~5-line grey block that dominated the first
+screen; (2) lifted the entire start block — primary CTA, the
+`ten calls · ~90s · no sign-up` reassurance, and the optional seat-tag chips — up
+into the hero, so the one action is reachable above the fold instead of ~1,100px
+down; (3) deleted the now-duplicate full-width "01 Vote" console panel and
+renumbered the remaining tiles 01–06 under a "Six ways to go deeper" rule. New
+read: live count → headline → benefit → **start + seat** → specimen (proof) →
+six ways to go deeper → the desk on the record.
+
+**Why it's a win (high leverage).** The prior page made a visitor scroll past the
+hero *and* the specimen to find the only start button, and stated the mechanic
+twice (headline + specimen caption) — a real conversion leak plus visual bloat.
+The restructure puts action first, removes the grey wall, and kills the
+redundancy, at zero new component/motion cost (relocation + deletion, same
+`start()`/seat handlers). Verified desktop + mobile, light + dark; the CTA now
+lands in the first screen at both widths.
+
+**Hard-rules + blinding pass.** Voting cards untouched (they live on /swipe; no
+diff). No collecting/JURY'S-STILL-OUT state on the landing to split. Instruments
+unchanged. Motion: the block uses the existing entrance-only `hero-line` stagger
+(`--i`) — no new continuous motion, reduced-motion unaffected, nothing loops. The
+inert two-telling specimen still emits nothing (no accent/beam/glow), preserving
+the demonstrative-pair neutrality rule. Blinding held: copy frames the pick as
+which telling you *like* / is "better" to you — pure preference, never a correct
+answer or hidden test; canonical grep on client chunks empty, bundle guard PASS
+(~200KB), no fidelity vocabulary. Shipped to production (`1c276b3`).
+
+**Learned / momentum.** On a mature surface, the highest-leverage "bold" move was
+information *architecture*, not effects — sequencing the page around the single
+action and cutting a duplicate. Momentum: strong; the landing is the one surface
+in active iteration with the user, so further landing changes should follow their
+direction rather than autonomous churn. The other energy surfaces (results,
+review, drill, poster) remain mature and were re-confirmed clean in recent rounds
+— no new autonomous bold move presents itself there this round.
+
 ## 2026-07-04 · Results §02 ranked by decisiveness
 
 **Move.** The public /results attribute head-to-heads (§02) were ordered by
