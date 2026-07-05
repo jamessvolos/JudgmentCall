@@ -5,6 +5,7 @@ import { getAnalysisSnapshots } from "@/lib/repo";
 import { ATTRIBUTE_LABELS, VALUE_LABELS } from "@/lib/types";
 import { CountUp } from "@/components/CountUp";
 import { YourContribution } from "@/components/YourContribution";
+import { ResultsHeadToHeads, type H2HRow } from "@/components/ResultsHeadToHeads";
 
 export const dynamic = "force-dynamic";
 
@@ -17,151 +18,83 @@ function pct(x: number): string {
   return `${Math.round(x * 100)}%`;
 }
 
-// The room's live verdict on a desk stance. "Concurs"/"overrules" only when
-// the Wilson interval clears the 50% null — the desk doesn't get to claim a
-// win (or dodge a loss) on a coin-flip estimate.
+// The room's live verdict on a desk stance — used by the §01 scoreboard.
+// "Concurs"/"overrules" only when the Wilson interval clears the 50% null.
 type DeskVerdict = "ROOM CONCURS" | "ROOM OVERRULES" | "TOO CLOSE TO CALL" | "JURY'S OUT";
 function deskVerdict(stat: ValuePairStat | undefined, stance: HouseStance): DeskVerdict {
-  if (!stat || stat.suppressed || stat.rateA === null || stat.interval === null)
-    return "JURY'S OUT";
+  if (!stat || stat.suppressed || stat.rateA === null || stat.interval === null) return "JURY'S OUT";
   const clears = stat.interval.lo > 0.5 || stat.interval.hi < 0.5;
   if (!clears) return "TOO CLOSE TO CALL";
   const roomPick = stat.rateA > 0.5 ? stat.valueA : stat.valueB;
   return roomPick === stance.pick ? "ROOM CONCURS" : "ROOM OVERRULES";
 }
 
-// §02 order: how firmly the room has SETTLED each call, not how many votes it
-// happened to draw. Tier 0 = resolved (Wilson interval clears the 50% null),
-// ranked by how far it clears; tier 1 = sampled but still straddling 50 (most
-// data first); tier 2 = every suppressed / un-voted row — one contiguous,
-// undifferentiated block (the uniform collecting state, now guaranteed to the
-// bottom rather than trailing by accident of turnout). Reads only published
-// craft rate/interval/n — no fidelity, no new information channel.
+// §02 ordering: how firmly the room has SETTLED each call. Tier 0 = resolved
+// (interval clears the 50% null), tier 1 = sampled but straddling, tier 2 = the
+// suppressed block (one uniform, undifferentiated tier at the bottom).
 function decisionRank(s: ValuePairStat): 0 | 1 | 2 {
   if (s.suppressed || s.interval === null) return 2;
   return s.interval.lo > 0.5 || s.interval.hi < 0.5 ? 0 : 1;
 }
 function clearance(s: ValuePairStat): number {
-  // How far the interval clears the null (0 for a straddler); self-penalizes
-  // small samples, whose wide Wilson bracket barely clears.
   return s.interval ? Math.max(s.interval.lo - 0.5, 0.5 - s.interval.hi, 0) : 0;
 }
 
-// The desk's verdict is a margin note, not an instrument reading — un-boxed so
-// the one boxed pill per row stays the caliper's statistical verdict. Keeps the
-// accent/danger color semantics.
-function DeskVerdictChip({ verdict }: { verdict: DeskVerdict }) {
-  const tone =
-    verdict === "ROOM CONCURS"
-      ? "text-accent"
-      : verdict === "ROOM OVERRULES"
-        ? "text-danger"
-        : "text-muted";
-  return (
-    <span className={`shrink-0 font-mono text-[10px] font-semibold tracking-[0.14em] ${tone}`}>
-      {verdict}
-    </span>
-  );
+// Resolve a segment's craft stats to render-ready rows for the client island:
+// merge in the desk's un-voted contrasts (suppressed placeholders), rank by
+// decisiveness, and pre-resolve every label + the desk stance + verdict on the
+// SERVER — so the client component imports no server lib (keeping fidelity
+// vocabulary and LOW_ATTENTION out of the browser bundle). Craft only.
+function buildH2HRows(stats: ValuePairStat[]): H2HRow[] {
+  const merged: ValuePairStat[] = [
+    ...stats,
+    ...HOUSE_VIEW.filter(
+      (h) => !stats.some((s) => s.attribute === h.attribute && s.valueA === h.valueA && s.valueB === h.valueB)
+    ).map(
+      (h): ValuePairStat => ({
+        attribute: h.attribute,
+        attributeLabel: ATTRIBUTE_LABELS[h.attribute],
+        valueA: h.valueA,
+        valueB: h.valueB,
+        valueALabel: VALUE_LABELS[h.valueA] ?? h.valueA,
+        valueBLabel: VALUE_LABELS[h.valueB] ?? h.valueB,
+        winsA: 0,
+        n: 0,
+        rateA: null,
+        interval: null,
+        suppressed: true,
+      })
+    ),
+  ];
+  merged.sort((x, y) => {
+    const rx = decisionRank(x);
+    const ry = decisionRank(y);
+    if (rx !== ry) return rx - ry;
+    if (rx === 0) return clearance(y) - clearance(x);
+    if (rx === 1) return y.n - x.n;
+    return 0;
+  });
+  return merged.map((s): H2HRow => {
+    const stance = stanceFor(s.attribute, s.valueA, s.valueB);
+    const clears = !s.suppressed && s.interval !== null && (s.interval.lo > 0.5 || s.interval.hi < 0.5);
+    return {
+      key: `${s.attribute}:${s.valueA}|${s.valueB}`,
+      anchor: `${s.attribute}-${s.valueA}-${s.valueB}`.replace(/[^a-zA-Z0-9_-]/g, ""),
+      valueALabel: s.valueALabel,
+      valueBLabel: s.valueBLabel,
+      n: s.n,
+      rateA: s.rateA,
+      intervalLo: s.interval?.lo ?? null,
+      intervalHi: s.interval?.hi ?? null,
+      suppressed: s.suppressed,
+      clears,
+      stancePickLabel: stance ? (VALUE_LABELS[stance.pick] ?? stance.pick) : null,
+      stanceLine: stance ? stance.line : null,
+      deskVerdict: stance ? deskVerdict(s, stance) : null,
+    };
+  });
 }
 
-// One value-pair contrast, drawn as a caliper gauge (Atelier Nul direction):
-// a ticked 0–100% scale with a strong 50% null line, the Wilson interval as
-// a bracket, and the point estimate as a filled marker. Color is earned by
-// n≥30 — suppressed rows are ink-only with a hatched collection bar, so a
-// reader can never mistake "collecting" for "measured".
-function ContrastRow({ stat }: { stat: ValuePairStat }) {
-  const clears =
-    !stat.suppressed && stat.interval !== null && (stat.interval.lo > 0.5 || stat.interval.hi < 0.5);
-  const stance = stanceFor(stat.attribute, stat.valueA, stat.valueB);
-  // Stable anchor so articles can deep-link one contrast: /results#leadType-a-b
-  const anchor = `${stat.attribute}-${stat.valueA}-${stat.valueB}`.replace(/[^a-zA-Z0-9_-]/g, "");
-  return (
-    <div id={anchor} className="card-reveal group scroll-mt-6 py-3.5 border-b border-card-border last:border-b-0">
-      <div className="flex items-baseline justify-between gap-3 text-sm">
-        <p>
-          <a href={`#${anchor}`} className="hover:underline decoration-card-border underline-offset-2">
-            <span className="font-semibold">{stat.valueALabel}</span>
-            <span className="text-muted"> vs </span>
-            <span className="font-semibold">{stat.valueBLabel}</span>
-          </a>
-        </p>
-        <p className="font-mono text-xs text-muted shrink-0 tabular-nums">
-          {stat.suppressed ? `JURY'S STILL OUT — ${stat.n}/${MIN_N}` : `n=${stat.n}`}
-        </p>
-      </div>
-      {stat.suppressed ? (
-        <div
-          className="mt-2.5 h-2.5 rounded-[2px] overflow-hidden"
-          style={{
-            background:
-              "repeating-linear-gradient(-45deg, var(--card-border), var(--card-border) 3px, transparent 3px, transparent 7px)",
-          }}
-        >
-          <div
-            className="h-full bg-card-border"
-            style={{ width: `${(stat.n / MIN_N) * 100}%` }}
-            title={`Collecting: ${stat.n} of ${MIN_N} votes before this rate is shown`}
-          />
-        </div>
-      ) : (
-        <>
-          {/* The gauge: track, quarter ticks, 50% null line, Wilson bracket, point. */}
-          <div className="relative mt-2.5 h-7" aria-hidden>
-            <div className="absolute left-0 right-0 top-1/2 h-px bg-card-border" />
-            {[0, 25, 75, 100].map((t) => (
-              <div
-                key={t}
-                className="absolute top-1/2 h-2 w-px -translate-y-1/2 bg-card-border"
-                style={{ left: `${t}%` }}
-              />
-            ))}
-            <div className="absolute left-1/2 top-1/2 h-4 w-px -translate-y-1/2 bg-rule-strong" />
-            {stat.interval && (
-              <div
-                className="absolute top-1/2 h-2.5 -translate-y-1/2 border-x-2 border-t-2 border-accent"
-                style={{
-                  left: pct(stat.interval.lo),
-                  width: `${Math.max(1, Math.round((stat.interval.hi - stat.interval.lo) * 100))}%`,
-                }}
-                title={`95% interval: ${pct(stat.interval.lo)}–${pct(stat.interval.hi)}`}
-              />
-            )}
-            <div
-              className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent"
-              style={{ left: pct(stat.rateA!) }}
-            />
-          </div>
-          <div className="mt-1 flex items-center justify-between gap-3">
-            <p className="font-mono text-xs text-muted tabular-nums">
-              {stat.valueALabel} wins {pct(stat.rateA!)} ({pct(stat.interval!.lo)}–
-              {pct(stat.interval!.hi)} at 95%)
-            </p>
-            <span
-              className={`shrink-0 rounded-chip border px-1.5 py-px font-mono text-[10px] font-semibold tracking-[0.14em] ${
-                clears ? "border-accent text-accent" : "border-card-border text-muted"
-              }`}
-            >
-              {clears ? "INTERVAL CLEARS 50" : "STRADDLES 50"}
-            </span>
-          </div>
-        </>
-      )}
-      {stance && (
-        <div className="mt-2.5 flex items-start justify-between gap-3 border-l-2 border-rule-strong pl-3">
-          <p className="text-[0.8125rem] leading-snug text-muted">
-            <span className="font-mono text-[10px] font-semibold tracking-[0.14em] text-ink-strong">
-              THE DESK&apos;S CALL:{" "}
-            </span>
-            <strong className="text-foreground">{VALUE_LABELS[stance.pick] ?? stance.pick}</strong>
-            {" — "}
-            <em className="font-serif">&ldquo;{stance.line}&rdquo;</em>
-          </p>
-          <DeskVerdictChip verdict={deskVerdict(stat, stance)} />
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default async function ResultsPage({
   searchParams,
@@ -285,47 +218,15 @@ export default async function ResultsPage({
             Ranked by how firmly the room has settled each call — decided contrasts lead,
             still-collecting pairs trail.
           </p>
-          <div className="mt-2 rounded-card border border-card-border bg-card px-5 py-2">
-            {/* Every desk-covered contrast renders from vote zero — un-voted
-                pairs show an empty collecting bar under the desk's call, so
-                the page states its opinions before it has its data. Ordered by
-                decisiveness (see decisionRank): resolved first, then straddling,
-                then the suppressed block — which stays one uniform tier. */}
-            {[
-              ...a.attributeStats,
-              ...HOUSE_VIEW.filter(
-                (h) =>
-                  !a.attributeStats.some(
-                    (s) => s.attribute === h.attribute && s.valueA === h.valueA && s.valueB === h.valueB
-                  )
-              ).map(
-                (h): ValuePairStat => ({
-                  attribute: h.attribute,
-                  attributeLabel: ATTRIBUTE_LABELS[h.attribute],
-                  valueA: h.valueA,
-                  valueB: h.valueB,
-                  valueALabel: VALUE_LABELS[h.valueA] ?? h.valueA,
-                  valueBLabel: VALUE_LABELS[h.valueB] ?? h.valueB,
-                  winsA: 0,
-                  n: 0,
-                  rateA: null,
-                  interval: null,
-                  suppressed: true,
-                })
-              ),
-            ]
-              .sort((x, y) => {
-                const rx = decisionRank(x);
-                const ry = decisionRank(y);
-                if (rx !== ry) return rx - ry; // resolved → straddling → collecting
-                if (rx === 0) return clearance(y) - clearance(x); // strongest clearance first
-                if (rx === 1) return y.n - x.n; // straddling: most data first
-                return 0; // suppressed: stable — one uniform, undifferentiated block
-              })
-              .map((s) => (
-                <ContrastRow key={`${s.attribute}:${s.valueA}|${s.valueB}`} stat={s} />
-              ))}
-          </div>
+          {/* Interactive: Everyone / Executives / Analysts filter. Per-segment
+              craft stats already exist upstream (fidelity excluded); each view's
+              suppressed rows stay one uniform collecting block. */}
+          <ResultsHeadToHeads
+            overall={buildH2HRows(a.attributeStats)}
+            executive={buildH2HRows(a.segmentStats.executive ?? [])}
+            analyst={buildH2HRows(a.segmentStats.analyst ?? [])}
+            minN={MIN_N}
+          />
         </section>
 
         <section className="card-reveal mt-8">
