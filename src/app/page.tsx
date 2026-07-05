@@ -210,18 +210,16 @@ export default function Landing() {
             className="hero-line mt-6 font-sans font-semibold text-ink-strong text-[clamp(2.25rem,6.4vw,3.875rem)] leading-[1.0] tracking-[-0.03em] text-balance"
             style={{ "--i": 3 } as React.CSSProperties}
           >
-            Two tellings of the same finding. You pick the one that lands.{" "}
-            <em className="not-italic text-muted">
-              Ten calls, ninety seconds — then your taste, measured.
-            </em>
+            The finding is the easy part. Sharpen the telling.{" "}
+            <em className="not-italic text-muted">Ten quick calls — ninety seconds.</em>
           </h1>
           <p
             className="hero-line mx-auto mt-5 max-w-xl font-sans text-lg leading-[1.55] text-muted"
             style={{ "--i": 4 } as React.CSSProperties}
           >
-            Every number on this page is a real vote on which way of telling a data story
-            works better. Make ten calls of your own and see your taste — and where you stand
-            against the room. No sign-up. Anonymous.
+            Every call: one real finding, told two ways. You&apos;ll see what you value in a data
+            story, where it splits from the room — and leave sharper at telling your own. First
+            call&apos;s below.
           </p>
         </div>
 
