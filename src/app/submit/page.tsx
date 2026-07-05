@@ -172,7 +172,7 @@ export default function SubmitPage() {
             Run this on your numbers
           </h1>
           <p className="mt-3 max-w-2xl font-sans text-[0.95rem] leading-[1.55] text-muted text-pretty">
-            Compose one finding on the bench; watch its spec plate assemble. You get a private deck —
+            Write up one finding and watch the preview build as you type. You get a private deck —
             six tellings of your fact, reviewed before anyone votes, on a link only you share. Your
             deck&apos;s votes never enter the public study. You own the truth claim; write it in three
             lines.

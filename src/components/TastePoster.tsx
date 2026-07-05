@@ -41,10 +41,10 @@ const MOD_NOUN: Record<string, string> = {
   long: "Deep Reader",
   medium: "Pragmatist",
   precise: "Precisionist",
-  rounded: "Approximator",
+  rounded: "Rounder",
   qualitative: "Storyteller",
   explicit: "Director",
-  implied: "Trustee",
+  implied: "Believer",
 };
 
 export function personaTitle(preferences: PreferenceDto[]): string {

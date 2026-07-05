@@ -74,7 +74,7 @@ const SURFACES: {
     n: "07",
     label: "Methods",
     href: "/results#methods",
-    benefit: "Trust the rigor.",
+    benefit: "See how it holds up.",
     mode: "How the study works · pairing, intervals, inclusion",
   },
 ];
@@ -219,9 +219,9 @@ export default function Landing() {
             className="hero-line mx-auto mt-5 max-w-xl font-sans text-lg leading-[1.55] text-muted"
             style={{ "--i": 4 } as React.CSSProperties}
           >
-            You&apos;re looking at a live instrument: every reading here is a real vote on what
-            makes a data story land. Make ten calls of your own and it shows you your taste — and
-            where you stand against the room. No sign-up. Anonymous.
+            Every number on this page is a real vote on which way of telling a data story
+            works better. Make ten calls of your own and see your taste — and where you stand
+            against the room. No sign-up. Anonymous.
           </p>
         </div>
 
@@ -230,7 +230,7 @@ export default function Landing() {
         <section className="rise mt-12" style={{ "--i": 1 } as React.CSSProperties}>
           <p className="kicker text-muted">One call, up close</p>
           <p className="mt-1 font-sans text-lg font-semibold text-ink-strong tracking-[-0.01em]">
-            One finding, two tellings. You&apos;d tap the one that lands.
+            One finding, two tellings. Which would you pick?
           </p>
           <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-card border border-card-border bg-card-border sm:grid-cols-2">
             <div className="bg-card p-5">
@@ -249,9 +249,9 @@ export default function Landing() {
             </div>
           </div>
           <p className="mt-3 text-sm leading-relaxed text-pretty">
-            <span className="text-muted">Most people are sure they&apos;d side with the room. </span>
+            <span className="text-muted">Most people assume they&apos;d side with the room. </span>
             <span className="font-semibold text-ink-strong">
-              Most read it differently than they think.
+              Most don&apos;t.
             </span>{" "}
             <span className="text-muted">
               Both tellings are equally true — the only difference is style.
@@ -277,7 +277,7 @@ export default function Landing() {
                 <p className="kicker text-muted mt-1">The 90-second call · ten side-by-side picks</p>
               </div>
             </div>
-            <p className="mt-2 text-muted">Discover what you value.</p>
+            <p className="mt-2 text-muted">See what you actually value.</p>
             <button
               onClick={start}
               disabled={pending}

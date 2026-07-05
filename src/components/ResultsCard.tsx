@@ -89,7 +89,7 @@ export function ResultsCard({
           onClick={onKeepGoing}
           className="cta-glow flex-1 rounded-card bg-accent px-4 py-3 font-mono text-sm font-semibold text-on-accent active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         >
-          Keep going — sharpen your profile
+          Keep going — more calls, sharper read
         </button>
         <a
           href="/review"
