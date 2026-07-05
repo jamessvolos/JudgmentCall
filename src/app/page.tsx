@@ -4,12 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getOrCreateSessionId, getSessionId } from "@/lib/session-client";
-import {
-  HOUSE_VIEW_COUNT,
-  SEGMENTS,
-  SEGMENT_LABELS,
-  type Segment,
-} from "@/lib/client-constants";
+import { HOUSE_VIEW_COUNT, type Segment } from "@/lib/client-constants";
 
 // THE LIVE CONSOLE — the landing is the lit control surface of a study that is
 // already running. You read the one earned light (the live count you're about
@@ -202,7 +197,7 @@ export default function Landing() {
               className="hero-line mt-3 font-mono text-[0.75rem] text-muted"
               style={{ "--i": 2 } as React.CSSProperties}
             >
-              No sign-up · Anonymous · ≈90 seconds
+              ≈90 seconds
             </p>
           )}
 
@@ -237,35 +232,8 @@ export default function Landing() {
                   : "Make your first call →"}
             </button>
             <p className="mt-2 text-center font-mono text-xs text-muted">
-              Ten calls · ~90s · no sign-up · anonymous
+              Ten calls · ~90s
             </p>
-
-            {/* Optional calibration: chips SET the seat, they never launch. */}
-            <div className="well mt-4 rounded-card bg-wash px-4 py-3">
-              <p className="kicker text-muted">Optional · tag your seat</p>
-              <p className="mt-1 text-sm text-muted">
-                {returning
-                  ? "…or switch the seat you read data from — it sharpens how your Results compare."
-                  : "Where do you read data from? It sharpens how your Results compare — or skip it and make the call."}
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {SEGMENTS.map((seg) => (
-                  <button
-                    key={seg}
-                    type="button"
-                    aria-pressed={segment === seg}
-                    onClick={() => setSegment(seg)}
-                    className={`rounded-chip border px-3 py-2 font-mono text-sm transition ${
-                      segment === seg
-                        ? "border-rule-strong bg-card text-ink-strong"
-                        : "border-card-border bg-card/40 text-muted hover:border-rule-strong"
-                    }`}
-                  >
-                    {SEGMENT_LABELS[seg]}
-                  </button>
-                ))}
-              </div>
-            </div>
             {error && <p className="mt-3 text-sm text-danger">{error}</p>}
           </div>
         </div>
