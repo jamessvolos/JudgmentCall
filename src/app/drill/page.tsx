@@ -128,6 +128,7 @@ export default function TrainingRoom() {
   const [error, setError] = useState(false);
 
   const [mode, setMode] = useState<string>("");
+  const [skillFocus, setSkillFocus] = useState<string>("");
   const [item, setItem] = useState<Item | null>(null);
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -153,9 +154,9 @@ export default function TrainingRoom() {
     setProgress(data.skillProgress ?? []);
   }, []);
 
-  const fetchItem = useCallback(async (m: string): Promise<Item | null> => {
+  const fetchItem = useCallback(async (m: string, skill = ""): Promise<Item | null> => {
     const sid = sessionIdRef.current!;
-    const q = m ? `&mode=${m}` : "";
+    const q = `${m ? `&mode=${m}` : ""}${skill ? `&skill=${skill}` : ""}`;
     const res = await fetch(`/api/drill?sessionId=${encodeURIComponent(sid)}${q}`);
     if (!res.ok) throw new Error("fetch failed");
     const data: DrillGet = await res.json();
@@ -185,15 +186,16 @@ export default function TrainingRoom() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function startRun(m: string) {
+  async function startRun(m: string, skill = "") {
     setMode(m);
+    setSkillFocus(skill);
     setRunStartRating(rating);
     setRunSkills([]);
     setRunDone(0);
     setRunCorrect(0);
     setVerdict(null);
     try {
-      const it = await fetchItem(m);
+      const it = await fetchItem(m, skill);
       if (!it) {
         setItem(null);
         setPhase("recap");
@@ -244,7 +246,7 @@ export default function TrainingRoom() {
       return;
     }
     try {
-      const it = await fetchItem(mode);
+      const it = await fetchItem(mode, skillFocus);
       if (!it) {
         setPhase("recap");
         return;
@@ -337,7 +339,7 @@ function Dashboard({
   rating: number;
   count: number;
   progressFor: (id: string) => SkillProgress;
-  onStart: (mode: string) => void;
+  onStart: (mode: string, skill?: string) => void;
 }) {
   const [mode, setMode] = useState<string>("");
   return (
@@ -392,9 +394,22 @@ function Dashboard({
           <p className="kicker text-muted">Your skill map</p>
           <span className="h-px flex-1 bg-card-border" aria-hidden />
         </div>
-        <SkillGroup title="Fidelity — is the claim honest?" ids={FIDELITY_SKILLS} progressFor={progressFor} />
+        <p className="mb-3 font-mono text-[0.6875rem] text-muted">
+          Tap any skill to drill it on its own.
+        </p>
+        <SkillGroup
+          title="Fidelity — is the claim honest?"
+          ids={FIDELITY_SKILLS}
+          progressFor={progressFor}
+          onFocus={(id) => onStart("", id)}
+        />
         <div className="mt-5">
-          <SkillGroup title="Craft — is the insight well told?" ids={CRAFT_SKILLS} progressFor={progressFor} />
+          <SkillGroup
+            title="Craft — is the insight well told?"
+            ids={CRAFT_SKILLS}
+            progressFor={progressFor}
+            onFocus={(id) => onStart("", id)}
+          />
         </div>
       </div>
 
@@ -411,10 +426,12 @@ function SkillGroup({
   title,
   ids,
   progressFor,
+  onFocus,
 }: {
   title: string;
   ids: SkillId[];
   progressFor: (id: string) => SkillProgress;
+  onFocus: (id: SkillId) => void;
 }) {
   return (
     <div>
@@ -424,15 +441,22 @@ function SkillGroup({
           const s = SKILLS[id];
           const p = progressFor(id);
           return (
-            <div key={id} className="rounded-card border border-card-border bg-card p-3">
+            <button
+              key={id}
+              onClick={() => onFocus(id)}
+              className="group block w-full rounded-card border border-card-border bg-card p-3 text-left transition hover:border-rule-strong hover:shadow-[var(--shadow-lift)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
               <div className="flex items-baseline justify-between gap-3">
                 <span className="font-sans text-sm font-semibold text-ink-strong">{s.name}</span>
                 <span className="shrink-0 font-mono text-[0.6875rem] text-muted tabular-nums">
-                  {p.attempted > 0 ? `${p.caught}/${p.attempted} caught` : "not yet faced"}
+                  <span className="group-hover:hidden">
+                    {p.attempted > 0 ? `${p.caught}/${p.attempted} caught` : "not yet faced"}
+                  </span>
+                  <span className="hidden text-accent group-hover:inline">practice →</span>
                 </span>
               </div>
               <MasteryBar caught={p.caught} attempted={p.attempted} />
-            </div>
+            </button>
           );
         })}
       </div>
