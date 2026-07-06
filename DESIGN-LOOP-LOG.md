@@ -234,3 +234,34 @@ presents itself that wouldn't be token-tweaking or a fight with the user's
 simplification. Momentum: strong — the public surfaces remain coherent, and the
 landing is now tighter than before. The standing "next real entry should
 coincide with a genuine bold move (or a changed surface, as here)" policy holds.
+
+## 2026-07-05 · Drill "name the move" beat design-assessed (converged — no design change)
+
+**Why this entry exists (not a silent no-op).** Since the last design pass one
+energy surface changed: the **drill verdict** gained an active-recall "name the
+move" beat (teaching round) — after an item is graded, the pattern is withheld
+and the learner names it from family-scoped chips before the reveal. This round
+design-assessed that new interaction (screenshots captured in the teaching round,
+naming phase + marked reveal, light + dark, both skill families).
+
+**Assessment.** It reuses the DATUM primitives with no bespoke additions: the
+mono `kicker` label ("NOW NAME THE MOVE"), `rounded-chip` buttons, the existing
+accent/danger left-border reveal card, and ✓/✗ marking in accent/danger. It
+inherits the reveal's `rise` entrance and adds no continuous motion. Coherent in
+both themes and for both chip sets (5 fidelity moves / 5 craft flaws). It is
+disciplined and on-brand; a "bold move" on top would be gilding, which the loop
+discourages.
+
+**Hard-rules audit (passed).** The drill is the training room, not a voting
+surface — the two voting cards and the STILL COLLECTING / JURY'S STILL OUT state
+are untouched (they live on /swipe and /results). No continuous motion added,
+reduced-motion honoured, landing aurora still the only sanctioned loop. Blinding:
+the beat is /drill-only — bundle guard confirms the teaching chunk stays
+drill-only and the canonical grep is empty. Other energy surfaces (landing,
+results/House View, review, poster) unchanged since their prior converged
+assessments.
+
+**Decision: converge, no design change.** The one changed surface passed design +
+hard-rules review; no further bold, hard-rule-safe frontier leap presents itself
+that wouldn't be over-decoration. Momentum: strong — the drill now teaches
+recognition *plus* recall while staying inside the visual system.
