@@ -262,7 +262,7 @@ export default function ReviewPage() {
                 ) : (
                   <p className="mt-1.5 font-mono text-[0.6875rem] text-muted">
                     The desk has its calls on record — the room hasn&apos;t ruled on yours yet.{" "}
-                    <Link href="/results#house-view" className="text-accent hover:underline">
+                    <Link href="/results#desk-calls" className="text-accent hover:underline">
                       Read them →
                     </Link>
                   </p>
@@ -471,7 +471,7 @@ export default function ReviewPage() {
                   )}
                 </Link>
                 <span className="text-muted"> · </span>
-                <Link href="/results#house-view" className="text-accent hover:underline">
+                <Link href="/results#desk-calls" className="text-accent hover:underline">
                   The desk&apos;s 13 calls, on the record
                 </Link>
               </p>

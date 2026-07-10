@@ -53,8 +53,8 @@ const SURFACES: {
   },
   {
     n: "04",
-    label: "House View",
-    href: "/results#house-view",
+    label: "The Desk's Calls",
+    href: "/results#desk-calls",
     benefit: "Agree — or overrule the desk.",
     mode: `${HOUSE_VIEW_COUNT} preregistered calls on the record`,
   },
@@ -68,7 +68,7 @@ const SURFACES: {
   {
     n: "06",
     label: "Methods",
-    href: "/results#methods",
+    href: "/methods",
     benefit: "See how it holds up.",
     mode: "How the study works · pairing, intervals, inclusion",
   },

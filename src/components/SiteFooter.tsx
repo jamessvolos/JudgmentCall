@@ -21,13 +21,13 @@ export function SiteFooter() {
           <Link href="/drill" className="hover:text-foreground hover:underline">
             Train
           </Link>
-          <Link href="/results#house-view" className="hover:text-foreground hover:underline">
-            House View
+          <Link href="/results#desk-calls" className="hover:text-foreground hover:underline">
+            The Desk&apos;s Calls
           </Link>
           <Link href="/submit" className="hover:text-foreground hover:underline">
             Bring your data
           </Link>
-          <Link href="/results#methods" className="hover:text-foreground hover:underline">
+          <Link href="/methods" className="hover:text-foreground hover:underline">
             Methods
           </Link>
           <span className="ml-auto tracking-[0.18em] uppercase">Judgment Call</span>
