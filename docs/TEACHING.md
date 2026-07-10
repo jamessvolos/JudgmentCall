@@ -377,3 +377,38 @@ that keeps it from the study is absolute:
   pool deepens (today it's a session-local tally), and the standing content lever
   (more obvious-tier items). Blinding held; drill attempts still never enter
   analytics; the naming tally is client-only and never POSTed.
+- **2026-07-10** — Content, part 1: **the obvious-tier on-ramp filled** (the
+  charter's standing content lever, named as the open gap in the last two
+  amendments). The audit that opened this round sharpened the known problem:
+  not only did the pool hold just 6 difficulty-1 items, but **five of the ten
+  skills had zero** — `absent_caveat`, `buried_lede`, `false_precision`,
+  `missing_sowhat`, `single_cause`. That's a selection-model hole, not just
+  thin content: the difficulty ladder targets d1 for ratings under 1240 and
+  the fresh tier serves a learner's first encounter with each skill — so for
+  half the skills, a brand-new or struggling learner could never be served an
+  obvious-tier rep, and the ladder shipped in the mastery arc was silently
+  inert exactly where it matters most. Authored **5 new difficulty-1 spot
+  items**, one per missing skill, through the established two-agent pipeline:
+  an author pass (DS-flavored fictional scenarios — Swiftline, St. Alder,
+  BrightPath, Emberfall, Lumo — each with a genuinely obvious tell, per the
+  tier's contract) followed by an independent adversarial review. The reviewer
+  passed three items and caught two real defects, both fixed before
+  integration: the `missing_sowhat` item's faithful telling smuggled in an
+  unsupported mechanism claim (rewritten mechanism-neutral: "until the crash
+  on those devices is patched"), and the `absent_caveat` item's faithful
+  telling contradicted its own prompt by implying the caveat was resolved
+  (rewritten provisional: "treat the jump as provisional until April shows
+  whether it holds"). Pool: 35 → **40 active items**; difficulty-1: 6 → 11;
+  d1 coverage now **all ten skills** (sync check: "skills missing d1:
+  NONE ✓"). Verified: drill-content test 40/40 PASS, tsc, lint, build,
+  canonical blinding grep empty, bundle guard PASS (~201 KB, teaching chunk
+  still drill-only); a new item served live through the real weighted draw
+  and screenshotted in light and dark (one-pip difficulty marker and the
+  corrected text confirmed on screen). Why it won the decision lens: it was
+  the charter's own named next lever; it converts an already-shipped
+  selection mechanism from partially inert to fully live (content unlocking
+  code, no new code); and it is drill-only by construction — zero blinding
+  surface. Next candidates: deepen d1 past one item per skill so the fresh
+  tier has variety on re-entry, and the durable per-skill naming-accuracy
+  read (needs schema, still deferred). Blinding held; drill attempts still
+  never enter analytics.
