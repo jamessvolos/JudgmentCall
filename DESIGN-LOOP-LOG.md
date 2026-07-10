@@ -265,3 +265,51 @@ assessments.
 hard-rules review; no further bold, hard-rule-safe frontier leap presents itself
 that wouldn't be over-decoration. Momentum: strong — the drill now teaches
 recognition *plus* recall while staying inside the visual system.
+
+## 2026-07-10 · The Desk's Calls docket + /methods page (bold move, user-commissioned)
+
+**The move.** Two structural reimaginings shipped this round, commissioned by the
+user and produced through a three-firm pitch + simulated three-persona user
+panel: (1) §01 of /results renamed from "The House View" to **"The Desk's
+Calls"** and rebuilt from a two-sentence intro card into a **docket** — the 13
+preregistered stances shown whole, in frozen registration order (R·01–R·13,
+self-anchoring), each row carrying the contrast (anchor-linked to its §02
+caliper), the desk's pick in mono, the quotable serif one-liner, and the room's
+verdict chip; a rotated REG stamp against a GRADED LIVE tag; the standing tally
+as a Σ row; a provenance footnote linking the record at its registration commit
+and precommitting the expected ~1-in-13 false verdict at 95%. (2) **Methods
+promoted to /methods** — its own citable page (anchors m-01…m-06 preserved) via
+a shared server component, with a two-line pointer + the n≥30 floor kept on
+/results.
+
+**Why it's a win.** The product's boldest artifact (a dated, falsifiable ledger
+of public bets) previously had no place where it could be seen whole; the docket
+gives it a form worthy of being the spine. "Light physics" made the freeze
+*felt*: frozen columns (index, contrast, pick, quote) never carry accent — only
+the room's live verdict column is lit. The rename removes the finance-jargon
+smell while costing the reader nothing (the section is the plural of its shipped
+item label). The panel's three trust fixes (zero-state reframe, pinned-commit
+link, false-verdict precommit) turned the section from claim into evidence.
+
+**Hard-rules audit (passed, at ship time).** Voting cards and the uniform
+JURY'S STILL OUT collecting state untouched (§02 unmodified; the docket's
+JURY'S OUT chips are §01 desk-verdict states, not the §02 collecting block —
+and they render uniformly muted). No motion added anywhere; the stamp's -2°
+rotation is a static transform; GRADED LIVE reuses the existing static glow
+idiom. Blinding grep empty + guard PASS on the shipped commit; the disclosure
+paragraph verbatim on /methods. Screenshots at 390/1280 × light/dark for both
+surfaces.
+
+**Learned / de-risked.** (a) A commissioning process that includes a *user
+panel* catches what firms miss — all three trust fixes came from the panel, not
+the designers. (b) The "record vs. reading" split (frozen order in §01, live
+rank in §02) resolves duplication anxieties cleanly and is reusable whenever a
+preregistered artifact meets live data. (c) JSX whitespace collapse around
+`{" "}\n{expr}` produced a rendered "13calls" — caught by curling the rendered
+HTML, not by the screenshot pass alone; both checks stay in the gate.
+
+**Momentum.** Strong. The public surfaces now share a citable-anchor grammar
+(R·nn on the docket, M·nn on methods, §02 row anchors). Standing candidates for
+future rounds: an OG card for individual desk calls (the panel's share-affordance
+gap — the one panel fix deliberately deferred), and re-assessing the review page
+against the new docket vocabulary.
