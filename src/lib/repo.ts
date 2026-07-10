@@ -315,10 +315,14 @@ export async function recordVote(input: VoteInput): Promise<VoteResult> {
         },
       });
 
-      // Repeats are non-independent (exhaustion fallback or a double-tap) — they
-      // are logged for the seen-set but must not move ratings, matching their
-      // exclusion from analytics and XP. Only clean decided votes touch Elo.
-      if (input.winnerId && !input.isRepeat) {
+      // Repeats are non-independent (exhaustion fallback or a double-tap) and
+      // low-attention taps (< the latency floor) are flagged junk — both are
+      // logged for the record but must not move ratings, matching their
+      // exclusion from analytics and XP. The Elo leaderboard and its W–L /
+      // win-share are PUBLISHED numbers (/results §04), so the intake rule is
+      // uniform: a flagged vote never moves any published number. Only clean
+      // decided votes touch Elo. (STUDY-INTEGRITY.md risk #2, closed.)
+      if (input.winnerId && !input.isRepeat && !input.lowAttention) {
         const loserId = input.winnerId === input.variantAId ? input.variantBId : input.variantAId;
         const [winner, loser] = await Promise.all([
           tx.variant.findUniqueOrThrow({ where: { id: input.winnerId } }),

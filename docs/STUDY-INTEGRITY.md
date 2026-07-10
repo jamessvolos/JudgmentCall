@@ -88,9 +88,12 @@ Each risk lists its current mitigation and the residual we knowingly accept.
 2. **Low-effort voting.** Rapid, thoughtless taps.
    *Mitigation:* latency floor → `lowAttention`, excluded from all tallies;
    can't-decide throttle forces real calls.
-   *Residual:* `lowAttention` votes still move Elo (by design — Elo is noise-
-   tolerant and self-corrects; the *tally* is the protected public surface). Open
-   question: whether Elo should exclude them too, for consistency.
+   *Residual:* CLOSED (2026-07-10). `lowAttention` votes no longer move Elo or
+   the W–L counters — the leaderboard and its win-share are published numbers,
+   so the intake rule is now uniform: a flagged vote (repeat or low-attention)
+   never moves any published number. Historical Elo/W–L retain pre-fix junk
+   influence; the ledger is authoritative, so a one-time replay can rebase them
+   if that residue ever matters at scale.
 
 3. **Self-reported segment abuse.** Segment (executive/analyst/…) is self-declared.
    *Mitigation:* segment only ever *splits* the disagreement view, which is itself
@@ -172,3 +175,29 @@ Each risk lists its current mitigation and the residual we knowingly accept.
   scan into a nightly ops hook against production (config, not code), decide
   the open Elo/lowAttention consistency question (risk #2), and set the prod
   `IP_HASH_SALT` so the forensic digest stops storing null (risk #1 forensics).
+- **2026-07-10** — **Risk #2's open question closed: flagged votes no longer
+  move Elo.** The v1 charter accepted that `lowAttention` votes move Elo on the
+  theory that "the tally is the protected public surface" — but the variant Elo
+  leaderboard (with W–L and a win-share bar) is itself published on /results
+  §04, so a sub-0.8s tap could move a published number while being excluded
+  from every tally. The intake rule is now uniform: the Elo/W–L settle condition
+  gained `&& !input.lowAttention`, at the exact site where `isRepeat` was
+  already excluded. One-condition change; the vote is still logged whole (flags
+  and all — the ledger keeps everything); nothing a voter sees changes (XP
+  already excluded flagged votes; no voter-visible surface reads Elo at vote
+  time); the blinded experience is untouched. **Verified end-to-end** through
+  the real intake: a 120 ms vote was flagged and moved neither Elo nor W–L on
+  either variant, while a 4.2 s vote moved both normally; tsc, lint, build,
+  blinding grep empty, guard PASS, all tests pass. Known and accepted:
+  historical Elo/W–L retain pre-fix junk influence (Elo is path-dependent);
+  the ledger is authoritative, so a one-time replay (`scripts/replay.ts`-class
+  job) can rebase ratings from clean votes if that residue ever matters —
+  documented reconciliation path, not needed at current volume.
+  **Reflection.** Chosen because it was the register's only remaining
+  code-addressable residual, it strengthened the exact contract the charter
+  calls load-bearing ("what reaches a published number"), and it carried the
+  lowest possible surface (one condition, one comment). Remaining
+  high-priority items are both ops, not code: wire `integrity-scan.ts` into a
+  nightly production hook, and set the prod `IP_HASH_SALT` so the forensic
+  digest stops storing null. Study health: **strong** — intake and aggregation
+  now enforce one uniform published-number contract.
