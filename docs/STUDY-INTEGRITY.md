@@ -77,10 +77,13 @@ Each risk lists its current mitigation and the residual we knowingly accept.
    the salted IP digest supports post-hoc forensics.
    *Residual (accepted):* no *active* per-IP dedup in aggregation — deliberately,
    because NAT/shared-IP false positives would silently drop honest votes, and
-   the stakes (a public taste leaderboard) don't justify that harm. **Highest-
-   value future round:** a read-only offline scan that flags any session
-   contributing an outsized share of a single contrast's `n`, as a monitoring
-   signal — no live-path change.
+   the stakes (a public taste leaderboard) don't justify that harm.
+   *Monitoring (shipped):* `scripts/integrity-scan.ts` — a read-only scan that
+   flags any session contributing ≥30% of a contrast's counted votes (contrasts
+   with n ≥ 10; both thresholds env-tunable). Run it against the production
+   `DATABASE_URL` from an ops shell; exit 2 on flags for alarm wiring. It is a
+   *signal*, never an automatic exclusion — investigate first; the ledger stays
+   authoritative.
 
 2. **Low-effort voting.** Rapid, thoughtless taps.
    *Mitigation:* latency floor → `lowAttention`, excluded from all tallies;
@@ -141,3 +144,31 @@ Each risk lists its current mitigation and the residual we knowingly accept.
   highest-value *future* action is a read-only anomaly-scan script for the
   cross-session sybil residual (risk #1); it is deferred as it wants production
   ledger access to be meaningful, not a code change makeable or verifiable here.
+- **2026-07-09** — **Sybil-monitoring scan shipped** (risk #1's named next
+  action; v1 deferred it, this round revisited: the *findings* need production
+  data, but the *tool* is buildable and verifiable here, and it becomes a
+  standing ops capability). `scripts/integrity-scan.ts`: read-only, reuses
+  `getAnalyticsComparisons` (the published-number DB filter) rather than
+  re-deriving it, and mirrors the analytics in-loop rules (single contrast key,
+  fidelity dropped) so it watches exactly the rows that can reach a public
+  number. Per contrast it computes n, distinct sessions, and the top session's
+  share; flags share ≥ `SCAN_SHARE` (default 0.3) where n ≥ `SCAN_MIN_N`
+  (default 10). Exit 0 clean / 2 on flags (alarm-friendly, distinct from crash).
+  **Verified end-to-end on the local ledger:** (a) drove 150 honest votes
+  through the real intake with proper `latencyMs` — scan reported healthy
+  distribution, exit 0; (b) injected a synthetic sybil session (12 rows flooding
+  one contrast) — scan flagged exactly that session at 55% share, exit 2;
+  (c) removed the injection — clean again. A bonus validation fell out of the
+  work: 410 earlier driver-generated votes that omitted `latencyMs` were all
+  auto-flagged `lowAttention` by the intake floor and correctly count for
+  nothing — the defense caught synthetic low-effort input exactly as designed.
+  Integrity audit: zero live-path change (a script only; app build unchanged,
+  blinding grep clean, guard PASS, all tests pass); no new attack surface (it
+  only reads); published numbers untouched; the ledger stays authoritative and
+  the scan is documented as a signal, never an automatic exclusion.
+  **Reflection.** Chosen because it was the register's own top action and the
+  only item combining real credibility value with strictly-zero live-path risk.
+  Study health remains **strong**; remaining high-priority residuals: wire the
+  scan into a nightly ops hook against production (config, not code), decide
+  the open Elo/lowAttention consistency question (risk #2), and set the prod
+  `IP_HASH_SALT` so the forensic digest stops storing null (risk #1 forensics).
