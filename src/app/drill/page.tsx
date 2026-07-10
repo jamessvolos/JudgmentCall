@@ -671,14 +671,23 @@ function SpotChoices({
   submitting: boolean;
   onSubmit: (body: Record<string, unknown>) => void;
 }) {
+  // Post-verdict stamps speak the item's own grading language: fidelity pairs
+  // are judged against the data, craft pairs are both accurate and judged on
+  // the make — stamping a craft loser "exceeds the data" would contradict the
+  // prompt on screen.
+  const craft = skillFor(item.skill).family === "craft";
   return (
     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
       {(["a", "b"] as const).map((side) => {
         const isOverclaim = verdict && verdict.faithfulSide && verdict.faithfulSide !== side;
         const stamp = verdict
           ? isOverclaim
-            ? "exceeds the data"
-            : "stays in bounds"
+            ? craft
+              ? "the weaker telling"
+              : "exceeds the data"
+            : craft
+              ? "the stronger telling"
+              : "stays in bounds"
           : null;
         return (
           <button

@@ -313,3 +313,42 @@ HTML, not by the screenshot pass alone; both checks stay in the gate.
 future rounds: an OG card for individual desk calls (the panel's share-affordance
 gap — the one panel fix deliberately deferred), and re-assessing the review page
 against the new docket vocabulary.
+
+## 2026-07-10 · Round: family-true verdict stamps in the Training Room
+
+**The move attempted.** Baseline sweep (landing, results, review, drill verdict
+— 390/1280 × light/dark) with fresh eyes. The one defect found was on the drill
+verdict: every graded spot pair stamped its cards "EXCEEDS THE DATA / STAYS IN
+BOUNDS" regardless of skill family — so a craft item whose own prompt says
+"Both tellings are accurate and well-caveated" would stamp its loser with a
+fidelity verdict it had just denied, a self-contradiction printed on screen.
+The five new craft difficulty-1 items shipped this morning made the collision
+five times more likely for a brand-new learner. Fix: stamps now speak the
+item's own grading language — craft pairs stamp "THE WEAKER TELLING / THE
+STRONGER TELLING" (the product's established vocabulary: "spot the weaker
+telling"), fidelity pairs keep "EXCEEDS THE DATA / STAYS IN BOUNDS".
+
+**Why it's a win (though small).** Not a frontier leap — a coherence repair on
+the teaching surface, where emotional clarity *is* the product. A learner who
+notices the interface contradicting itself stops trusting the grader; this
+round removes the one place that happened. Verified live in both themes by
+driving spot runs until each family was graded: craft and fidelity stamps both
+correct on screen.
+
+**Hard-rules audit (passed).** Diff is 11 lines in the drill's SpotChoices
+only. Pre-verdict cards remain identical and undifferentiated (stamps render
+only after grading — same as before). Voting cards on /swipe and the uniform
+collecting state untouched. No motion added. Blinding: craft stamps carry no
+fidelity vocabulary; canonical grep empty, bundle guard PASS (~201 KB,
+teaching chunk drill-only), tsc/lint/build/tests (40/40) green.
+
+**Learned / de-risked.** Content rounds change which copy paths actually
+render: the stamp bug predated today but was nearly unreachable when craft
+had almost no obvious-tier items. After any content expansion, re-walk the
+surfaces the new content lights up.
+
+**Momentum / convergence.** All other surfaces are freshly commissioned and
+show no regressions; the standing bold candidate (per-call OG share cards for
+the docket) remains deliberately parked pending the user's go-ahead, so this
+round correctly stayed small. No further hard-rule-safe frontier move
+presents itself this round.
