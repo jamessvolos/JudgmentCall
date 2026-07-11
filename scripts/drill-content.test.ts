@@ -54,6 +54,24 @@ for (const d of DRILL_SEEDS) {
       `spot has both tellings + device: ${d.title}`,
       !!d.faithfulText && !!d.overclaimedText && !!d.device
     );
+  } else if (d.mode === "ledger") {
+    // Ledger contract: 3-5 claims in reading order, 0-2 flagged as exceeding,
+    // always >=2 clean claims, every claim has text + rationale, and (for the
+    // HOLDS/EXCEEDS grammar) the skill must be fidelity-family.
+    const cs = d.choices ?? [];
+    const flagged = cs.filter((c) => c.correct).length;
+    ok(`ledger has 3-5 claims: ${d.title}`, cs.length >= 3 && cs.length <= 5, `${cs.length}`);
+    ok(`ledger flags 0-2: ${d.title}`, flagged >= 0 && flagged <= 2, `${flagged}`);
+    ok(`ledger keeps >=2 clean: ${d.title}`, cs.length - flagged >= 2, `${cs.length - flagged} clean`);
+    ok(
+      `ledger claims all have text + rationale: ${d.title}`,
+      cs.every((c) => c.text.trim().length > 0 && c.rationale.trim().length > 0)
+    );
+    ok(
+      `ledger skill is fidelity-family: ${d.title}`,
+      ["cause", "single_cause", "extrapolation", "certainty", "base_rate"].includes(d.skill),
+      d.skill
+    );
   } else {
     const n = (d.choices ?? []).filter((c) => c.correct).length;
     ok(`${d.mode} has exactly one correct: ${d.title}`, n === 1, `${n} correct`);

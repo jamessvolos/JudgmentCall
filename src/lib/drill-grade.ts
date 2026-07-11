@@ -64,6 +64,44 @@ export function isCorrectChoice(choices: StoredChoice[], pickedIndex: number): b
   return !!choices[pickedIndex]?.correct;
 }
 
+// ---------------------------------------------------------------------------
+// FIELD READ — single-telling absolute judgment over fidelity spot items. The
+// served side derives from its own salted hash (distinct from faithfulSideFor's
+// salt), so a learner who met the pair in spot can't infer which text they've
+// been dealt, and the answer re-derives at grade time with no stored state.
+
+/** True iff the FAITHFUL telling is the one served for this (session, item) field read. */
+export function fieldServesFaithful(sessionId: string, itemId: string): boolean {
+  const h = createHash("sha256").update(`${sessionId}:${itemId}:field`).digest();
+  return h[0] % 2 === 0;
+}
+
+/**
+ * A field call is correct iff the verdict matches the served telling:
+ * "bounds" on the faithful text, "exceeds" on the overclaimed one. Calling a
+ * clean telling "exceeds" is wrong on purpose — the mode trains against
+ * reflexive cynicism as much as against credulity.
+ */
+export function isCorrectFieldCall(call: "bounds" | "exceeds", servedFaithful: boolean): boolean {
+  return (call === "bounds") === servedFaithful;
+}
+
+// ---------------------------------------------------------------------------
+// THE LEDGER — one telling broken into claims; every claim must be stamped
+// HOLDS (false) or EXCEEDS (true). Rides the StoredChoice shape verbatim:
+// correct:true means "this claim exceeds the data". All-or-nothing — the
+// rating needs one boolean; the reveal is granular so partial understanding is
+// taught without being scored.
+
+/** stamps[i] = true means the learner stamped claim i EXCEEDS. Exact match only. */
+export function isCorrectLedger(choices: StoredChoice[], stamps: boolean[]): boolean {
+  return (
+    choices.length > 0 &&
+    stamps.length === choices.length &&
+    choices.every((c, i) => c.correct === stamps[i])
+  );
+}
+
 /** Index of the single correct choice, or -1. */
 export function correctChoiceIndex(choices: StoredChoice[]): number {
   return choices.findIndex((c) => c.correct);

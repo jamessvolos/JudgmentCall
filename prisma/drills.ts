@@ -14,7 +14,7 @@ export type DrillChoice = { text: string; correct: boolean; rationale: string };
 
 export type DrillSeed = {
   title: string; // stable natural key — must be unique across the pool
-  mode: "spot" | "fix" | "calibrate";
+  mode: "spot" | "fix" | "calibrate" | "ledger";
   skill: string;
   difficulty: number; // 1 (obvious) .. 3 (subtle)
   contextSnippet: string;
@@ -25,7 +25,8 @@ export type DrillSeed = {
   faithfulText?: string;
   overclaimedText?: string;
   device?: string;
-  // fix / calibrate mode:
+  // fix / calibrate mode (exactly one correct) and ledger mode (each claim in
+  // reading order; correct:true = the claim EXCEEDS the data; 0-2 flagged):
   choices?: DrillChoice[];
 };
 

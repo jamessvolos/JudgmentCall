@@ -159,6 +159,9 @@ model DrillAttempt {
   drillItemId String
   correct     Boolean
   latencyMs   Int
+  ratingAfter Float? // session drill rating after this attempt settled; null = pre-instrument rows
+  namedSkill  String? // the ungraded naming-beat pick; null = skipped or pre-instrument
+  mode        String    @default("") // "" = the item's own mode; "field" = single-telling re-serve
   createdAt   DateTime  @default(now())
 
   @@index([sessionId])

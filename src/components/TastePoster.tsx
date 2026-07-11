@@ -24,6 +24,7 @@ export type PosterData = {
   level?: { level: number; title: string; nextAt: number | null };
   judgeRank?: string | null;
   drillRating?: number | null;
+  drillGrade?: string | null; // composed server-side; neutral English only
 };
 
 // Persona headline from the two strongest solid preferences. Falls back
@@ -203,7 +204,12 @@ export function TastePoster({ data }: { data: PosterData }) {
             className="mt-5 font-mono text-[10px] font-semibold uppercase tracking-[0.18em]"
             style={{ color: "var(--poster-acc)" }}
           >
-            {[data.judgeRank, data.drillRating ? `drill rating ${data.drillRating}` : null]
+            {[
+              data.judgeRank,
+              data.drillRating
+                ? `${data.drillGrade ? `${data.drillGrade} · ` : ""}drill rating ${data.drillRating}`
+                : null,
+            ]
               .filter(Boolean)
               .join(" · ")}
           </p>

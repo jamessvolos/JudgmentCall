@@ -2,6 +2,7 @@
 // Postgres swap (Milestone 4) is a datasource config change, not a refactor.
 // Nothing outside src/lib should import prisma directly.
 
+import { createHash } from "crypto";
 import { prisma } from "./db";
 import { eloUpdate } from "./elo";
 import { GOLD_MAJORITY, GOLD_MIN_N, JUDGE_MIN_GOLD, type Segment } from "./types";
@@ -10,6 +11,13 @@ import { XP, drillElo, levelFor, updateAbility, type LevelInfo } from "./progres
 // the SERVER only (repo.ts uses Prisma, so it never enters a client bundle) to
 // classify drill devices into families. The bundle guard enforces this.
 import { withTxRetry } from "./tx-retry";
+import { FIDELITY_SKILLS } from "./teaching";
+import {
+  conferrals,
+  gradeFor,
+  type Conferral,
+  type CredAttempt,
+} from "./drill-credentials";
 import type { Finding, Variant, Comparison, Session, DrillItem } from "@prisma/client";
 
 export type { Finding, Variant, Comparison, Session };
@@ -626,9 +634,26 @@ export type { DrillItem };
  *  Also returns the session's per-skill progress, tallied from the SAME attempts
  *  scan (so /api/drill needn't read drillAttempt a second time for the recap).
  *  Server-only (Prisma-bound); no fidelity vocabulary crosses into a client bundle. */
+/** Deterministic PRNG from a sha256 seed — the Daily Docket's draw. Same
+ *  session + same UTC date + same progress ⇒ same docket; no reroll-shopping.
+ *  (mulberry32 over the digest's first 4 bytes; no dependency.) */
+export function docketRand(sessionId: string, seenCount: number): () => number {
+  const digest = createHash("sha256")
+    .update(`${sessionId}:${new Date().toISOString().slice(0, 10)}:${seenCount}`)
+    .digest();
+  let a = digest.readUInt32LE(0);
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export async function getNextDrillItem(
   sessionId: string,
-  opts?: { mode?: string; skill?: string }
+  opts?: { mode?: string; skill?: string; docket?: boolean }
 ): Promise<{
   item: DrillItem | null;
   remaining: number;
@@ -638,22 +663,57 @@ export async function getNextDrillItem(
   const [attempts, session] = await Promise.all([
     prisma.drillAttempt.findMany({
       where: { sessionId },
-      select: { drillItemId: true, correct: true, item: { select: { skill: true } } },
+      select: {
+        drillItemId: true,
+        correct: true,
+        mode: true,
+        createdAt: true,
+        item: { select: { skill: true } },
+      },
     }),
     prisma.session.findUnique({ where: { id: sessionId } }),
   ]);
   // Per-skill recap map, derived from the attempts we just fetched — no second scan.
   const skillProgress = tallySkillProgress(attempts);
-  const seen = attempts.map((a) => a.drillItemId);
-  const pool = await prisma.drillItem.findMany({
-    where: {
-      status: "active",
-      id: { notIn: seen },
-      ...(opts?.mode ? { mode: opts.mode } : {}),
-      ...(opts?.skill ? { skill: opts.skill } : {}),
-    },
-  });
-  if (pool.length === 0) return { item: null, remaining: 0, session, skillProgress };
+
+  let pool: DrillItem[];
+  if (opts?.mode === "field") {
+    // FIELD READ — an attempt mode over the existing fidelity spot pool, not an
+    // item mode. Exclusions: items this session already field-read, and items
+    // touched today in ANY mode (a same-day rerun is a memory test, not a read).
+    const dayStart = new Date();
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const fieldSeen = new Set(attempts.filter((a) => a.mode === "field").map((a) => a.drillItemId));
+    const todaySeen = new Set(
+      attempts.filter((a) => a.createdAt >= dayStart).map((a) => a.drillItemId)
+    );
+    const all = await prisma.drillItem.findMany({
+      where: {
+        status: "active",
+        mode: "spot",
+        skill: { in: [...FIDELITY_SKILLS] },
+        ...(opts?.skill ? { skill: opts.skill } : {}),
+      },
+    });
+    const eligible = all.filter((it) => !fieldSeen.has(it.id) && !todaySeen.has(it.id));
+    // Re-test tier first: items met before in another mode — the field read as
+    // the room's spaced-repetition layer. Fresh items are the fallback.
+    const priorIds = new Set(attempts.filter((a) => a.mode !== "field").map((a) => a.drillItemId));
+    const retest = eligible.filter((it) => priorIds.has(it.id));
+    pool = retest.length > 0 ? retest : eligible;
+    if (pool.length === 0) return { item: null, remaining: 0, session, skillProgress };
+  } else {
+    const seen = attempts.map((a) => a.drillItemId);
+    pool = await prisma.drillItem.findMany({
+      where: {
+        status: "active",
+        id: { notIn: seen },
+        ...(opts?.mode ? { mode: opts.mode } : {}),
+        ...(opts?.skill ? { skill: opts.skill } : {}),
+      },
+    });
+    if (pool.length === 0) return { item: null, remaining: 0, session, skillProgress };
+  }
 
   // Per-skill history: how many of each skill the learner faced and caught, so
   // we can tell an unfaced skill from a faced-but-missed one.
@@ -700,7 +760,8 @@ export async function getNextDrillItem(
     return { it, w: 0.15 + diffCloseness + 0.35 * eloCloseness + missBoost };
   });
   const total = weighted.reduce((s, x) => s + x.w, 0);
-  let roll = Math.random() * total;
+  const rand = opts?.docket ? docketRand(sessionId, attempts.length) : Math.random;
+  let roll = rand() * total;
   let chosen = weighted[0].it;
   for (const x of weighted) {
     roll -= x.w;
@@ -740,9 +801,61 @@ export async function getDrillItem(id: string): Promise<DrillItem | null> {
   return prisma.drillItem.findUnique({ where: { id } });
 }
 
-export async function hasAttemptedDrill(sessionId: string, drillItemId: string): Promise<boolean> {
-  const n = await prisma.drillAttempt.count({ where: { sessionId, drillItemId } });
+export async function hasAttemptedDrill(
+  sessionId: string,
+  drillItemId: string,
+  opts?: { field?: boolean }
+): Promise<boolean> {
+  // Field reads are a distinct attempt mode: a field POST is blocked only by a
+  // prior field attempt on the item (the re-serve is the point); any other
+  // POST is blocked by any prior attempt (unchanged strictness).
+  const n = await prisma.drillAttempt.count({
+    where: { sessionId, drillItemId, ...(opts?.field ? { mode: "field" } : {}) },
+  });
   return n > 0;
+}
+
+/** Write-once naming-beat persistence: stamp the pair's latest un-named attempt.
+ *  Formative by construction — touches nothing but the namedSkill column. */
+export async function recordDrillNaming(
+  sessionId: string,
+  drillItemId: string,
+  namedSkill: string
+): Promise<void> {
+  const latest = await prisma.drillAttempt.findFirst({
+    where: { sessionId, drillItemId, namedSkill: null },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+  if (!latest) return;
+  await prisma.drillAttempt.update({ where: { id: latest.id }, data: { namedSkill } });
+}
+
+/** The Record: grades + credentials, derived fresh from the attempt rows on
+ *  every read. Nothing stored, nothing to desync. */
+export async function getDrillStanding(sessionId: string): Promise<{
+  grade: ReturnType<typeof gradeFor>;
+  credentials: Conferral[];
+}> {
+  const [rows, session] = await Promise.all([
+    prisma.drillAttempt.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: "asc" },
+      select: {
+        drillItemId: true,
+        correct: true,
+        createdAt: true,
+        ratingAfter: true,
+        namedSkill: true,
+        mode: true,
+        item: { select: { skill: true, difficulty: true, mode: true } },
+      },
+    }),
+    prisma.session.findUnique({ where: { id: sessionId }, select: { drillRating: true } }),
+  ]);
+  const attempts = rows as CredAttempt[];
+  const liveRating = session?.drillRating ?? 1200;
+  return { grade: gradeFor(attempts, liveRating), credentials: conferrals(sessionId, attempts) };
 }
 
 /** Atomically: log the attempt, move both Elo ratings, award XP if correct. */
@@ -751,6 +864,7 @@ export async function recordDrillAttempt(input: {
   drillItemId: string;
   correct: boolean;
   latencyMs: number;
+  mode?: string; // "" = the item's own mode; "field" = single-telling re-serve
 }): Promise<{ drillRating: number; ratingDelta: number; drillCount: number; xp: number }> {
   // Same contention guard as the vote path: a serialization/deadlock abort
   // rolls back, so the whole attempt closure is safe to re-run (drill data is
@@ -762,7 +876,18 @@ export async function recordDrillAttempt(input: {
         tx.drillItem.findUniqueOrThrow({ where: { id: input.drillItemId } }),
       ]);
       const next = drillElo(session.drillRating, item.rating, input.correct);
-      await tx.drillAttempt.create({ data: input });
+      await tx.drillAttempt.create({
+        data: {
+          sessionId: input.sessionId,
+          drillItemId: input.drillItemId,
+          correct: input.correct,
+          latencyMs: input.latencyMs,
+          mode: input.mode ?? "",
+          // the post-settle rating, written where the value already exists —
+          // makes grade certification a monotone fold over rows (The Record).
+          ratingAfter: next.session,
+        },
+      });
       await tx.drillItem.update({
         where: { id: item.id },
         data: { rating: next.item, attempts: { increment: 1 } },

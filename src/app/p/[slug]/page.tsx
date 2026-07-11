@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { TastePoster, personaTitle } from "@/components/TastePoster";
 import { judgeRank, levelFor } from "@/lib/progression";
 import { computePersonalResults } from "@/lib/results";
-import { getSessionByPublicSlug } from "@/lib/repo";
+import { getDrillStanding, getSessionByPublicSlug } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
   const results = await computePersonalResults(session.id);
   const calibrated =
     session.goldCount >= 3 && session.judgeScore !== null && session.judgeScore >= 0.8;
+  // The one Training Room string allowed off /drill: the composed grade label —
+  // fidelity-neutral English by construction (gate criteria never leave the room).
+  const standing = session.drillCount > 0 ? await getDrillStanding(session.id) : null;
+  const gradeLabel =
+    standing && standing.grade.grade.n > 1
+      ? `Grade ${standing.grade.grade.roman} · ${standing.grade.grade.title}`
+      : null;
 
   return (
     <main className="flex-1 px-4 py-8 sm:py-12">
@@ -29,6 +36,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
             level: levelFor(session.xp),
             judgeRank: judgeRank(session.judgeAbility, session.goldCount),
             drillRating: session.drillCount > 0 ? Math.round(session.drillRating) : null,
+            drillGrade: gradeLabel,
             ...results,
           }}
         />

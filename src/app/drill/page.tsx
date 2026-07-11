@@ -10,17 +10,22 @@ import {
   skillFor,
   type SkillId,
 } from "@/lib/teaching";
+import { GRADE_META, CREDENTIAL_DEFS } from "@/lib/drill-credentials-meta";
 
 // The Training Room — a data-insight skills studio. A separate world from the
 // study: items never enter the voting pool, attempts never touch analytics, and
 // this is the ONE surface where right/wrong feedback and overclaim vocabulary
-// are allowed. Three exercise modes (spot / fix / calibrate) across two skill
-// families (fidelity + craft), a per-skill mastery map, and a session recap.
+// are allowed. Five exercise modes (spot / fix / calibrate / field / ledger)
+// across two skill families (fidelity + craft), a per-skill mastery map, The
+// Grades (rating floors + evidence gates), The Record (12 derived credential
+// stamps), a 3-call Daily Docket, and a session recap that confers what the
+// run earned. Every stamp is a pure recomputation of attempt rows — nothing
+// stored, nothing that can inflate.
 
 type ServedChoice = { i: number; text: string };
 type Item = {
   id: string;
-  mode: "spot" | "fix" | "calibrate";
+  mode: "spot" | "fix" | "calibrate" | "field" | "ledger";
   skill: string;
   difficulty: number;
   title: string;
@@ -29,8 +34,12 @@ type Item = {
   prompt: string;
   a?: string;
   b?: string;
+  t?: string; // field: the one telling
+  claims?: ServedChoice[]; // ledger: claims in reading order
   choices?: ServedChoice[];
 };
+type GradeDto = { n: number; roman: string; title: string; earnedAt: string | null };
+type ConferralDto = { code: string; earnedAt: string | null };
 type SkillProgress = { id: string; attempted: number; caught: number };
 type DrillGet = {
   item: Item | null;
@@ -38,13 +47,19 @@ type DrillGet = {
   drillRating: number;
   drillCount: number;
   skillProgress: SkillProgress[];
+  grade: GradeDto;
+  nextGate: string | null;
+  credentials: ConferralDto[];
 };
+type RevealClaim = { i: number; text: string; exceeds: boolean; stamped: boolean; rationale: string };
 type RevealChoice = { i: number; text: string; correct: boolean; rationale: string };
 type Verdict = {
   correct: boolean;
   mode: string;
   skill: string;
   faithfulSide?: "a" | "b";
+  servedFaithful?: boolean; // field: the truth of the one telling on screen
+  claims?: RevealClaim[]; // ledger: per-claim truth + the learner's stamps
   device?: string;
   explanation: string;
   choices?: RevealChoice[];
@@ -61,14 +76,19 @@ const MODES: { id: string; label: string; blurb: string }[] = [
   { id: "spot", label: "Spot", blurb: "Catch the overreach" },
   { id: "fix", label: "Fix", blurb: "Repair the telling" },
   { id: "calibrate", label: "Calibrate", blurb: "Strongest safe claim" },
+  { id: "field", label: "Field", blurb: "Call it cold — no pair" },
+  { id: "ledger", label: "Ledger", blurb: "Audit every claim" },
 ];
-const RUN_LENGTH = 8; // items before the recap
+const RUN_LENGTH = 8; // the full sitting
+const DOCKET_LENGTH = 3; // the daily docket — a true 3-minute session
 
-function drillRank(rating: number): string {
-  if (rating >= 1500) return "Sharp eye";
-  if (rating >= 1350) return "Reads the fine print";
-  if (rating >= 1200) return "Finding the range";
-  return "Warming up";
+// A docket date line in the room's records voice, e.g. "FRI 11 JUL 2026".
+function docketDate(): string {
+  return new Date()
+    .toUTCString()
+    .slice(0, 16)
+    .toUpperCase()
+    .replace(/,/, "");
 }
 
 // Minimal **bold** renderer for the data readout (content is trusted, authored).
@@ -133,11 +153,21 @@ export default function TrainingRoom() {
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // The Record — grade + credentials, derived server-side on every GET.
+  const [grade, setGrade] = useState<GradeDto>({ n: 1, roman: "I", title: "Reader", earnedAt: null });
+  const [nextGate, setNextGate] = useState<string | null>(null);
+  const [credentials, setCredentials] = useState<ConferralDto[]>([]);
+
   // run counters
   const [runStartRating, setRunStartRating] = useState(1200);
   const [runDone, setRunDone] = useState(0);
   const [runCorrect, setRunCorrect] = useState(0);
   const [runSkills, setRunSkills] = useState<string[]>([]);
+  const [runLength, setRunLength] = useState(RUN_LENGTH);
+  const [isDocket, setIsDocket] = useState(false);
+  // conferral diff: what the run earned = post-run standing minus this snapshot
+  const [runStartGrade, setRunStartGrade] = useState(1);
+  const [runStartCreds, setRunStartCreds] = useState<Set<string>>(new Set());
 
   // active-recall "name the move" beat: after the pick is graded, the learner
   // names the pattern before it's revealed. Formative only — never re-grades the
@@ -152,6 +182,12 @@ export default function TrainingRoom() {
     setNamed(skillId);
     setRunNamed((n) => n + 1);
     if (skillId === item.skill) setRunNamedCorrect((c) => c + 1);
+    // durable, write-once, ungraded — fire-and-forget; the reveal never waits
+    fetch("/api/drill", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: sessionIdRef.current, drillId: item.id, namedSkill: skillId }),
+    }).catch(() => {});
   }
 
   const progressFor = useCallback(
@@ -167,19 +203,28 @@ export default function TrainingRoom() {
     setRating(data.drillRating);
     setCount(data.drillCount);
     setProgress(data.skillProgress ?? []);
+    if (data.grade) setGrade(data.grade);
+    setNextGate(data.nextGate ?? null);
+    setCredentials(data.credentials ?? []);
   }, []);
 
-  const fetchItem = useCallback(async (m: string, skill = ""): Promise<Item | null> => {
-    const sid = sessionIdRef.current!;
-    const q = `${m ? `&mode=${m}` : ""}${skill ? `&skill=${skill}` : ""}`;
-    const res = await fetch(`/api/drill?sessionId=${encodeURIComponent(sid)}${q}`);
-    if (!res.ok) throw new Error("fetch failed");
-    const data: DrillGet = await res.json();
-    setProgress(data.skillProgress ?? []);
-    setRating(data.drillRating);
-    setCount(data.drillCount);
-    return data.item;
-  }, []);
+  const fetchItem = useCallback(
+    async (m: string, skill = "", docket = false): Promise<Item | null> => {
+      const sid = sessionIdRef.current!;
+      const q = `${m ? `&mode=${m}` : ""}${skill ? `&skill=${skill}` : ""}${docket ? "&docket=1" : ""}`;
+      const res = await fetch(`/api/drill?sessionId=${encodeURIComponent(sid)}${q}`);
+      if (!res.ok) throw new Error("fetch failed");
+      const data: DrillGet = await res.json();
+      setProgress(data.skillProgress ?? []);
+      setRating(data.drillRating);
+      setCount(data.drillCount);
+      if (data.grade) setGrade(data.grade);
+      setNextGate(data.nextGate ?? null);
+      setCredentials(data.credentials ?? []);
+      return data.item;
+    },
+    []
+  );
 
   // bootstrap: ensure a session exists (training works standalone), load the map
   useEffect(() => {
@@ -201,7 +246,8 @@ export default function TrainingRoom() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function startRun(m: string, skill = "") {
+  async function startRun(m: string, skill = "", opts?: { docket?: boolean }) {
+    const docket = opts?.docket ?? false;
     setMode(m);
     setSkillFocus(skill);
     setRunStartRating(rating);
@@ -213,8 +259,13 @@ export default function TrainingRoom() {
     setVerdict(null);
     setNamed(null);
     setNameSkipped(false);
+    setRunLength(docket ? DOCKET_LENGTH : RUN_LENGTH);
+    setIsDocket(docket);
+    // snapshot standing so the recap can confer exactly what this run earned
+    setRunStartGrade(grade.n);
+    setRunStartCreds(new Set(credentials.filter((c) => c.earnedAt).map((c) => c.code)));
     try {
-      const it = await fetchItem(m, skill);
+      const it = await fetchItem(m, skill, docket);
       if (!it) {
         setItem(null);
         setPhase("recap");
@@ -261,14 +312,15 @@ export default function TrainingRoom() {
     setVerdict(null);
     setNamed(null);
     setNameSkipped(false);
-    if (runDone >= RUN_LENGTH) {
+    if (runDone >= runLength) {
       await loadDashboard().catch(() => {});
       setPhase("recap");
       return;
     }
     try {
-      const it = await fetchItem(mode, skillFocus);
+      const it = await fetchItem(mode, skillFocus, isDocket);
       if (!it) {
+        await loadDashboard().catch(() => {});
         setPhase("recap");
         return;
       }
@@ -318,6 +370,9 @@ export default function TrainingRoom() {
         <Dashboard
           rating={rating}
           count={count}
+          grade={grade}
+          nextGate={nextGate}
+          credentials={credentials}
           progressFor={progressFor}
           onStart={startRun}
         />
@@ -329,7 +384,9 @@ export default function TrainingRoom() {
           verdict={verdict}
           submitting={submitting}
           runDone={runDone}
+          runLength={runLength}
           rating={rating}
+          gradeRoman={grade.roman}
           named={named}
           nameSkipped={nameSkipped}
           onName={nameTheMove}
@@ -347,6 +404,12 @@ export default function TrainingRoom() {
           namedCorrect={runNamedCorrect}
           ratingDelta={rating - runStartRating}
           rating={rating}
+          grade={grade}
+          nextGate={nextGate}
+          newGrade={grade.n > runStartGrade ? grade : null}
+          newCreds={credentials.filter((c) => c.earnedAt && !runStartCreds.has(c.code))}
+          credentials={credentials}
+          isDocket={isDocket}
           skills={runSkills}
           progressFor={progressFor}
           onAgain={() => setPhase("dashboard")}
@@ -360,33 +423,78 @@ export default function TrainingRoom() {
 function Dashboard({
   rating,
   count,
+  grade,
+  nextGate,
+  credentials,
   progressFor,
   onStart,
 }: {
   rating: number;
   count: number;
+  grade: GradeDto;
+  nextGate: string | null;
+  credentials: ConferralDto[];
   progressFor: (id: string) => SkillProgress;
-  onStart: (mode: string, skill?: string) => void;
+  onStart: (mode: string, skill?: string, opts?: { docket?: boolean }) => void;
 }) {
   const [mode, setMode] = useState<string>("");
   return (
     <div className="rise mt-6">
+      {/* the grade block — stamp under the rating, live number always beside */}
       <div className="text-center">
         <p className="kicker text-muted">Sharpen how you read and write data insights</p>
         <div className="mt-3">
           <span className="block font-mono text-[clamp(2.25rem,7vw,3.25rem)] font-semibold leading-none text-accent tabular-nums">
             {rating}
           </span>
-          <p className="mt-1.5 font-mono text-xs text-muted">
-            skill rating · {drillRank(rating)} · {count} call{count === 1 ? "" : "s"} logged
+          <p className="mt-2 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-ink-strong">
+            Grade {grade.roman} · {grade.title}
+            <span className="ml-2 font-normal normal-case tracking-normal text-muted">
+              — reading at {rating} · {count} call{count === 1 ? "" : "s"} logged
+            </span>
           </p>
+          {/* the ladder rail: five ticks, criterion always visible */}
+          <div className="mx-auto mt-3 flex max-w-sm items-center gap-1" aria-hidden>
+            {GRADE_META.map((g) => (
+              <span
+                key={g.n}
+                title={`Grade ${g.roman} · ${g.title} — ${g.gate}`}
+                className={`h-1.5 flex-1 rounded-[2px] ${g.n <= grade.n ? "bg-accent/70" : "bg-card-border"}`}
+              />
+            ))}
+          </div>
+          {nextGate && (
+            <p className="mt-2 font-mono text-[0.6875rem] text-muted tabular-nums">{nextGate}</p>
+          )}
         </div>
       </div>
 
-      {/* mode picker */}
+      {/* sittings — a true 3-minute session beside the full run */}
       <div className="mt-8">
-        <p className="kicker text-muted mb-3">Choose a drill</p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <p className="kicker text-muted mb-3">Today at the desk</p>
+        <button
+          onClick={() => onStart("", "", { docket: true })}
+          className="group block w-full rounded-card border border-card-border bg-card p-4 text-left transition hover:border-rule-strong hover:shadow-[var(--shadow-lift)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-strong">
+              The Daily Docket
+            </span>
+            <span className="shrink-0 font-mono text-[0.6875rem] text-muted tabular-nums">
+              {docketDate()} · {DOCKET_LENGTH} calls
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-muted">
+            Today&apos;s edition — three calls to a full recap.
+            <span className="ml-1 text-accent group-hover:underline">Open it →</span>
+          </p>
+        </button>
+      </div>
+
+      {/* the full sitting — mode picker */}
+      <div className="mt-6">
+        <p className="kicker text-muted mb-3">The full sitting · {RUN_LENGTH} calls</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {MODES.map((m) => (
             <button
               key={m.id}
@@ -440,11 +548,75 @@ function Dashboard({
         </div>
       </div>
 
+      {/* THE RECORD — 12 stamps, criterion printed on the face, derived only */}
+      <div className="mt-10">
+        <div className="mb-3 flex items-center gap-3">
+          <p className="kicker text-muted">The record</p>
+          <span className="h-px flex-1 bg-card-border" aria-hidden />
+        </div>
+        <p className="mb-3 font-mono text-[0.6875rem] text-muted">
+          Every stamp is recomputed from your calls — nothing is granted, only recorded.
+        </p>
+        <TheRecord credentials={credentials} />
+      </div>
+
       <div className="mt-8 text-center">
         <Link href="/" className="font-mono text-xs text-muted hover:text-ink-strong">
           ← back to Judgment Call
         </Link>
       </div>
+    </div>
+  );
+}
+
+// The credential ledger: competence rows carry the accent; exploration rows
+// are muted and labeled — structurally incapable of impersonating competence.
+function TheRecord({ credentials }: { credentials: ConferralDto[] }) {
+  const byCode = new Map(credentials.map((c) => [c.code, c.earnedAt]));
+  const fmt = (iso: string) =>
+    new Date(iso)
+      .toUTCString()
+      .slice(5, 16)
+      .toUpperCase();
+  const rows = (tier: "competence" | "exploration") =>
+    CREDENTIAL_DEFS.filter((d) => d.tier === tier).map((d) => {
+      const earnedAt = byCode.get(d.code) ?? null;
+      const comp = d.tier === "competence";
+      return (
+        <div
+          key={d.code}
+          className={`rounded-card border bg-card px-3 py-2.5 ${
+            earnedAt
+              ? comp
+                ? "border-card-border border-l-2 border-l-accent"
+                : "border-card-border"
+              : "border-card-border/70 border-dashed"
+          }`}
+        >
+          <div className="flex items-baseline justify-between gap-3">
+            <span
+              className={`font-mono text-[0.6875rem] font-semibold tracking-[0.14em] ${
+                earnedAt ? (comp ? "text-accent" : "text-ink-strong") : "text-muted"
+              }`}
+            >
+              {d.name}
+            </span>
+            <span className="shrink-0 font-mono text-[0.625rem] text-muted tabular-nums">
+              {earnedAt ? `EARNED ${fmt(earnedAt)}` : "OPEN"}
+            </span>
+          </div>
+          <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted text-pretty">{d.criterion}</p>
+        </div>
+      );
+    });
+  return (
+    <div>
+      <p className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">Competence</p>
+      <div className="mt-2 space-y-2">{rows("competence")}</div>
+      <p className="mt-5 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">
+        Exploration — coverage, not skill
+      </p>
+      <div className="mt-2 space-y-2">{rows("exploration")}</div>
     </div>
   );
 }
@@ -497,7 +669,9 @@ function Run({
   verdict,
   submitting,
   runDone,
+  runLength,
   rating,
+  gradeRoman,
   named,
   nameSkipped,
   onName,
@@ -509,7 +683,9 @@ function Run({
   verdict: Verdict | null;
   submitting: boolean;
   runDone: number;
+  runLength: number;
   rating: number;
+  gradeRoman: string;
   named: string | null;
   nameSkipped: boolean;
   onName: (skillId: string) => void;
@@ -528,9 +704,11 @@ function Run({
       {/* run header */}
       <div className="flex items-center justify-between font-mono text-xs text-muted">
         <span>
-          Call {runDone + (verdict ? 0 : 1)} of {RUN_LENGTH}
+          Call {runDone + (verdict ? 0 : 1)} of {runLength}
         </span>
-        <span className="tabular-nums">{rating} rating</span>
+        <span className="tabular-nums">
+          G-{gradeRoman} · {rating}
+        </span>
       </div>
 
       {/* mode + skill + difficulty chips */}
@@ -559,7 +737,11 @@ function Run({
       </p>
 
       {/* mode-specific interaction */}
-      {item.mode === "spot" ? (
+      {item.mode === "field" ? (
+        <FieldCall item={item} verdict={verdict} submitting={submitting} onSubmit={onSubmit} />
+      ) : item.mode === "ledger" ? (
+        <LedgerAudit key={item.id} item={item} verdict={verdict} submitting={submitting} onSubmit={onSubmit} />
+      ) : item.mode === "spot" ? (
         <SpotChoices item={item} verdict={verdict} submitting={submitting} onSubmit={onSubmit} />
       ) : (
         <ListChoices item={item} verdict={verdict} submitting={submitting} onSubmit={onSubmit} />
@@ -651,7 +833,7 @@ function Run({
               onClick={onNext}
               className="cta-glow mt-4 w-full rounded-card bg-accent px-4 py-3 font-semibold text-on-accent active:scale-[0.99]"
             >
-              {runDone >= RUN_LENGTH ? "See your recap →" : "Next call →"}
+              {runDone >= runLength ? "See your recap →" : "Next call →"}
             </button>
           )}
         </div>
@@ -718,6 +900,171 @@ function SpotChoices({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// FIELD READ — one telling, two full-width stamps. No pair to lean on: the
+// call is absolute, and clearing a sound telling is graded exactly like
+// catching a bad one.
+function FieldCall({
+  item,
+  verdict,
+  submitting,
+  onSubmit,
+}: {
+  item: Item;
+  verdict: Verdict | null;
+  submitting: boolean;
+  onSubmit: (body: Record<string, unknown>) => void;
+}) {
+  const truth = verdict
+    ? verdict.servedFaithful
+      ? "stays in bounds"
+      : "exceeds the data"
+    : null;
+  return (
+    <div className="mt-4">
+      <div
+        className={`rounded-card border bg-card p-4 ${
+          verdict ? (verdict.correct ? "border-accent" : "border-danger") : "border-card-border"
+        }`}
+      >
+        <p className="kicker text-muted mb-2">The telling</p>
+        <p className="font-serif text-[1.0625rem] leading-[1.58] text-ink-strong text-pretty">
+          {item.t}
+        </p>
+        {truth && (
+          <p
+            className={`mt-2 font-mono text-[0.625rem] uppercase tracking-[0.14em] ${
+              verdict!.servedFaithful ? "text-muted" : "text-accent"
+            }`}
+          >
+            {truth}
+          </p>
+        )}
+      </div>
+      {!verdict && (
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <button
+            disabled={submitting}
+            onClick={() => onSubmit({ fieldCall: "bounds" })}
+            className="rounded-card border border-card-border bg-card px-3 py-3.5 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-ink-strong transition hover:-translate-y-px hover:border-rule-strong hover:shadow-[var(--shadow-lift)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            Stays in bounds
+          </button>
+          <button
+            disabled={submitting}
+            onClick={() => onSubmit({ fieldCall: "exceeds" })}
+            className="rounded-card border border-card-border bg-card px-3 py-3.5 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-ink-strong transition hover:-translate-y-px hover:border-rule-strong hover:shadow-[var(--shadow-lift)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            Exceeds the data
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// THE LEDGER — stamp every claim, then close the ledger. No default state:
+// clearing an innocent claim is an act, not an omission.
+function LedgerAudit({
+  item,
+  verdict,
+  submitting,
+  onSubmit,
+}: {
+  item: Item;
+  verdict: Verdict | null;
+  submitting: boolean;
+  onSubmit: (body: Record<string, unknown>) => void;
+}) {
+  const claims = item.claims ?? [];
+  const [stamps, setStamps] = useState<(boolean | null)[]>(() => claims.map(() => null));
+  const revealByIndex = new Map((verdict?.claims ?? []).map((c) => [c.i, c]));
+  const allStamped = stamps.every((s) => s !== null);
+  const stampBtn = (i: number, val: boolean, label: string) => (
+    <button
+      disabled={!!verdict || submitting}
+      onClick={() => setStamps((prev) => prev.map((s, k) => (k === i ? val : s)))}
+      aria-pressed={stamps[i] === val}
+      className={`rounded-chip border px-2.5 py-1 font-mono text-[0.625rem] font-semibold uppercase tracking-[0.12em] transition disabled:cursor-default ${
+        stamps[i] === val
+          ? "border-rule-strong bg-wash text-ink-strong"
+          : "border-card-border text-muted hover:border-rule-strong"
+      }`}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div className="mt-4">
+      <div className="space-y-2">
+        {claims.map((c, idx) => {
+          const rc = revealByIndex.get(c.i);
+          const rightCall = rc ? rc.stamped === rc.exceeds : null;
+          return (
+            <div key={c.i}>
+              <div
+                className={`rounded-card border bg-card p-3.5 ${
+                  rc
+                    ? rightCall
+                      ? "border-card-border"
+                      : "border-danger"
+                    : "border-card-border"
+                }`}
+              >
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 shrink-0 font-mono text-xs text-muted tabular-nums">
+                    {idx + 1}.
+                  </span>
+                  <span className="font-serif text-[1rem] leading-[1.5] text-ink-strong text-pretty">
+                    {c.text}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center gap-2 pl-6">
+                  {rc ? (
+                    <>
+                      <span
+                        className={`rounded-chip border px-2.5 py-1 font-mono text-[0.625rem] font-semibold uppercase tracking-[0.12em] ${
+                          rc.exceeds ? "border-accent text-accent" : "border-card-border text-muted"
+                        }`}
+                      >
+                        {rc.exceeds ? "exceeds the data" : "holds"}
+                      </span>
+                      <span
+                        className={`font-mono text-xs font-bold ${rightCall ? "text-accent" : "text-danger"}`}
+                        aria-label={rightCall ? "your stamp was right" : "your stamp was wrong"}
+                      >
+                        {rightCall ? "✓" : "✗"}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      {stampBtn(idx, false, "holds")}
+                      {stampBtn(idx, true, "exceeds")}
+                    </>
+                  )}
+                </div>
+                {rc && (
+                  <p className="mt-1.5 pl-6 text-[0.8125rem] leading-relaxed text-muted text-pretty">
+                    {rc.rationale}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {!verdict && (
+        <button
+          disabled={!allStamped || submitting}
+          onClick={() => onSubmit({ stamps: stamps.map(Boolean) })}
+          className="cta-glow mt-3 w-full rounded-card bg-accent px-4 py-3 font-semibold text-on-accent active:scale-[0.99] disabled:opacity-50"
+        >
+          {allStamped ? "Close the ledger →" : "Stamp every claim to close the ledger"}
+        </button>
+      )}
     </div>
   );
 }
@@ -792,6 +1139,12 @@ function Recap({
   namedCorrect,
   ratingDelta,
   rating,
+  grade,
+  nextGate,
+  newGrade,
+  newCreds,
+  credentials,
+  isDocket,
   skills,
   progressFor,
   onAgain,
@@ -802,6 +1155,12 @@ function Recap({
   namedCorrect: number;
   ratingDelta: number;
   rating: number;
+  grade: GradeDto;
+  nextGate: string | null;
+  newGrade: GradeDto | null;
+  newCreds: ConferralDto[];
+  credentials: ConferralDto[];
+  isDocket: boolean;
   skills: string[];
   progressFor: (id: string) => SkillProgress;
   onAgain: () => void;
@@ -810,10 +1169,20 @@ function Recap({
   const weak = skills
     .map((id) => ({ s: skillFor(id), p: progressFor(id) }))
     .filter(({ p }) => p.attempted > 0 && p.caught < p.attempted);
+  // "Next on the desk": the nearest unmet grade conjunct, else the first open
+  // competence stamp — exactly one line, never a list.
+  const openComp = CREDENTIAL_DEFS.find(
+    (d) => d.tier === "competence" && !credentials.find((c) => c.code === d.code)?.earnedAt
+  );
+  const nextOnDesk = nextGate ?? (openComp ? `${openComp.name} — ${openComp.criterion}` : null);
+  const gradeMeta = newGrade ? GRADE_META.find((g) => g.n === newGrade.n) : null;
   return (
     <div className="rise mt-6">
       <div className="text-center">
-        <p className="kicker text-muted">Session recap</p>
+        <p className="kicker text-muted">{isDocket ? "Docket filed" : "Session recap"}</p>
+        {isDocket && (
+          <p className="mt-1 font-mono text-[0.6875rem] text-muted">{docketDate()}</p>
+        )}
         <p className="mt-3 font-sans text-2xl font-semibold text-ink-strong tracking-[-0.02em]">
           {done === 0
             ? "No calls this round"
@@ -821,7 +1190,7 @@ function Recap({
         </p>
         <p className="mt-1 font-mono text-xs text-muted tabular-nums">
           rating {ratingDelta >= 0 ? "+" : ""}
-          {ratingDelta} → {rating} · {drillRank(rating)}
+          {ratingDelta} → {rating} · Grade {grade.roman} · {grade.title}
         </p>
         {named > 0 && (
           <p className="mt-1 font-mono text-xs text-muted tabular-nums">
@@ -829,6 +1198,44 @@ function Recap({
           </p>
         )}
       </div>
+
+      {/* stamps earned this sitting — the room's one ceremony, entrance-only */}
+      {(gradeMeta || newCreds.length > 0) && (
+        <div className="mt-8">
+          <p className="kicker text-muted mb-2">Entered into the record</p>
+          <div className="space-y-2">
+            {gradeMeta && (
+              <div className="card-reveal rounded-card border border-accent bg-card px-4 py-3.5">
+                <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-accent">
+                  Grade {gradeMeta.roman} · {gradeMeta.title}
+                </p>
+                <p className="mt-1 font-mono text-[0.6875rem] text-muted">{gradeMeta.gate}</p>
+                <p className="mt-1 font-mono text-[0.625rem] text-muted tabular-nums">
+                  CERTIFIED {docketDate()} · reading at {rating}
+                </p>
+              </div>
+            )}
+            {newCreds.map((c) => {
+              const def = CREDENTIAL_DEFS.find((d) => d.code === c.code);
+              if (!def) return null;
+              const comp = def.tier === "competence";
+              return (
+                <div
+                  key={c.code}
+                  className={`card-reveal rounded-card border border-card-border bg-card px-4 py-3 ${comp ? "border-l-2 border-l-accent" : ""}`}
+                >
+                  <p
+                    className={`font-mono text-[0.6875rem] font-semibold tracking-[0.14em] ${comp ? "text-accent" : "text-ink-strong"}`}
+                  >
+                    {def.name}
+                  </p>
+                  <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted">{def.criterion}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {practiced.length > 0 && (
         <div className="mt-8">
@@ -858,6 +1265,18 @@ function Recap({
             ))}
           </div>
         </div>
+      )}
+
+      {nextOnDesk && (
+        <div className="mt-6">
+          <p className="kicker text-muted mb-1.5">Next on the desk</p>
+          <p className="font-mono text-[0.6875rem] leading-relaxed text-muted tabular-nums">{nextOnDesk}</p>
+        </div>
+      )}
+      {isDocket && (
+        <p className="mt-4 text-center font-mono text-[0.6875rem] text-muted">
+          A new docket prints tomorrow.
+        </p>
       )}
 
       <button
