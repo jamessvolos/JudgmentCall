@@ -1,5 +1,5 @@
 // Deep training pool — authored + adversarially reviewed for the Training Room.
-// 39 items across spot / fix / calibrate and all ten skills. DS-flavored,
+// 45 items across spot / fix / calibrate / ledger and all ten skills. DS-flavored,
 // fictional data. Generated content; edit here, then it syncs on build.
 import type { DrillSeed } from "./drills";
 
@@ -585,5 +585,215 @@ export const DRILL_POOL: DrillSeed[] = [
     overclaimedText:
       "Support CSAT rose from 4.1 in Q1 to 4.6 in Q2, with the response rate climbing from 11% to 34% — a far broader sample of customers than last quarter's score drew on.",
     device: "omitting the mid-window survey-delivery switch that sits under the CSAT rise",
+  },
+  {
+    title: "The retention memo",
+    mode: "ledger",
+    skill: "cause",
+    difficulty: 2,
+    contextSnippet:
+      "**Slatebrook CRM, 90-day retention:** Q1 **71%** → Q2 **77%** (+6pts). The rise concentrates in accounts onboarded after March: **84%** retention vs **74%** for older accounts. A **new onboarding flow shipped April 1 to 100% of new accounts — no holdback.** One quarter of post-launch data.",
+    sourceLabel: "Customer success quarterly memo (fictional)",
+    prompt: "Stamp every claim: does it hold, or does it exceed the data?",
+    explanation:
+      "The first two claims are straight reads of the readout — the rise and where it concentrates are both on the page. The last two are the overreach: with no holdback, 'driving the gain' puts causal grammar on an association (newer cohorts differ from older ones in more ways than the flow they saw), and 'compound next quarter' extends a single interval into a trend. Same memo, and the line between reporting and asserting runs right through its middle.",
+    device: "promoting a one-quarter association to a cause and a forecast",
+    choices: [
+      {
+        text: "Ninety-day retention rose 6 points quarter over quarter, from 71% in Q1 to 77% in Q2.",
+        correct: false,
+        rationale: "HOLDS. A straight read of the headline figures — 71% to 77% is the readout verbatim.",
+      },
+      {
+        text: "The gain is concentrated in accounts onboarded after March, which retain at 84% versus 74% for older accounts.",
+        correct: false,
+        rationale: "HOLDS. The composition note is in the readout — this reports where the rise sits without saying why it sits there.",
+      },
+      {
+        text: "The new onboarding flow is driving the gain.",
+        correct: true,
+        rationale: "EXCEEDS. The flow shipped to 100% of new accounts with no holdback, so nothing isolates it — post-March cohorts differ from older accounts in more ways than the flow. 'Driving' is causal grammar on an association.",
+      },
+      {
+        text: "Expect the gain to compound as more of the base moves through the new flow next quarter.",
+        correct: true,
+        rationale: "EXCEEDS. One quarter of post-launch data is a single interval; asserting it will repeat, let alone compound, is a trend the readout doesn't contain.",
+      },
+    ],
+  },
+  {
+    title: "Day 9 of the A/B test",
+    mode: "ledger",
+    skill: "certainty",
+    difficulty: 3,
+    contextSnippet:
+      "**Ironbell Commerce — signup-page A/B test, day 9 of a planned 14:** variant B **5.6%** conversion vs control **5.1%** (+0.5pt). Day-5 read was **+0.2pt**. Sessions so far: **1,910** (B) · **1,880** (control).",
+    sourceLabel: "Experimentation platform digest (fictional)",
+    prompt: "Audit the update line by line — stamp each claim HOLDS or EXCEEDS.",
+    explanation:
+      "Three of these four rows are clean, including the one that looks most flaggable: a gap that widened from +0.2 to +0.5 is a fact the readout shows, and reporting it is not the same as calling it destiny. The single overreach is 'B is the winner' — day 9 of a planned 14 is a peek, and a verdict spoken before the test's own finish line is provisional data dressed as settled. Flagging the clean rows around it would be its own miss.",
+    device: "declaring a winner at day 9 of a planned 14",
+    choices: [
+      {
+        text: "Nine days in, variant B leads control by 0.5 points — 5.6% against 5.1%.",
+        correct: false,
+        rationale: "HOLDS. A dated, scoped read of the current gap; 'nine days in' keeps it provisional.",
+      },
+      {
+        text: "The gap has widened since day 5, when B led by just 0.2 points.",
+        correct: false,
+        rationale: "HOLDS. The readout shows both reads — +0.2 then +0.5. Describing movement that happened is not projecting movement to come.",
+      },
+      {
+        text: "B is the winner.",
+        correct: true,
+        rationale: "EXCEEDS. The test is at day 9 of a planned 14 — 'winner' is a settled verdict the design hasn't reached yet. Direction so far, yes; decision, no.",
+      },
+      {
+        text: "Each arm has logged roughly 1,900 sessions so far.",
+        correct: false,
+        rationale: "HOLDS. 1,910 and 1,880 both round to roughly 1,900, and 'so far' keeps the count honest about the test still running.",
+      },
+    ],
+  },
+  {
+    title: "The support-ticket digest",
+    mode: "ledger",
+    skill: "base_rate",
+    difficulty: 1,
+    contextSnippet:
+      "**Osprey Budgeting — helpdesk digest, first week after the redesign:** tickets **120 → 240** week over week. Weekly active users: **~61,000**.",
+    sourceLabel: "Support ops weekly digest (fictional)",
+    prompt: "Three claims, one readout — stamp each one against the numbers.",
+    explanation:
+      "The count doubled and the digest says so plainly — both number claims hold, and the second one does the honest work of restoring the denominator: 240 tickets against ~61,000 weekly actives is a rate of about 0.4%. 'Users are abandoning the redesign' is the leap — a ticket is a complaint, not a departure, and at least 99.6% of actives filed nothing at all. Ticket volume can double while abandonment sits at zero.",
+    device: "reading abandonment into a denominator-free ticket count",
+    choices: [
+      {
+        text: "Support tickets doubled this week, from 120 to 240.",
+        correct: false,
+        rationale: "HOLDS. The raw movement, reported as raw movement — 120 to 240 is the readout exactly.",
+      },
+      {
+        text: "That is 240 tickets against roughly 61,000 weekly actives — a rate of about 0.4%.",
+        correct: false,
+        rationale: "HOLDS. 240 / 61,000 ≈ 0.4%. This row supplies the denominator the alarm would need — it's the discipline, not the overreach.",
+      },
+      {
+        text: "Users are abandoning the redesign.",
+        correct: true,
+        rationale: "EXCEEDS. At most 0.4% of actives filed anything, and a ticket measures friction, not departure — the readout contains no usage or churn data at all. Abandonment is invented.",
+      },
+    ],
+  },
+  {
+    title: "The pilot week",
+    mode: "ledger",
+    skill: "extrapolation",
+    difficulty: 2,
+    contextSnippet:
+      "**Graywharf Freight — routing-software pilot, one week:** the **2 pilot depots** (both volunteered for the trial) moved on-time delivery **87% → 93%**. The **38 control depots** held at **87%**. Network total: **40 depots**.",
+    sourceLabel: "Logistics ops pilot readout (fictional)",
+    prompt: "Check every line against the readout: holds, or exceeds the data?",
+    explanation:
+      "The pilot result and the flat controls are both on the page, and the caveat about volunteer sites is a claim too — one that deserves clearing, not flagging, because hedges are part of an honest telling. The overreach is the rollout line: two depots that asked to join are not a sample of forty, and 'takes all 40 to 93%' projects a volunteer slice onto the whole network as if the number would travel unchanged.",
+    device: "projecting two volunteer depots onto the whole network",
+    choices: [
+      {
+        text: "In the pilot week, the two pilot depots improved on-time delivery from 87% to 93%.",
+        correct: false,
+        rationale: "HOLDS. Scoped to the pilot depots and the pilot window — exactly what was measured.",
+      },
+      {
+        text: "The 38 control depots held flat at 87% over the same week.",
+        correct: false,
+        rationale: "HOLDS. The readout says the controls didn't move; reporting the comparison is fair game.",
+      },
+      {
+        text: "Network-wide rollout takes all 40 depots to 93%.",
+        correct: true,
+        rationale: "EXCEEDS. Two volunteer depots are not the other 38 — self-selected pilot sites routinely outperform the sites that didn't raise a hand. The 93% is a local reading, not a network guarantee.",
+      },
+      {
+        text: "One caution: both pilot depots volunteered, so the gain may run high relative to a typical depot.",
+        correct: false,
+        rationale: "HOLDS. A caveat is a claim, and this one is grounded — the readout states both depots volunteered. Clearing it is the point; a hedge that fits the data is not an overreach.",
+      },
+    ],
+  },
+  {
+    title: "The quarter in review",
+    mode: "ledger",
+    skill: "single_cause",
+    difficulty: 3,
+    contextSnippet:
+      "**Copperbeam (B2B invoicing) — Q2 review:** revenue per account **$412 → $449 (+9%)**, with the rise beginning in **May** — the month a **price change**, a **rebrand**, and **two feature ships** all landed. **No decomposition or holdout run.** Support contacts flat at **~1,100/mo** through the quarter.",
+    sourceLabel: "Revenue ops quarterly review (fictional)",
+    prompt: "Five claims went out in this review — stamp each one.",
+    explanation:
+      "Four changes landed in the same month the rise began, so attribution runs in both directions and fails in both: 'the pricing change delivered the 9%' hands a bundled gain to one driver, and 'the rebrand contributed nothing' is the mirror image — an acquittal needs the same isolation a conviction does. The timing note, the headline number, and the flat support line are all straight reads. Without a decomposition, the honest ledger convicts no one and clears no one.",
+    device: "crediting one driver from a four-change bundle — and acquitting another",
+    choices: [
+      {
+        text: "Revenue per account rose 9% this quarter, from $412 to $449.",
+        correct: false,
+        rationale: "HOLDS. $449 / $412 ≈ 1.09 — the headline figure, read straight off the readout.",
+      },
+      {
+        text: "The rise began in May, the month the price change, the rebrand, and both feature ships all landed.",
+        correct: false,
+        rationale: "HOLDS. Timing is in the readout, and noting the coincidence is reporting — the claim stops short of assigning credit.",
+      },
+      {
+        text: "The pricing change delivered the 9%.",
+        correct: true,
+        rationale: "EXCEEDS. Four changes shipped in the same month with no decomposition or holdout — picking one driver out of the bundle is a choice, not a finding.",
+      },
+      {
+        text: "The rebrand contributed nothing to the gain.",
+        correct: true,
+        rationale: "EXCEEDS. The mirror-image overreach: ruling a driver out requires the same isolation as ruling one in, and no analysis here separates the four. Zero is an attribution too.",
+      },
+      {
+        text: "Support contacts held flat through the change, at roughly 1,100 a month.",
+        correct: false,
+        rationale: "HOLDS. The readout says contacts stayed flat — a null result reported as a null result.",
+      },
+    ],
+  },
+  {
+    title: "The clean filing",
+    mode: "ledger",
+    skill: "certainty",
+    difficulty: 2,
+    contextSnippet:
+      "**Lanternfield (tutoring marketplace) — funnel readout:** signup conversion **6.4% (May) → 8.5% (June)**, **+2.1pts**. The weekly series shows the lift holding for **5 consecutive weeks** to date. The **spring dip** (March–April) cost **~2.0pts**. Mobile split: **~120 conversions/wk**, week-to-week swings of **±1.5pts**.",
+    sourceLabel: "Growth weekly readout (fictional)",
+    prompt: "Stamp each claim: does it hold, or does it exceed the data?",
+    explanation:
+      "Every claim here holds — this is what a disciplined telling looks like, and clearing it cleanly is the skill. 'So far' keeps the streak provisional, 'if it holds' keeps the Q3 line a conditional rather than a forecast, and calling the mobile split too thin to read is restraint stated out loud. Drop the discipline and each row tips: 'conversion now runs at 8.5%' promotes one June to a resting level, 'the lift is durable' settles a five-week streak, 'it will offset the dip' deletes the conditional, 'mobile is improving' reads a signal into ±1.5-point noise — same numbers, four overclaims. Suspicion is not a verdict; a clean filing deserves a clean stamp.",
+    device: "clearing sound claims without inventing a culprit",
+    choices: [
+      {
+        text: "Signup conversion is up 2.1 points month over month, from 6.4% in May to 8.5% in June.",
+        correct: false,
+        rationale: "HOLDS. 8.5 − 6.4 = 2.1 — the headline read, with both months named.",
+      },
+      {
+        text: "The lift has held for five consecutive weeks so far.",
+        correct: false,
+        rationale: "HOLDS. The weekly series shows it, and 'so far' does the work — the claim describes the streak without promising its continuation.",
+      },
+      {
+        text: "If the lift holds through Q3, it would roughly offset the 2-point spring dip.",
+        correct: false,
+        rationale: "HOLDS. A conditional, not a forecast: +2.1pts against a ~2.0pt dip is honest arithmetic, and 'if' leaves the holding an open question.",
+      },
+      {
+        text: "The mobile split is too thin to read yet — about 120 conversions a week, swinging a point and a half either way.",
+        correct: false,
+        rationale: "HOLDS. Declining to read a noisy slice is a claim about the data's resolution, and the readout backs it. Restraint stated plainly is not an overreach.",
+      },
+    ],
   },
 ];

@@ -450,3 +450,47 @@ that keeps it from the study is absolute:
   (variety on re-entry, now the honest "deepen" round), and the durable
   per-skill naming-accuracy read (needs schema, still deferred). Blinding
   held; drill attempts still never enter analytics.
+- **2026-07-11 (later)** — **Training Room, second edition** (user-commissioned:
+  a five-persona focus group, three competing firms — learning-science,
+  engagement, DATUM-instruments — and a fourth synthesis firm whose build spec
+  shipped the same day). The room gains an honest progression system and two
+  new instruments, all recomputed from `DrillAttempt` rows on every read —
+  nothing stored, nothing that can inflate:
+  **The Grades I–V** (Reader → Close Reader → Fact-Checker → Line Editor →
+  The Spike): rating floors on the selection ladder's own cut points
+  (1240/1340/1420/1500) each with an evidence gate (volume, family coverage,
+  subtle-tier catches), certified as a monotone fold over the new
+  `ratingAfter` column — a lucky streak can't bank a seat, a later slump
+  can't demote, and the live rating always prints beside the stamp. The
+  neutral grade label joins the poster's credential line; gate criteria never
+  leave the room. **The Record**: 12 credential stamps (9 competence in
+  accent ink, 3 exploration muted and labeled), each a monotone predicate
+  with its criterion printed verbatim on the face — zero attendance marks,
+  per the focus group's veto. **Field Read**: one telling, no pair — the
+  comparison scaffold removed; serves the fidelity spot pool through its own
+  hash salt with day-gapped re-serves, so ~half of serves are sound tellings
+  and a false accusation costs rating (the anti-cynicism training the focus
+  group demanded). **The Ledger**: one telling broken into claims, every
+  claim stamped HOLDS/EXCEEDS with no default state, exact-set all-or-nothing
+  grading — clearing the innocent is an act; 6 authored items via the
+  two-agent pipeline (4 passed, 2 fixed: a ticket/user denominator-ambiguity
+  cluster and the clean filing's explanation), including one entirely clean
+  ledger. **The Daily Docket**: a 3-call sitting seeded from (session, UTC
+  date, progress) — deterministic on refresh, recorded nowhere beyond
+  ordinary attempts, no streaks, missing a day costs nothing and is visible
+  nowhere. The naming beat now persists write-once (`namedSkill`) via a
+  PATCH — the charter's twice-deferred durable read — and stays ungraded.
+  Cut deliberately (recorded in the spec): attendance anything, latency
+  badges, leaderboards, partial credit into the rating; named for the next
+  sitting: multi-question case files and the fixed-form checkpoint exam.
+  **Verified**: 51-item content test (ledger contract enforced), new
+  drill-grade truth tables, a 40-assertion credentials suite locking every
+  predicate plus monotonicity (arbitrary appended rows never un-earn),
+  20-assertion live API drive (field grading/uniqueness/day-gap, ledger
+  payload hygiene and exact-set grading, docket determinism, naming
+  write-once, The Record on every GET), UI drive with screenshots in both
+  themes (dashboard grade block + Record, field question, closed ledger
+  reveal, recap conferring ALL BENCHES live), tsc/lint/build, blinding grep
+  empty, guard PASS (~205 KB) with the credential vocabulary confirmed
+  drill-chunk-only. Blinding held; drill attempts still never enter
+  analytics; nothing gamified writes to the rating.
