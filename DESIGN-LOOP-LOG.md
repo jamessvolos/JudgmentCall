@@ -441,3 +441,32 @@ actually covered. Un-evidenced surfaces are where defects live.
 (the /review gap is closed with a working seeded-session harness). Docket,
 landing, methods, drill remain converged; OG share cards still parked pending
 the user. Stop condition reached for this round.
+
+## 2026-07-11 · Round: Training Room v2 verified at desktop — converge
+
+**The move attempted.** The only surface changed since the last convergence is
+the Training Room, reimagined and shipped hours ago through its own
+user-commissioned process (five-persona focus group → three competing firms →
+synthesis firm → build), with a hard-rules audit inside the ship gate and
+both-theme 390-width captures of dashboard, Field Read, Ledger reveal, and the
+conferral recap. This round closed the one evidence gap that process left:
+1280-width captures in both themes. Result: no defect — the max-w-2xl room
+shell holds at desktop, the six-bench picker, grade block + ladder rail,
+12-stamp Record, Ledger claim stack, and stamp chips all read as one
+instrument at width.
+
+**Hard-rules audit (standing).** Voting cards, §02, and every collecting state
+untouched by the v2 build (all changes /drill + poster grade line). The room's
+one new ceremony (recap conferral) is entrance-only and reduced-motion-safe;
+no continuous motion added anywhere; blinding grep empty and guard PASS at the
+shipped commit, with the new credential vocabulary verified drill-chunk-only
+by reference audit.
+
+**Learned / de-risked.** A surface that just shipped through a full
+commissioned pipeline does not need a second fresh-eyes pass minutes later —
+the loop's value here was completing the evidence matrix (the missing width),
+not re-critiquing. Screenshot coverage debt is cheapest to pay the same day.
+
+**Momentum / convergence.** All energy surfaces evidenced and converged; OG
+share cards for desk calls remain the one parked candidate (user's call).
+Stop condition reached — no change this round.
