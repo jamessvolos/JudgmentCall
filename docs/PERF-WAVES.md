@@ -326,3 +326,34 @@ threshold-gated big items (Wave 2 aggregate tables @~50k, snapshot serving @~100
 stay correctly deferred; the standing ops check (confirm the prod Neon URL is the
 `-pooler` endpoint) is config, not code. Standing anti-churn policy still holds,
 now re-keyed to this note's state.
+
+### Round reflection — 2026-07-10 · /methods surface assessed (no change)
+
+A newly-surfaced read path (the `/methods` page split out of `/results`) is why
+this entry exists, per the standing policy. Assessment:
+
+- **`/methods` adds no new query pattern.** It is a `force-dynamic` RSC page
+  rendering the shared `MethodsProtocol` component from
+  `computeAnalyticsCached()` — the same version-keyed memo `/results` and the
+  API reads already share. A warm request costs the three indexed point
+  queries of the version probe (memo hit) and zero additional queries;
+  measured warm at ~50–60ms in dev alongside `/results` at ~65–70ms (dev
+  overhead dominates both; the memoized compute is the same object).
+- **Other deltas since the last entry are perf-inert.** The Elo intake gate is
+  one boolean condition inside the existing settle transaction; the `/results`
+  §04 floor gate is render-level math (a Wilson interval per leaderboard row,
+  ~8 rows); the docket maps a static 13-element preregistered array; the drill
+  pool grew 35→40 rows (bounded, indexed, non-published path). The hot paths
+  (vote settle, analytics read + memo/CDN, ~201 KB client bundle
+  guard-confirmed) are structurally unchanged.
+- **Thresholds unmoved.** Counted volume remains three orders of magnitude
+  below the Wave-2 aggregate (~50k) and snapshot-serving (~100k) gates; both
+  stay correctly deferred behind the documented reconciliation guard.
+
+**Chosen action: none — converge.** No candidate clears the "clear value +
+full live-study safety bar + lowest risk" gate. Ledger truth, exact-freshness
+memoization, and blinding invariants all untouched (no code changed this
+round; the tree's full gate — tsc, lint, build, blinding grep, guard, tests —
+ran green at this HEAD in the preceding design round). Standing ops items
+unchanged: prod `-pooler` endpoint check and `IP_HASH_SALT` are config, not
+code. Anti-churn policy re-keyed to this note's state.
