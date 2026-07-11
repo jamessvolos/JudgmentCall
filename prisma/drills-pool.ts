@@ -1,5 +1,5 @@
 // Deep training pool — authored + adversarially reviewed for the Training Room.
-// 34 items across spot / fix / calibrate and all ten skills. DS-flavored,
+// 39 items across spot / fix / calibrate and all ten skills. DS-flavored,
 // fictional data. Generated content; edit here, then it syncs on build.
 import type { DrillSeed } from "./drills";
 
@@ -500,5 +500,90 @@ export const DRILL_POOL: DrillSeed[] = [
     faithfulText: "Instant transfers rose 41% in March, 310,000 to 437,000 — though the $20-per-transfer referral bonus ran the entire month and ended March 31, so treat the jump as provisional until April shows whether it holds.",
     overclaimedText: "Instant transfers came in at 437,000 for March, up 41% from February's 310,000 — a sizable jump in usage of the feature.",
     device: "omitting that a $20-per-transfer bonus ran the entire month being measured",
+  },
+  {
+    title: "Q2 retention, broad to narrow",
+    mode: "spot",
+    skill: "buried_lede",
+    difficulty: 3,
+    contextSnippet:
+      "**Harborlight (B2B CRM), Q2 retention readout:** enterprise logo churn **1.1% → 3.4%** — the segment holds **62% of ARR** · SMB logo churn flat at **4.0%** · net revenue retention **97%**, in line with the trailing four quarters.",
+    sourceLabel: "Customer retention dashboard (fictional)",
+    prompt: "Both tellings use the same numbers. Which one is poorly made because it buries the headline?",
+    explanation:
+      "The finding is that enterprise churn tripled — in the segment carrying 62% of ARR. The weaker telling walks broad-to-narrow, opening with the stable SMB and NRR figures, which reads like responsible baseline-setting; but it spends the reader's attention on what didn't move and delivers the tripled number last, in flat 'moved from' language, with the segment's 62%-of-ARR weight tucked into a passing clause. Every figure is accurate — the flaw is that the load-bearing one arrives after the reader has been told twice that things are stable.",
+    faithfulText:
+      "Enterprise logo churn tripled in Q2, from 1.1% to 3.4% — in the segment holding 62% of ARR. SMB churn was flat at 4.0% and net revenue retention held at 97%, in line with the trailing four quarters, so the break is specific to enterprise, not base-wide.",
+    overclaimedText:
+      "Q2 retention held steady across the broader base: SMB logo churn was flat at 4.0%, and net revenue retention came in at 97%, in line with the trailing four quarters. In the enterprise segment, which holds 62% of ARR, logo churn moved from 1.1% to 3.4% over the quarter.",
+    device: "the tripled enterprise churn delivered last, dressed as broad-to-narrow context-setting",
+  },
+  {
+    title: "Savings to the exact dollar",
+    mode: "spot",
+    skill: "false_precision",
+    difficulty: 3,
+    contextSnippet:
+      "**Pinewatch (IT helpdesk platform), chatbot savings model:** estimated ticket deflection **11–14%** of ~**46,000** monthly tickets · finance's blended cost-per-ticket **$5.80** (queue-level range **$3.20–$9.40**) · midpoint math: 12.5% × 46,000 × $5.80 ≈ **$33,350/month**.",
+    sourceLabel: "Support automation business case (fictional)",
+    prompt: "Same result, same data. Which telling manufactures precision the inputs cannot support?",
+    explanation:
+      "The arithmetic in the weaker telling is flawless — that's the disguise. Both inputs are soft: deflection is an 11–14% estimate and the $5.80 cost is a blended average over a $3.20–$9.40 queue spread, so $400,200 is the midpoint of a wide band, not a measured quantity. Showing the multiplication step by step reads as rigor while quietly promoting two ranges into a dollar-exact figure someone will paste into a budget.",
+    faithfulText:
+      "The model sizes annualized savings at roughly $400K — call it $350K to $450K across the 11–14% deflection range, and wider still given the $3.20–$9.40 queue-level cost spread. It's a directional sizing, not a bookable number.",
+    overclaimedText:
+      "Applying the 12.5% midpoint deflection to the 46,000-ticket monthly volume yields 5,750 deflected tickets; at finance's $5.80 blended cost per ticket, that comes to $33,350 in monthly savings, or $400,200 on an annualized basis.",
+    device: "dollar-exact savings computed from inputs that are ranges, with the arithmetic shown to look rigorous",
+  },
+  {
+    title: "Verified in every cut",
+    mode: "spot",
+    skill: "padding",
+    difficulty: 3,
+    contextSnippet:
+      "**Ledgerline (invoicing SaaS), pricing-page rewrite test (21 days, n≈38K/arm):** trial starts **+9%** (p=0.01) · trial→paid conversion **unchanged** (14.2% vs 14.1%) · both results consistent across desktop, mobile, and all three plan tiers (Starter, Growth, Scale).",
+    sourceLabel: "Experimentation platform readout (fictional)",
+    prompt: "Both tellings are accurate and reach the same conclusion. Which one pads the readout with restatement dressed as thoroughness?",
+    explanation:
+      "The weaker telling looks diligent — it walks every segment cut one by one, twice. But 'consistent across all cuts' is one fact, and enumerating desktop, mobile, and the three tiers for each metric restates it half a dozen times without adding a single new number. The faithful telling carries the identical content — lift, unchanged conversion, consistency — in one pass; the padded one spends its extra length performing verification instead of informing.",
+    faithfulText:
+      "The rewrite lifted trial starts 9% (p=0.01) over the full 21-day run without diluting their quality: trial-to-paid conversion held steady, 14.2% versus 14.1%, and both results held across desktop, mobile, and all three plan tiers.",
+    overclaimedText:
+      "Trial starts rose 9% over the 21-day run, significant at p=0.01. We verified the lift on desktop, where it held; on mobile, where it held; and across the Starter, Growth, and Scale tiers, where it held in each. Trial-to-paid conversion came in at 14.2% versus 14.1% — effectively unchanged — and we confirmed it was likewise unchanged on desktop, on mobile, and across all three tiers.",
+    device: "one consistency finding enumerated cut by cut until restatement passes for thoroughness",
+  },
+  {
+    title: "The skip pattern with no move",
+    mode: "spot",
+    skill: "missing_sowhat",
+    difficulty: 2,
+    contextSnippet:
+      "**Cartwheel (meal-kit subscription), first-month behavior:** customers who skip **3+ deliveries** in month one go on to churn at **71%** vs **18%** cohort baseline · **940 of 6,200** June signups have already hit 3 skips · the winback email flow currently triggers **only at cancellation**.",
+    sourceLabel: "Lifecycle analytics review (fictional)",
+    prompt: "Both tellings are accurate. Which one is poorly made because it stops before the decision?",
+    explanation:
+      "Both tellings treat the 71% as a risk flag, not a cause — neither says a word more than the data does. But the readout assembles a signal (3 skips predicts churn), a live population (940 signups already there), and an existing lever (a winback flow that fires too late), and the weaker telling lays all three on the table and names no move. The reader is left to connect them; the stronger telling does the connecting — fire the flow at the third skip, while those 940 are still subscribed.",
+    faithfulText:
+      "Customers who skip three deliveries in month one churn at 71% versus the 18% baseline, and 940 of June's 6,200 signups are already there. Our winback flow only fires at cancellation — move its trigger up to the third skip so it reaches these 940 while they're still subscribed.",
+    overclaimedText:
+      "Customers who skip three deliveries in their first month go on to churn at 71%, versus 18% for the cohort overall. Of June's 6,200 signups, 940 have already hit that mark. The winback email flow currently triggers only at cancellation.",
+    device: "risk signal, at-risk count, and existing lever all reported with no action named",
+  },
+  {
+    title: "CSAT's good quarter",
+    mode: "spot",
+    skill: "absent_caveat",
+    difficulty: 2,
+    contextSnippet:
+      "**Quarry (project-management app), support CSAT:** average score **4.1 → 4.6** (Q1 → Q2) · survey delivery switched from **email follow-up to an in-app prompt** at the start of Q2 · response rate jumped **11% → 34%** with the switch.",
+    sourceLabel: "Support operations report (fictional)",
+    prompt: "Both tellings report the same CSAT rise, without claiming cause. Which one omits a limitation the reader needs?",
+    explanation:
+      "Neither telling says support got better — both stay descriptive, and the response-rate jump is real. The dropped limitation is the instrument change: the survey moved from email to an in-app prompt exactly when the score rose, so Q2 is hearing from a different mix of customers and the two quarters aren't comparable. The weaker telling even presents the tripled response rate as a strength while leaving out the delivery switch it arrived with; the stronger one states the catch and holds the comparison loosely.",
+    faithfulText:
+      "Support CSAT rose from 4.1 to 4.6 in Q2 — but the survey moved from email to an in-app prompt at the same time, tripling the response rate to 34%, so we're likely hearing from a different mix of customers. Hold the comparison loosely until we have two quarters on the new instrument.",
+    overclaimedText:
+      "Support CSAT rose from 4.1 in Q1 to 4.6 in Q2, with the response rate climbing from 11% to 34% — a far broader sample of customers than last quarter's score drew on.",
+    device: "omitting the mid-window survey-delivery switch that sits under the CSAT rise",
   },
 ];

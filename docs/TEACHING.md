@@ -412,3 +412,41 @@ that keeps it from the study is absolute:
   tier has variety on re-entry, and the durable per-skill naming-accuracy
   read (needs schema, still deferred). Blinding held; drill attempts still
   never enter analytics.
+- **2026-07-11** — Content, part 2: **the difficulty ladder completed** (the
+  audit-driven successor to part 1's obvious-tier fill; the named candidate was
+  "deepen d1," but a fresh pool audit surfaced a sharper gap first). The
+  mastery model's ladder targets d3 at rating ≥1340 and d2 in the 1240–1340
+  band — yet **three skills had zero difficulty-3 items** (`buried_lede`,
+  `false_precision`, `padding`) and **two had zero difficulty-2**
+  (`missing_sowhat`, `absent_caveat`). Mirror image of the d1 hole: an
+  advanced learner could never be served a hard rep on three of the five
+  craft skills, so the ladder's top rung was inert exactly where competence
+  should be stretched. Authored **5 new spot items** through the same
+  two-agent pipeline (author → independent adversarial review), one per gap:
+  Harborlight (buried_lede d3 — tripled enterprise churn delivered last,
+  disguised as responsible broad-to-narrow context), Pinewatch
+  (false_precision d3 — to-the-dollar savings quoted off two range inputs,
+  arithmetic shown as rigor theater), Ledgerline (padding d3 — one finding
+  enumerated cut-by-cut as fake thoroughness), Cartwheel (missing_sowhat d2),
+  Quarry (absent_caveat d2 — mid-window survey-mode switch dropped, framed as
+  a strength). The reviewer earned its keep again: **2 passed, 3 fixed, 8
+  defects caught**, including a both-tellings craft-truth violation
+  (Ledgerline asserted per-cut consistency the readout never contained — fixed
+  at the snippet), a d3 telegraph (throat-clearing opener rewritten so the
+  padding is pure enumerative restatement), two prompt contradictions, an
+  unsupported "than the score has ever drawn on," and — notably — a **leakage
+  catch**: an explanation used the word "fidelity," which the reviewer
+  replaced ("neither says a word more than the data does"); craft-item
+  explanations must grade the making, never the truth-relation. Pool: 40 →
+  **45 active items**; ladder coverage now **every skill × every difficulty**
+  (audit: "ladder gaps: NONE ✓"). Verified: drill-content test 45/45 PASS,
+  tsc, lint, build, canonical blinding grep empty, bundle guard PASS
+  (~203 KB, teaching chunk drill-only); items synced to dev.db via the
+  official `syncDrillItems` (45 active) and a new item served live through
+  the real weighted draw and screenshotted in light and dark (three-pip
+  marker confirmed on the Pinewatch d3). How it advances the arc: selection,
+  engagement, and now **content-reachability** are complete — every rung the
+  selector can target exists for every skill. Next candidates: d1/d3 depth
+  (variety on re-entry, now the honest "deepen" round), and the durable
+  per-skill naming-accuracy read (needs schema, still deferred). Blinding
+  held; drill attempts still never enter analytics.
