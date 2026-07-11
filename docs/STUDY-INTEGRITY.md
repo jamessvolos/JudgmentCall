@@ -201,3 +201,46 @@ Each risk lists its current mitigation and the residual we knowingly accept.
   nightly production hook, and set the prod `IP_HASH_SALT` so the forensic
   digest stops storing null. Study health: **strong** — intake and aggregation
   now enforce one uniform published-number contract.
+- **2026-07-10 (later)** — **Publication-floor sweep: the register brought
+  current, one gap closed at aggregation.** Context: two integrity-relevant
+  fixes shipped through the design loop since the last amendment and are now
+  recorded against their risks, and the sweep they motivated found one more
+  instance of the same class, fixed this round at the aggregation choke point.
+  (a) *Risk #7 (misleading public numbers):* /results §04 printed a derived
+  win rate + win-share bar at any n > 0 under a page promising the n≥30 floor
+  three times; it now suppresses below `MIN_N` with the same uniform
+  collecting treatment as §02 and carries the Wilson interval when revealed
+  (`cdcbe88`). (b) *Risk #6 (blinding leakage):* fidelity vocabulary shipped
+  in client copy on two non-drill surfaces (the /review drill CTA, the share
+  poster's credential line) beneath the canonical grep's pattern, which
+  checks the raw tag value; both strings were aligned to public branding and
+  `bundle-guard` check 3 was widened to police the bare token in any
+  inflection, drill-chunk-only — verified by falsification (planted token
+  fails the guard by name; clean tree passes) (`c6c2907`). (c) *This round's
+  fix:* the **position-bias self-check published below its own floor** —
+  `computeAnalytics().positionBias` returned `leftRate`/`interval` at any
+  n ≥ 1, so the public /methods card's COLLECTING state ("n/30 decided votes
+  before this check reads") could never render past the first vote, and a
+  young ledger could print a spurious red "INTERVAL EXCLUDES 50 — FLAG" (or a
+  hollow all-clear) from noise. The readout now nulls below `MIN_N` at the
+  aggregation layer — enforcement at the choke point, not the display —
+  while `computeOverclaim().positionBias` (the admin monitor) deliberately
+  stays ungated so operators see the check forming early. **Verified
+  end-to-end on both sides of the floor:** against the live dev ledger
+  (n=583) the measured card still publishes rate + interval; against a fresh
+  scratch ledger the /methods page renders the COLLECTING card with no
+  readout (the sub-floor branch had plausibly never rendered before, since
+  the old gate nulled only at exactly n=0). tsc, lint, build, blinding grep
+  empty, guard PASS, tests 40/40.
+  **Reflection.** Chosen because it was the register's own doctrine applied:
+  the "publication" defense layer claims `MIN_N` suppression for published
+  rates, and the sweep found the one published rate that layer didn't yet
+  cover. The class lesson from §04 generalizes — *every* derived rate a
+  stranger can read must inherit the floor, and the floor must live at
+  aggregation. Publication surfaces now floor-complete: §02 (suppressed
+  stats), §04 (this week), /api/crowd (filters suppressed), the /methods
+  position check (this round); the poster's personal leanings are labeled
+  "leanings, not findings" and publish no study rates. Study health:
+  **strong**. Remaining high-priority items are unchanged and ops-only: wire
+  `integrity-scan.ts` into a nightly production hook, and set the prod
+  `IP_HASH_SALT`.

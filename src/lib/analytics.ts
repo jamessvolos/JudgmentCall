@@ -167,8 +167,14 @@ export async function computeAnalytics(): Promise<AnalyticsSnapshot> {
     positionBias: {
       leftWins,
       n: slots.length,
-      leftRate: slots.length > 0 ? leftWins / slots.length : null,
-      interval: slots.length > 0 ? wilson(leftWins, slots.length) : null,
+      // The public self-check reads at the same floor as every other published
+      // rate: below MIN_N a noisy interval could print a false "excludes 50"
+      // flag (or a hollow all-clear) from a handful of votes. Null here keeps
+      // the /methods card in its COLLECTING state, which is the promise its
+      // own copy makes ("n/30 decided votes before this check reads").
+      // computeOverclaim's positionBias stays ungated for the admin monitor.
+      leftRate: slots.length >= MIN_N ? leftWins / slots.length : null,
+      interval: slots.length >= MIN_N ? wilson(leftWins, slots.length) : null,
     },
     attributeStats: tallyToStats(overall),
     segmentStats: {
