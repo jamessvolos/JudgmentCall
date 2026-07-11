@@ -352,3 +352,47 @@ show no regressions; the standing bold candidate (per-call OG share cards for
 the docket) remains deliberately parked pending the user's go-ahead, so this
 round correctly stayed small. No further hard-rule-safe frontier move
 presents itself this round.
+
+## 2026-07-10 · Round: §04 held to the study's own floor
+
+**The move attempted.** An outside fresh-eyes critique (briefed with the hard
+rules as inviolable) was run against the current captures. Its verdict:
+converge on every surface except one real defect — /results §04 ("Top telling
+per finding") printed a derived "% win rate" and a filled accent win-share bar
+for any n > 0, directly under a page that promises three times (header, §06,
+/methods M-clauses) that no win rate is shown below n ≥ 30. The live page was
+asserting "63% win rate" on an 8-vote record one scroll beneath the sentence
+denying it would ever do that. Fixed by holding §04 to the same floor as §02:
+below MIN_N the bar becomes the identical uniform hatched collecting strip and
+the readout says "JURY'S STILL OUT — n/30" (raw Elo and W–L stay — the record
+is data; the rate is the protected inference). At n ≥ 30 the rate now also
+carries the Wilson 95% interval the header promises, closing the second half
+of the same sentence. The screen-reader label is gated the same way.
+
+**Why it's a win.** This product's frontier feel *is* its discipline — a
+skeptical reader who cross-checks the protocol against the page must find it
+self-consistent, and until this round they wouldn't have. Highest
+credibility-per-line change available; no aliveness move could compete.
+
+**Hard-rules audit (passed).** Voting cards and §02 untouched. The collecting
+state is extended, not split: every sub-floor §04 row renders the identical
+strip and vocabulary (verified on screen — five collecting rows, uniform).
+No motion added; no reduced-motion change; blinding grep empty; guard PASS
+(~201 KB); tsc/lint/build/tests (40/40) green. Screenshotted §04 in
+light/dark × 390/1280 with both states visible (three revealed rows with
+intervals, five collecting rows).
+
+**Learned / de-risked.** (a) The published-number contract lives in *copy* as
+well as aggregation — a promise printed on the page binds every section of
+that page, and new sections must be audited against the page's standing
+promises, not just the code contract. (b) The round's capture harness had a
+blind spot the critique caught: all four /review baselines were byte-identical
+to the landing (no-session redirect), so /review had zero real coverage —
+future rounds must seed a session before shooting /review. (c) Full-page
+screenshots catch scroll-timeline `card-reveal` sections mid-entrance
+(~50% opacity); a capture artifact, not a user-facing bug.
+
+**Momentum / convergence.** With this repaired, the outside critique and my
+own pass agree: landing, docket, methods, drill, and poster are converged;
+the remaining named candidate (per-call OG share cards) stays parked pending
+the user. Stop condition reached for this round.

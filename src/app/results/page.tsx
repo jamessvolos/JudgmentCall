@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { computeAnalyticsCached, MIN_N, type ValuePairStat } from "@/lib/analytics";
+import { computeAnalyticsCached, MIN_N, wilson, type ValuePairStat } from "@/lib/analytics";
 import { HOUSE_VIEW, stanceFor, type HouseStance } from "@/lib/house-view";
 import { getAnalysisSnapshots } from "@/lib/repo";
 import { ATTRIBUTE_LABELS, VALUE_LABELS } from "@/lib/types";
@@ -392,14 +392,20 @@ export default async function ResultsPage({
           <div className="mt-2 space-y-3">
             {a.leaderboard.map((row) => {
               const total = row.wins + row.losses;
+              // The n≥MIN_N promise ("no win rate is shown below n ≥ 30", §06 and
+              // the header) binds this section too: the raw W–L record is data,
+              // the derived rate is the protected inference. Below the floor the
+              // bar becomes the same uniform hatched collecting strip as §02.
+              const revealed = total >= MIN_N;
               const winShare = total > 0 ? row.wins / total : 0;
+              const iv = revealed ? wilson(row.wins, total) : null;
               return (
                 <div key={row.findingId} className="rounded-card border border-card-border bg-card p-4">
                   <p className="text-xs text-muted">{row.findingTitle}</p>
                   <p className="mt-1 font-serif text-[1.0625rem] leading-relaxed text-ink-strong text-pretty">{row.text}</p>
                   {/* Win-share bar: an honest read of head-to-head record (not a
                       time trend — per-variant Elo history isn't stored). */}
-                  {total > 0 && (
+                  {revealed ? (
                     <div
                       className="mt-2.5 flex h-1.5 overflow-hidden rounded-[2px] bg-card-border"
                       role="img"
@@ -407,10 +413,28 @@ export default async function ResultsPage({
                     >
                       <div className="h-full bg-accent/70" style={{ width: `${winShare * 100}%` }} />
                     </div>
+                  ) : (
+                    <div
+                      className="mt-2.5 h-1.5 overflow-hidden rounded-[2px]"
+                      role="img"
+                      aria-label={`Collecting: ${total} of ${MIN_N} head-to-heads before the win rate is shown`}
+                      style={{
+                        background:
+                          "repeating-linear-gradient(-45deg, var(--card-border), var(--card-border) 3px, transparent 3px, transparent 7px)",
+                      }}
+                    >
+                      <div
+                        className="h-full bg-card-border"
+                        style={{ width: `${Math.min(100, (total / MIN_N) * 100)}%` }}
+                        title={`Collecting: ${total} of ${MIN_N} votes before this rate is shown`}
+                      />
+                    </div>
                   )}
                   <p className="mt-2 font-mono text-xs text-muted tabular-nums">
                     Elo {Math.round(row.elo)} · {row.wins}W–{row.losses}L
-                    {total > 0 ? ` · ${Math.round(winShare * 100)}% win rate` : ""}
+                    {revealed && iv
+                      ? ` · ${Math.round(winShare * 100)}% win rate (${Math.round(iv.lo * 100)}–${Math.round(iv.hi * 100)}% at 95%)`
+                      : ` · JURY'S STILL OUT — ${total}/${MIN_N}`}
                   </p>
                 </div>
               );
