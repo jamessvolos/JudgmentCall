@@ -46,8 +46,12 @@ fi
 
 echo "[bundle-guard] 3/3 teaching (fidelity) vocab is reachable only from /drill"
 # Family names are unique to src/lib/teaching.ts; any chunk carrying them must
-# be referenced only by the drill route's server entry.
-teach_chunks=$(grep -rlE "Cause from correlation|Base-rate neglect|Certainty inflation" "$CHUNKS" 2>/dev/null || true)
+# be referenced only by the drill route's server entry. The bare token
+# "overclaim" is policed the same way: check 1 catches the raw tag value
+# ("overclaimed"), but UI copy like "spot the overclaim" once shipped on a
+# non-drill surface without tripping it — fidelity vocabulary in any
+# inflection stays inside the drill chunk.
+teach_chunks=$(grep -rlEi "Cause from correlation|Base-rate neglect|Certainty inflation|overclaim" "$CHUNKS" 2>/dev/null || true)
 if [ -n "$teach_chunks" ]; then
   for c in $teach_chunks; do
     base=$(basename "$c")

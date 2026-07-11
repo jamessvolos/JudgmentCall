@@ -465,7 +465,7 @@ export default function ReviewPage() {
               </Link>
               <p className="mt-3 text-center font-mono text-xs">
                 <Link href="/drill" className="text-accent hover:underline">
-                  Train: spot the overclaim
+                  Train: spot the weaker telling
                   {p.drillRating !== null && (
                     <span className="text-muted"> · rating {p.drillRating}</span>
                   )}

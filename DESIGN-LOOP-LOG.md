@@ -396,3 +396,48 @@ screenshots catch scroll-timeline `card-reveal` sections mid-entrance
 own pass agree: landing, docket, methods, drill, and poster are converged;
 the remaining named candidate (per-call OG share cards) stays parked pending
 the user. Stop condition reached for this round.
+
+## 2026-07-10 · Round: /review evidenced at last — and it caught a blinding leak
+
+**The move attempted.** The previous round's critique flagged that every prior
+/review "baseline" was actually a landing redirect (no seeded session), so the
+surface had never been evidenced. This round closed that gap: seeded a session
+through the real intake (10 votes, honest latency) and captured /review with
+live data in both themes. The page itself holds up — uniform hatched JURY'S
+STILL OUT rows, the docket-vocabulary "vs. the desk" panel, graded-stamp legend
+all correct. But the bottom CTA read **"Train: spot the overclaim"** — fidelity
+vocabulary in a client chunk on a non-drill surface. A second instance surfaced
+by code sweep: the public share poster's credential line printed "overclaim
+drill {rating}". Both are the exact class the blinding posture exists to
+prevent (a voter — or a colleague opening a shared poster — primed with the
+hidden dimension's name before voting), and both had lived under the guard's
+radar because check 1 greps the raw tag `overclaimed`, not the bare token.
+
+**The fix (three small strikes).** /review CTA → "Train: spot the weaker
+telling" (the Training Room's established public branding, landing tile 03);
+poster credential → "drill rating {n}"; and the bundle guard's check 3
+extended so any client chunk carrying the token `overclaim` (any case) must be
+drill-only-referenced — the class is now policed mechanically, not by eye.
+
+**Verification.** Live assertion on the rendered /review: new CTA present,
+zero /overclaim/i matches in the page text. tsc, lint, build clean; canonical
+grep empty; strengthened guard PASS (exactly one chunk carries the token, the
+drill chunk, drill-only ✓; ~203 KB). **Falsification test:** planted
+"spot the overclaim" into a landing-referenced chunk → guard FAILED naming the
+chunk and route; restored → PASS. Tests 40/40.
+
+**Hard-rules audit (passed).** Voting cards, §02, collecting states, motion:
+untouched — the diff is two copy strings and one guard pattern. This round
+*strengthens* the blinding rule rather than risking it.
+
+**Learned / de-risked.** (a) An invariant enforced by grep is only as wide as
+its pattern — "no fidelity vocab outside /drill" was being checked as "no
+fidelity *tag value*"; inflections walked through. Guards should police the
+class, not the instance. (b) The evidence-gap lesson compounds: the leak sat
+on /review precisely because /review was the one surface screenshots never
+actually covered. Un-evidenced surfaces are where defects live.
+
+**Momentum / convergence.** All energy surfaces are now genuinely evidenced
+(the /review gap is closed with a working seeded-session harness). Docket,
+landing, methods, drill remain converged; OG share cards still parked pending
+the user. Stop condition reached for this round.
