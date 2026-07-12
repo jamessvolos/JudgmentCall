@@ -10,6 +10,7 @@ import {
   levelStanding,
   badgeConferrals,
   topicProgress,
+  calibration,
   type QuizRow,
 } from "../src/lib/train-tracks";
 
@@ -22,8 +23,12 @@ const eq = (name: string, got: unknown, want: unknown) => {
 
 const T0 = new Date("2026-01-01T00:00:00Z").getTime();
 let seq = 0;
-function row(topic: string, difficulty: number, correct: boolean, ratingAfter: number | null): QuizRow {
-  return { quizItemId: `q${seq}`, topic, difficulty, correct, ratingAfter, createdAt: new Date(T0 + seq++ * 1000) };
+function row(topic: string, difficulty: number, correct: boolean, ratingAfter: number | null, confidence: number | null = null): QuizRow {
+  return { quizItemId: `q${seq}`, topic, difficulty, correct, confidence, ratingAfter, createdAt: new Date(T0 + seq++ * 1000) };
+}
+// a staked row (confidence set) at a fixed rating, for calibration tests
+function staked(correct: boolean, confidence: number): QuizRow {
+  return { quizItemId: `q${seq}`, topic: "sampling", difficulty: 1, correct, confidence, ratingAfter: 1210, createdAt: new Date(T0 + seq++ * 1000) };
 }
 
 const stats = TRACKS.statistics;
@@ -139,6 +144,39 @@ eq("topicProgress: sampling faced=2", samp.faced, 2);
 eq("topicProgress: sampling correct=1", samp.correct, 1);
 eq("topicProgress: sampling hardFaced=1", samp.hardFaced, 1);
 eq("topicProgress: sampling hardCorrect=0", samp.hardCorrect, 0);
+
+// --- calibration ------------------------------------------------------------
+seq = 0;
+eq("calibration: empty ledger is unrated", calibration([]).tendency, "unrated");
+seq = 0;
+// perfectly calibrated: at 90% conviction, right 9/10
+const cal90 = calibration([...Array.from({ length: 9 }, () => staked(true, 90)), staked(false, 90)]);
+eq("calibration: 9/10 right at 90% conviction reads as sharp", cal90.tendency, "sharp");
+eq("calibration: sharp accuracy is 0.9", Math.round(cal90.accuracy * 100), 90);
+seq = 0;
+// overconfident: always 95% sure, only right half the time
+const over = calibration(Array.from({ length: 20 }, (_, i) => staked(i % 2 === 0, 95)));
+eq("calibration: 95% conviction / 50% accuracy is overconfident", over.tendency, "overconfident");
+eq("calibration: overconfident gap is positive", over.gap > 0.07, true);
+seq = 0;
+// underconfident: only 60% sure, right 95% of the time
+const under = calibration(Array.from({ length: 20 }, (_, i) => staked(i % 20 !== 0, 60)));
+eq("calibration: 60% conviction / 95% accuracy is underconfident", under.tendency, "underconfident");
+seq = 0;
+// score is null below 5 staked calls, present at/above
+eq("calibration: score null under 5 staked calls", calibration([staked(true, 80), staked(true, 80)]).score, null);
+eq("calibration: score present at 5 staked calls", typeof calibration(Array.from({ length: 5 }, () => staked(true, 80))).score, "number");
+seq = 0;
+// unstaked rows are ignored by calibration
+eq("calibration: rows without confidence are ignored", calibration([row("sampling", 1, true, 1210), row("variation", 1, false, 1190)]).n, 0);
+
+// --- calibration badges -----------------------------------------------------
+seq = 0;
+// knows_knows: 10 locked-in (90%+) calls, 90% landed
+const knowsRows = Array.from({ length: 10 }, (_, i) => staked(i !== 0, 95));
+eq("badge knows_knows: 10 locked calls at 90% accuracy earns it", badge(knowsRows, "knows_knows"), true);
+seq = 0;
+eq("badge knows_knows: not earned with only easy hedges", badge(Array.from({ length: 10 }, () => staked(true, 70)), "knows_knows"), false);
 
 console.log(`\n  (${failures === 0 ? "ALL PASS" : `${failures} FAILURES`})`);
 if (failures > 0) process.exit(1);

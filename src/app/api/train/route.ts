@@ -6,21 +6,21 @@ import {
   getQuizItem,
   getNextQuizItem,
   getQuizStanding,
+  getDuelTally,
   hasAttemptedQuiz,
   recordQuizAttempt,
 } from "@/lib/repo";
 import { isTrackId } from "@/lib/train-tracks";
 
-// The Training Tracks API — the two multiple-choice rooms (statistics,
-// data-engineering architecture). A SEPARATE WORLD from the study: items never
-// serve in the voting pool and attempts never enter analytics, so immediate
-// right/wrong feedback and full reveals are safe here. Every GET also carries
-// The Record (level + badges + topic map), derived fresh from the attempt rows
-// — nothing stored, nothing to desync.
+// The Training Tracks API — the two rooms (statistics, architecture) in their
+// 10x form. A SEPARATE WORLD from the study: items never serve in the voting
+// pool and attempts never enter analytics. Three interaction kinds:
+//   mcq      — pick one choice (answer never crosses the wire before commit)
+//   estimate — drag a point + a 90% interval; graded on capture + calibrated width
+//   duel     — two designs for one constraint; pick the fit, then YOU / ROOM / DESK
+// Every call carries a conviction (50..99); every GET carries The Record
+// (level + badges + topic map + calibration), a pure fold over the rows.
 
-// Fisher-Yates over choices; the original index rides along each choice, so a
-// reshuffle can never affect grading (the grader re-checks the picked original
-// index server-side).
 function shuffled<T>(xs: T[]): T[] {
   const a = [...xs];
   for (let i = a.length - 1; i > 0; i--) {
@@ -29,6 +29,22 @@ function shuffled<T>(xs: T[]): T[] {
   }
   return a;
 }
+
+function clampConfidence(x: unknown): number | null {
+  if (typeof x !== "number" || !Number.isFinite(x)) return null;
+  return Math.max(50, Math.min(99, Math.round(x)));
+}
+
+type EstimatePayload = { unit: string; min: number; max: number; truth: number; good: { lo: number; hi: number } };
+type DuelDesign = { name: string; sketch: string; bullets: string[] };
+type DuelPayload = {
+  constraint: string;
+  designA: DuelDesign;
+  designB: DuelDesign;
+  better: "A" | "B";
+  deskRationale: string;
+  failureMode: string;
+};
 
 // GET /api/train?sessionId=...&track=...&topic=... — next item + The Record.
 async function getHandler(request: Request) {
@@ -48,26 +64,35 @@ async function getHandler(request: Request) {
 
   const record = { standing };
   if (!next.item) {
-    return NextResponse.json({
-      item: null,
-      remaining: 0,
-      liveRating: next.liveRating,
-      count: next.count,
-      ...record,
-    });
+    return NextResponse.json({ item: null, remaining: 0, liveRating: next.liveRating, count: next.count, ...record });
   }
   const it = next.item;
-  const choices = parseChoices(it.choices).map((c, i) => ({ i, text: c.text }));
+  const base = {
+    id: it.id,
+    track: it.track,
+    topic: it.topic,
+    kind: it.kind,
+    difficulty: it.difficulty,
+    scenario: it.scenario,
+    prompt: it.prompt,
+  };
+
+  let item: Record<string, unknown> = base;
+  if (it.kind === "estimate") {
+    const p = JSON.parse(it.payload ?? "{}") as EstimatePayload;
+    // send ONLY the number-line frame — never the truth or the desk's band
+    item = { ...base, estimate: { unit: p.unit, min: p.min, max: p.max } };
+  } else if (it.kind === "duel") {
+    const p = JSON.parse(it.payload ?? "{}") as DuelPayload;
+    // send both designs + the constraint — never `better`/rationale/failureMode
+    item = { ...base, duel: { constraint: p.constraint, designA: p.designA, designB: p.designB } };
+  } else {
+    const choices = parseChoices(it.choices).map((c, i) => ({ i, text: c.text }));
+    item = { ...base, choices: shuffled(choices) };
+  }
+
   return NextResponse.json({
-    item: {
-      id: it.id,
-      track: it.track,
-      topic: it.topic,
-      difficulty: it.difficulty,
-      scenario: it.scenario,
-      prompt: it.prompt,
-      choices: shuffled(choices), // { i, text } only — never the answer
-    },
+    item,
     remaining: next.remaining,
     liveRating: next.liveRating,
     count: next.count,
@@ -76,30 +101,76 @@ async function getHandler(request: Request) {
 }
 
 // POST /api/train — grade an attempt.
-// Body: { sessionId, track, quizId, pickedIndex, latencyMs }
+// Body: { sessionId, track, quizId, confidence, kind-specific answer }
+//   mcq:      { pickedIndex }
+//   estimate: { point, lo, hi }
+//   duel:     { pickedIndex }  (0 = Design A, 1 = Design B)
 async function postHandler(request: Request) {
   const body = await request.json().catch(() => null);
-  const { sessionId, track, quizId, pickedIndex, latencyMs } = body ?? {};
+  const { sessionId, track, quizId, latencyMs } = body ?? {};
   if (typeof sessionId !== "string" || typeof quizId !== "string" || !isTrackId(track)) {
     return NextResponse.json({ error: "invalid payload" }, { status: 400 });
   }
   const [session, item] = await Promise.all([getSession(sessionId), getQuizItem(quizId)]);
-  if (!session || !item) {
-    return NextResponse.json({ error: "unknown session or item" }, { status: 404 });
-  }
-  if (item.track !== track) {
-    return NextResponse.json({ error: "track mismatch" }, { status: 400 });
-  }
-  const choices = parseChoices(item.choices);
-  if (typeof pickedIndex !== "number" || pickedIndex < 0 || pickedIndex >= choices.length) {
-    return NextResponse.json({ error: "invalid pick" }, { status: 400 });
-  }
+  if (!session || !item) return NextResponse.json({ error: "unknown session or item" }, { status: 404 });
+  if (item.track !== track) return NextResponse.json({ error: "track mismatch" }, { status: 400 });
   if (await hasAttemptedQuiz(sessionId, quizId)) {
     return NextResponse.json({ error: "already attempted" }, { status: 409 });
   }
-
+  const confidence = clampConfidence(body?.confidence);
   const latency = Number.isFinite(latencyMs) ? Math.max(0, Math.round(latencyMs)) : 0;
-  const correct = isCorrectChoice(choices, pickedIndex);
+
+  let correct: boolean;
+  let choiceIndex = -1;
+  let reveal: Record<string, unknown>;
+
+  if (item.kind === "estimate") {
+    const p = JSON.parse(item.payload ?? "{}") as EstimatePayload;
+    const point = Number(body?.point);
+    const lo = Number(body?.lo);
+    const hi = Number(body?.hi);
+    if (![point, lo, hi].every(Number.isFinite) || lo >= hi) {
+      return NextResponse.json({ error: "invalid interval" }, { status: 400 });
+    }
+    const captured = p.truth >= lo && p.truth <= hi;
+    const goodWidth = p.good.hi - p.good.lo;
+    const userWidth = hi - lo;
+    // correct = you captured the truth AND your band wasn't lazily wide
+    const notLazy = userWidth <= goodWidth * 1.8;
+    correct = captured && notLazy;
+    reveal = {
+      truth: p.truth,
+      good: p.good,
+      unit: p.unit,
+      captured,
+      notLazy,
+      your: { point, lo, hi },
+      explanation: item.explanation,
+    };
+  } else if (item.kind === "duel") {
+    const p = JSON.parse(item.payload ?? "{}") as DuelPayload;
+    const pickedIndex = Number(body?.pickedIndex);
+    if (pickedIndex !== 0 && pickedIndex !== 1) {
+      return NextResponse.json({ error: "invalid pick" }, { status: 400 });
+    }
+    choiceIndex = pickedIndex;
+    correct = (p.better === "A" && pickedIndex === 0) || (p.better === "B" && pickedIndex === 1);
+    reveal = { better: p.better, deskRationale: p.deskRationale, failureMode: p.failureMode, pickedIndex };
+  } else {
+    const choices = parseChoices(item.choices);
+    const pickedIndex = Number(body?.pickedIndex);
+    if (!Number.isInteger(pickedIndex) || pickedIndex < 0 || pickedIndex >= choices.length) {
+      return NextResponse.json({ error: "invalid pick" }, { status: 400 });
+    }
+    choiceIndex = pickedIndex;
+    correct = isCorrectChoice(choices, pickedIndex);
+    reveal = {
+      choices: choices.map((c, i) => ({ i, text: c.text, correct: c.correct, rationale: c.rationale })),
+      correctIndex: correctChoiceIndex(choices),
+      pickedIndex,
+      explanation: item.explanation,
+    };
+  }
 
   const result = await recordQuizAttempt({
     sessionId,
@@ -108,18 +179,20 @@ async function postHandler(request: Request) {
     topic: item.topic,
     difficulty: item.difficulty,
     correct,
-    choiceIndex: pickedIndex,
+    choiceIndex,
+    confidence,
     latencyMs: latency,
   });
 
+  // The Room verdict is computed AFTER recording, so it includes this vote.
+  if (item.kind === "duel") reveal = { ...reveal, room: await getDuelTally(quizId) };
+
   return NextResponse.json({
     correct,
-    // full choices (with the answer + rationale) are safe now the pick is committed
-    choices: choices.map((c, i) => ({ i, text: c.text, correct: c.correct, rationale: c.rationale })),
-    correctIndex: correctChoiceIndex(choices),
-    pickedIndex,
-    explanation: item.explanation,
+    kind: item.kind,
     topic: item.topic,
+    confidence,
+    ...reveal,
     liveRating: Math.round(result.liveRating),
     ratingDelta: Math.round(result.ratingDelta),
     count: result.count,

@@ -195,9 +195,11 @@ model QuizItem {
   track        String // "statistics" | "architecture"
   title        String        @unique // stable natural key for idempotent content sync
   topic        String // sub-skill id within the track
+  kind         String        @default("mcq") // mcq | estimate | duel — the interaction type
   scenario     String // concrete setup/context
   prompt       String // the question
-  choices      String // JSON [{text,correct,rationale}] — exactly one correct
+  choices      String // mcq: JSON [{text,correct,rationale}]; estimate/duel: "[]"
+  payload      String? // kind-specific JSON — estimate band / duel designs+desk rationale
   explanation  String // the teach-back shown after a pick
   difficulty   Int           @default(1) // 1 (foundational) .. 3 (subtle)
   rating       Float         @default(1200)
@@ -220,6 +222,7 @@ model QuizAttempt {
   difficulty  Int      @default(1) // denormalized for badge folds
   correct     Boolean
   choiceIndex Int      @default(-1) // the picked original index (audit; grading re-checks server-side)
+  confidence  Int? // conviction 50..99 the learner staked on this call; null = pre-calibration rows
   latencyMs   Int      @default(0)
   ratingAfter Float? // per-track session rating after this attempt settled
   createdAt   DateTime @default(now())

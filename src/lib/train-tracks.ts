@@ -35,7 +35,15 @@ export type Level = {
   gate: string; // fine print
 };
 
-export type BadgeTier = "competence" | "exploration";
+export type BadgeTier = "competence" | "exploration" | "calibration";
+
+// Calibration badges — shared across both rooms (calibration reads the same in
+// statistics and architecture). Folded over the conviction each call carried.
+const CALIBRATION_BADGES: Badge[] = [
+  { code: "honest_broker", name: "HONEST BROKER", tier: "calibration", criterion: "Twenty staked calls with confidence and accuracy within six points." },
+  { code: "knows_knows", name: "KNOWS WHAT THEY KNOW", tier: "calibration", criterion: "Ten locked-in calls (90%+), 85% of them landed." },
+  { code: "no_bluff", name: "NO BLUFF", tier: "calibration", criterion: "Fifteen staked calls, no confidence tier you couldn't back up." },
+];
 
 export type Badge = {
   code: string;
@@ -63,6 +71,7 @@ export type QuizRow = {
   topic: string;
   difficulty: number;
   correct: boolean;
+  confidence: number | null; // 50..99 conviction staked; null = pre-calibration row
   ratingAfter: number | null;
   createdAt: Date;
 };
@@ -130,6 +139,7 @@ const STATS_BADGES: Badge[] = [
   { code: "correction", name: "THE CORRECTION", tier: "competence", criterion: "A topic that was beating you, beaten: behind in it, then three straight." },
   { code: "full_map", name: "THE FULL MAP", tier: "exploration", criterion: "Faced all six topics." },
   { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a subtle-tier call in four or more topics — landing it not required." },
+  ...CALIBRATION_BADGES,
 ];
 
 // ---------------------------------------------------------------------------
@@ -195,6 +205,7 @@ const ARCH_BADGES: Badge[] = [
   { code: "correction", name: "THE CORRECTION", tier: "competence", criterion: "A topic that was beating you, beaten: behind in it, then three straight." },
   { code: "full_map", name: "THE FULL MAP", tier: "exploration", criterion: "Faced all six topics." },
   { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a senior-tier call in four or more topics — landing it not required." },
+  ...CALIBRATION_BADGES,
 ];
 
 export const TRACKS: Record<TrackId, Track> = {
@@ -401,6 +412,30 @@ function deepEndIndex(rows: QuizRow[]): number {
   });
 }
 
+// --- calibration badge predicates (fold over the staked rows) ---------------
+function honestBrokerIndex(rows: QuizRow[]): number {
+  // 20 staked calls with expected calibration error ≤ 6 points
+  return firstIndex(rows, (prefix) => {
+    const c = calibration(prefix);
+    return c.n >= 20 && c.ece <= 0.06;
+  });
+}
+function knowsKnowsIndex(rows: QuizRow[]): number {
+  // ≥10 calls at conviction ≥90, accuracy ≥85% on them
+  return firstIndex(rows, (prefix) => {
+    const locked = prefix.filter((r) => r.confidence != null && (r.confidence as number) >= 90);
+    return locked.length >= 10 && locked.filter((r) => r.correct).length / locked.length >= 0.85;
+  });
+}
+function noBluffIndex(rows: QuizRow[]): number {
+  // ≥15 staked calls and no confidence bin (n≥4) is overconfident by >12 points
+  return firstIndex(rows, (prefix) => {
+    const c = calibration(prefix);
+    if (c.n < 15) return false;
+    return c.bins.every((b) => b.count < 4 || b.accuracy >= b.meanConf - 0.12);
+  });
+}
+
 export type Conferral = {
   code: string;
   name: string;
@@ -419,6 +454,9 @@ export function badgeConferrals(track: Track, rows: QuizRow[]): Conferral[] {
     correction: correctionIndex(rows),
     full_map: fullMapIndex(rows, nTopics),
     deep_end: deepEndIndex(rows),
+    honest_broker: honestBrokerIndex(rows),
+    knows_knows: knowsKnowsIndex(rows),
+    no_bluff: noBluffIndex(rows),
   };
   return track.badges.map((b) => ({
     code: b.code,
@@ -451,4 +489,73 @@ export function topicProgress(track: Track, rows: QuizRow[]): TopicProgress[] {
       hardCorrect: tr.filter((r) => r.difficulty >= HARD && r.correct).length,
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// CALIBRATION — the 10x metric. Every call carries a conviction (50..99%); this
+// folds the staked rows into a reliability diagram (binned confidence vs.
+// accuracy), an expected-calibration-error, a Brier score, and a plain-English
+// tendency. Rows without a confidence (legacy / unstaked) are ignored. Pure.
+
+export type CalBin = {
+  lo: number; // bin lower bound in percent (e.g. 50)
+  hi: number; // bin upper bound in percent (e.g. 60)
+  meanConf: number; // mean stated confidence in the bin, 0..1
+  accuracy: number; // fraction correct in the bin, 0..1
+  count: number;
+};
+
+export type Calibration = {
+  n: number; // staked calls
+  brier: number; // mean (p - o)^2 over staked calls, 0..1 (lower is better)
+  ece: number; // expected calibration error, 0..1 (lower is better)
+  accuracy: number; // overall accuracy over staked calls, 0..1
+  meanConf: number; // overall mean confidence, 0..1
+  tendency: "overconfident" | "underconfident" | "sharp" | "unrated";
+  score: number | null; // 0..100 calibration score; null until n>=5
+  gap: number; // signed meanConf - accuracy (positive = overconfident), 0..1
+  bins: CalBin[];
+};
+
+const CAL_BINS: [number, number][] = [
+  [50, 60],
+  [60, 70],
+  [70, 80],
+  [80, 90],
+  [90, 100],
+];
+
+export function calibration(rows: QuizRow[]): Calibration {
+  const staked = rows.filter((r) => r.confidence != null);
+  const n = staked.length;
+  const bins: CalBin[] = CAL_BINS.map(([lo, hi]) => {
+    const inBin = staked.filter((r) => {
+      const c = r.confidence as number;
+      return c >= lo && (hi === 100 ? c <= 100 : c < hi);
+    });
+    const count = inBin.length;
+    return {
+      lo,
+      hi,
+      count,
+      meanConf: count ? inBin.reduce((s, r) => s + (r.confidence as number), 0) / count / 100 : (lo + hi) / 200,
+      accuracy: count ? inBin.filter((r) => r.correct).length / count : 0,
+    };
+  });
+  if (n === 0) {
+    return { n: 0, brier: 0, ece: 0, accuracy: 0, meanConf: 0, tendency: "unrated", score: null, gap: 0, bins };
+  }
+  const brier = staked.reduce((s, r) => {
+    const p = (r.confidence as number) / 100;
+    const o = r.correct ? 1 : 0;
+    return s + (p - o) * (p - o);
+  }, 0) / n;
+  const accuracy = staked.filter((r) => r.correct).length / n;
+  const meanConf = staked.reduce((s, r) => s + (r.confidence as number), 0) / n / 100;
+  const ece = bins.reduce((s, b) => s + (b.count / n) * Math.abs(b.meanConf - b.accuracy), 0);
+  const gap = meanConf - accuracy;
+  const tendency: Calibration["tendency"] =
+    n < 5 ? "unrated" : gap > 0.07 ? "overconfident" : gap < -0.07 ? "underconfident" : "sharp";
+  const score = n < 5 ? null : Math.max(0, Math.min(100, Math.round(100 * (1 - 2 * ece))));
+  return { n, brier, ece, accuracy, meanConf, tendency, score, gap, bins };
 }

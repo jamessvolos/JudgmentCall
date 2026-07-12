@@ -7,14 +7,17 @@
 import type { PrismaClient } from "@prisma/client";
 
 export type QuizChoice = { text: string; correct: boolean; rationale: string };
+export type QuizKind = "mcq" | "estimate" | "duel";
 export type QuizSeed = {
   track: "statistics" | "architecture";
   title: string; // stable natural key for idempotent sync
   topic: string;
+  kind: QuizKind;
   difficulty: 1 | 2 | 3;
   scenario: string;
   prompt: string;
-  choices: QuizChoice[]; // exactly one correct
+  choices: QuizChoice[]; // mcq: exactly one correct; estimate/duel: []
+  payload: unknown | null; // kind-specific: estimate band / duel designs+desk
   explanation: string;
 };
 
@@ -23,6 +26,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "track": "statistics",
     "title": "stats-sampling-01",
     "topic": "sampling",
+    "kind": "mcq",
     "difficulty": 1,
     "scenario": "A fictional streaming app, Streamly, emails a satisfaction survey to all users. It gets 4,000 responses out of 100,000 users and reports a stellar average rating of 4.7 out of 5.",
     "prompt": "What is the biggest reason to be cautious about reading this 4.7 as the typical user's satisfaction?",
@@ -48,12 +52,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Equal invitation does not guarantee equal response. Self-selection into who actually replies is exactly what breaks representativeness."
       }
     ],
+    "payload": null,
     "explanation": "A low response rate opens the door to non-response bias: the people who answer can differ systematically from those who don't. Large raw counts don't fix a biased selection process — ask who is missing from the data."
   },
   {
     "track": "statistics",
     "title": "stats-sampling-02",
     "topic": "sampling",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "An airline analyst studies engines returned for repair to decide where to add armor plating. The returned engines show damage concentrated around the fuel pump, so she proposes armoring the fuel pump area.",
     "prompt": "What flaw should give her pause before armoring where the damage appears?",
@@ -79,12 +85,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Even a census of returned engines would carry the same bias. Adding more survivors doesn't reveal the destroyed ones."
       }
     ],
+    "payload": null,
     "explanation": "Survivorship bias arises when your data only contains the cases that 'made it,' hiding the failures that dropped out. Armor belongs where returned engines are undamaged — because hits there were fatal. Always ask what's systematically absent."
   },
   {
     "track": "statistics",
     "title": "stats-sampling-03",
     "topic": "sampling",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A city wants to gauge public support for a new bike lane. A reporter stands outside a downtown bike shop on a Saturday and interviews 200 passersby; 78% support the lane.",
     "prompt": "Why is 78% likely to overstate citywide support?",
@@ -110,12 +118,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Social-desirability effects can exist, but the dominant, structural problem here is the biased sampling frame, not the interview mode."
       }
     ],
+    "payload": null,
     "explanation": "The sampling frame — where and how you recruit — determines representativeness. Sampling at a location correlated with the opinion you're measuring builds bias into the estimate no matter how many people you ask."
   },
   {
     "track": "statistics",
     "title": "stats-sampling-04",
     "topic": "sampling",
+    "kind": "mcq",
     "difficulty": 3,
     "scenario": "A B2B software firm surveys its current paying customers about which features matter most, to guide the roadmap. Results heavily favor advanced admin controls used by large enterprises.",
     "prompt": "What subtle sampling problem most threatens using this to grow revenue?",
@@ -141,12 +151,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Even a 100% response rate from current customers would still omit the non-buyers entirely. Response rate isn't the mechanism here."
       }
     ],
+    "payload": null,
     "explanation": "The population you sample defines the questions you can answer. To learn why you lose deals, you must include the people who left or never joined — optimizing only for existing customers can quietly entrench a niche and stall growth."
   },
   {
     "track": "statistics",
     "title": "stats-variation-01",
     "topic": "variation",
+    "kind": "mcq",
     "difficulty": 1,
     "scenario": "A retailer tracks daily online sales. On Tuesday sales jumped 22% above the weekly average; on Wednesday they fell back near the average. A manager wants to know 'what we did right on Tuesday.'",
     "prompt": "What is the most likely explanation for the Tuesday spike?",
@@ -172,12 +184,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "A single point can't establish a trend, and Wednesday already reverted. One observation is not a direction."
       }
     ],
+    "payload": null,
     "explanation": "Distinguish signal from noise. Single-day extremes in a naturally variable series usually reflect random variation and tend to revert. Before hunting for a cause, ask whether the swing is larger than the metric's normal day-to-day range."
   },
   {
     "track": "statistics",
     "title": "stats-variation-02",
     "topic": "variation",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A national chain ranks its 500 stores by conversion rate each month. The top store one month is often nowhere near the top the next month, and the worst store usually improves.",
     "prompt": "Which explanation best accounts for this pattern?",
@@ -203,12 +217,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "This ignores the chance component in any single month's rate; pure-quality models can't explain why extremes reliably revert."
       }
     ],
+    "payload": null,
     "explanation": "Regression to the mean: whenever a measurement combines a stable component and random noise, selecting the most extreme cases selects for extreme luck too — which won't recur. Reversion of top and bottom performers is expected, not a story about effort or intervention."
   },
   {
     "track": "statistics",
     "title": "stats-variation-03",
     "topic": "variation",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A dashboard shows conversion rates by traffic source. A tiny source with 20 visitors shows a 40% conversion rate; the main source with 50,000 visitors shows 8%. A marketer wants to shift budget to the 40% source.",
     "prompt": "What is the strongest caution here?",
@@ -234,12 +250,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "The 8% comes from 50,000 visitors and is stable; the gap is likely small-sample noise in the tiny source, not weakness in the large one."
       }
     ],
+    "payload": null,
     "explanation": "Small samples produce high-variance rates. The fewer the observations behind a percentage, the wider its true range could be. Weight your confidence by sample size before acting on an eye-catching rate from a small denominator."
   },
   {
     "track": "statistics",
     "title": "stats-variation-04",
     "topic": "variation",
+    "kind": "mcq",
     "difficulty": 3,
     "scenario": "A fictional health authority maps kidney-cancer rates by county. The counties with the LOWEST rates are overwhelmingly small, rural, sparsely populated counties. An official concludes rural living is protective.",
     "prompt": "Why is this conclusion premature?",
@@ -265,12 +283,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Older populations would if anything raise cancer rates, and this ignores the real driver: variance is largest where the population is smallest."
       }
     ],
+    "payload": null,
     "explanation": "Rates from small populations are inherently noisy, so the smallest units dominate both extremes of any ranking. Before interpreting who is at the top or bottom, ask whether extremeness is being driven by small sample size rather than a real effect."
   },
   {
     "track": "statistics",
     "title": "stats-association-01",
     "topic": "association",
+    "kind": "mcq",
     "difficulty": 1,
     "scenario": "An analyst notes that across cities, months with higher ice-cream sales also have more drowning deaths. The correlation is strong and positive.",
     "prompt": "What is the most reasonable interpretation?",
@@ -296,12 +316,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "It's not coincidence; there's a clear confounder. Dismissing it as random misses the identifiable third variable."
       }
     ],
+    "payload": null,
     "explanation": "Correlation does not imply causation. When two things move together, look for a confounder — a third variable that influences both. A shared cause can create a strong association with no direct link between the two measured quantities."
   },
   {
     "track": "statistics",
     "title": "stats-association-02",
     "topic": "association",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A company finds that employees who attended an optional leadership workshop were later promoted at twice the rate of those who didn't attend. Leadership wants to make the workshop mandatory to boost promotions.",
     "prompt": "What is the key threat to concluding the workshop causes promotions?",
@@ -327,12 +349,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "This ignores confounding entirely. Making it mandatory removes the selection effect that may be doing all the work."
       }
     ],
+    "payload": null,
     "explanation": "Self-selection creates confounding: people who opt into a treatment often differ in ways that also affect the outcome. A randomized comparison — assigning the workshop regardless of ambition — is what would isolate the workshop's true causal effect."
   },
   {
     "track": "statistics",
     "title": "stats-association-03",
     "topic": "association",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A product team runs a proper randomized A/B test: half of users get a redesigned checkout, half get the old one, assigned at random. The new design shows a 5% higher purchase rate.",
     "prompt": "What does the randomization primarily let the team conclude that a plain correlation could not?",
@@ -358,12 +382,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "This misses the entire point of experiments: randomization is exactly what upgrades an association into a causal claim."
       }
     ],
+    "payload": null,
     "explanation": "Randomized assignment is what buys you causation. By making the groups comparable except for the treatment, it removes confounding on average, so an observed difference can be attributed to the intervention — something no observational correlation can deliver on its own."
   },
   {
     "track": "statistics",
     "title": "stats-association-04",
     "topic": "association",
+    "kind": "mcq",
     "difficulty": 3,
     "scenario": "A study reports that patients who take a certain sleep medication have higher mortality over five years than those who don't. A headline claims the drug is deadly.",
     "prompt": "Beyond ordinary confounding, which specific concern most complicates the causal claim?",
@@ -389,12 +415,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "They are not; this statement is simply false and would license exactly the mistaken headline."
       }
     ],
+    "payload": null,
     "explanation": "Confounding by indication is a trap in observational medical data: the reason someone receives a treatment is often tied to their prognosis. Combined with possible reverse causation, this can manufacture an association that mimics harm. Only careful design (or randomization) can separate the drug's effect from the sickness that prompted it."
   },
   {
     "track": "statistics",
     "title": "stats-base_rates-01",
     "topic": "base_rates",
+    "kind": "mcq",
     "difficulty": 1,
     "scenario": "A fictional rare disease affects 1 in 1,000 people. A screening test correctly flags 99% of people who have it and gives a false positive for 5% of people who don't. Amir tests positive.",
     "prompt": "Roughly how likely is it that Amir actually has the disease?",
@@ -420,12 +448,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "'Either/or' is not a probability. The base rate and error rates, not a coin-flip framing, determine the answer."
       }
     ],
+    "payload": null,
     "explanation": "The false-positive paradox: when a condition is rare, even an accurate test yields mostly false positives, because the healthy group is so much larger. Always combine the base rate with the test's error rates before trusting a positive result."
   },
   {
     "track": "statistics",
     "title": "stats-base_rates-02",
     "topic": "base_rates",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A fraud model flags transactions as fraudulent. Fraud occurs in 0.2% of transactions. The model catches 90% of real fraud and falsely flags 2% of legitimate transactions. An analyst sees a flagged transaction.",
     "prompt": "About what fraction of flagged transactions are actually fraudulent?",
@@ -451,12 +481,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Averaging the rates ignores the base rate entirely; the rarity of fraud pushes precision far below 50%."
       }
     ],
+    "payload": null,
     "explanation": "The probability that a flag is correct (precision) depends heavily on the base rate, not just the detector's accuracy. When the target event is rare, a small false-positive rate applied to a large negative population swamps the true positives. Compute with counts, not with the accuracy figure alone."
   },
   {
     "track": "statistics",
     "title": "stats-base_rates-03",
     "topic": "base_rates",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A hospital improves its rare-disease test so the false-positive rate drops from 5% to 1%, while sensitivity stays at 99%. The disease still affects 1 in 1,000 people.",
     "prompt": "What is the main effect of this improvement on a positive result's meaning?",
@@ -482,12 +514,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Sensitivity stayed at 99%, so real cases are still caught; only false positives dropped, which is an improvement."
       }
     ],
+    "payload": null,
     "explanation": "With rare conditions, the false-positive rate — not just sensitivity — dominates a test's predictive value. Reducing false positives can multiply the reliability of a positive result, yet the low base rate can still keep most positives false. Interpret positives relative to prevalence."
   },
   {
     "track": "statistics",
     "title": "stats-base_rates-04",
     "topic": "base_rates",
+    "kind": "mcq",
     "difficulty": 3,
     "scenario": "A recruiter uses a 'top-talent' screening signal that 80% of eventual star hires had, but only 10% of ordinary hires had. In the applicant pool, roughly 1 in 50 applicants turns out to be a star. An applicant shows the signal.",
     "prompt": "How should the recruiter interpret the signal for this applicant?",
@@ -513,12 +547,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "This again inverts the conditional probability and ignores the base rate, overstating the applicant's chances."
       }
     ],
+    "payload": null,
     "explanation": "Don't confuse P(evidence | trait) with P(trait | evidence). A signal common among a rare group can still be dominated by the much larger common group. A useful signal shifts the odds without necessarily making the trait likely in absolute terms — update from the base rate, don't replace it."
   },
   {
     "track": "statistics",
     "title": "stats-uncertainty-01",
     "topic": "uncertainty",
+    "kind": "mcq",
     "difficulty": 1,
     "scenario": "A survey estimates that 52% of customers prefer a new logo, with a 95% confidence interval of 48% to 56%.",
     "prompt": "What does the 95% confidence interval most accurately tell us?",
@@ -544,12 +580,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "'Definitely' overstates it; a 95% CI still allows a 5% chance the true value lies outside, and the interval reflects one procedure's coverage."
       }
     ],
+    "payload": null,
     "explanation": "A confidence interval expresses uncertainty about an estimate, giving a range of plausible true values. If a meaningful threshold (like 50%) falls inside the interval, the data don't clearly rule out the other side. Read the whole interval, not just the point estimate."
   },
   {
     "track": "statistics",
     "title": "stats-uncertainty-02",
     "topic": "uncertainty",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "An A/B test on a checkout button finds version B increases conversion by 0.3 percentage points. With millions of users, the result is 'statistically significant' at p < 0.01.",
     "prompt": "What is the right takeaway?",
@@ -575,12 +613,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "With millions of users the estimate is precise; the effect is probably real — it's just small, which is different from being a fluke."
       }
     ],
+    "payload": null,
     "explanation": "Statistical significance and practical significance are different questions. Large samples can make trivial differences significant. Always ask about effect size and cost/benefit — 'is it real?' is not the same as 'is it big enough to act on?'"
   },
   {
     "track": "statistics",
     "title": "stats-uncertainty-03",
     "topic": "uncertainty",
+    "kind": "mcq",
     "difficulty": 3,
     "scenario": "Two marketing channels report average revenue per user. Channel A: $12.00 (95% CI $10.50–$13.50). Channel B: $10.20 (95% CI $9.00–$11.40). The intervals overlap slightly. A manager concludes there is definitely no real difference.",
     "prompt": "Is 'overlapping intervals means no significant difference' a safe conclusion here?",
@@ -606,12 +646,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Equally wrong in the other direction; overlap alone determines nothing. Only a direct test of the difference settles it."
       }
     ],
+    "payload": null,
     "explanation": "Judging significance by whether two confidence intervals overlap is unreliable and usually too conservative. To compare two estimates, test the difference itself (which has its own, narrower uncertainty). Don't let side-by-side error bars stand in for a real comparison."
   },
   {
     "track": "statistics",
     "title": "stats-aggregation-01",
     "topic": "aggregation",
+    "kind": "mcq",
     "difficulty": 1,
     "scenario": "At a fictional startup, 9 employees earn about $60,000 and the founder earns $2,000,000. A recruiter reports the 'average salary' is $254,000 to attract candidates.",
     "prompt": "Why is the median a more honest summary of a typical salary here?",
@@ -637,12 +679,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Robustness to outliers is real, but 'always safer' overstates it; for symmetric data the mean is fine and uses more information."
       }
     ],
+    "payload": null,
     "explanation": "On skewed data, the mean and median tell different stories. A few extreme values drag the mean away from the typical case, while the median stays near the center. Choose the summary that matches the distribution's shape, and be suspicious of a lone 'average' on skewed data."
   },
   {
     "track": "statistics",
     "title": "stats-aggregation-02",
     "topic": "aggregation",
+    "kind": "mcq",
     "difficulty": 3,
     "scenario": "A fictional university is accused of gender bias in admissions: overall, men are admitted at a higher rate than women. Yet within every individual department, women are admitted at an equal or higher rate than men.",
     "prompt": "How can both statements be true at once?",
@@ -668,12 +712,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "The department level is precisely where the fair comparison lives; ignoring it produces the misleading aggregate."
       }
     ],
+    "payload": null,
     "explanation": "Simpson's paradox: a trend within every subgroup can reverse when the groups are combined, because of how the groups are weighted. Before trusting an aggregate comparison, disaggregate — a lurking grouping variable can flip the conclusion entirely."
   },
   {
     "track": "statistics",
     "title": "stats-aggregation-03",
     "topic": "aggregation",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A call center reports that Team X resolved 90% of tickets and Team Y resolved 70%, so a manager averages them to '(90+70)/2 = 80%' resolution across the two teams. Team X handled 100 tickets; Team Y handled 900.",
     "prompt": "What is the actual combined resolution rate, and what mistake did the manager make?",
@@ -699,12 +745,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "The volumes are all you need; the combined rate is well-defined once you weight by ticket counts."
       }
     ],
+    "payload": null,
     "explanation": "Averaging rates requires weighting by their denominators. Taking a plain mean of two percentages silently assumes equal group sizes. When groups differ in size, compute a weighted average (or pool the raw counts) to avoid a badly distorted total."
   },
   {
     "track": "statistics",
     "title": "stats-aggregation-04",
     "topic": "aggregation",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A logistics dashboard shows a truck averaged 60 mph over a route: it drove the first 30 miles at 30 mph and the next 30 miles at 90 mph, and someone averaged (30+90)/2 = 60 mph.",
     "prompt": "What was the truck's actual average speed for the whole trip?",
@@ -730,12 +778,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "No extra information is needed; distances and speeds fully determine the times and thus the true average of 45 mph."
       }
     ],
+    "payload": null,
     "explanation": "Average speed is total distance divided by total time, not the mean of the speeds. When rates are combined, the quantity you average over (here, time) does the weighting — averaging over equal distances overweights the fast segment. Match the average to the right base."
   },
   {
     "track": "architecture",
     "title": "arch-storage-01",
     "topic": "storage",
+    "kind": "mcq",
     "difficulty": 1,
     "scenario": "You run a checkout service that writes ~2,000 orders/sec. Each request inserts one order and updates the customer's balance; reads fetch a single order by its ID. Writes must commit durably and the record must be readable immediately.",
     "prompt": "Which storage engine best fits this workload?",
@@ -756,12 +806,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Appends are fast but read-by-ID and per-customer balance updates would require full scans without indexes, breaking the immediate single-record read requirement."
       }
     ],
+    "payload": null,
     "explanation": "Match physical layout to access pattern: row stores colocate a full record for cheap point reads/writes (OLTP), while columnar stores optimize scanning a few columns across many rows (OLAP). The axis is per-record locality versus per-column scan efficiency."
   },
   {
     "track": "architecture",
     "title": "arch-storage-02",
     "topic": "storage",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "An analytics team queries a 5-billion-row events table. Typical queries are 'SUM(revenue) and COUNT(*) grouped by country over a date range' — touching 3 of the table's 60 columns. Query latency for these dashboards must stay under a few seconds.",
     "prompt": "Which physical storage choice best serves these scan-heavy aggregations?",
@@ -782,12 +834,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "KV stores excel at get-by-key, not multi-row grouped aggregations, which would require scanning and reassembling every value."
       }
     ],
+    "payload": null,
     "explanation": "Columnar storage trades expensive full-row reconstruction for cheap wide scans of a few columns, the inverse of row storage. When queries read few columns over many rows, columnar wins on both I/O volume and compression ratio."
   },
   {
     "track": "architecture",
     "title": "arch-storage-03",
     "topic": "storage",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A social app shows a user's profile plus their last 20 posts on every page load, 50,000 times/sec. The data lives in a normalized schema across users, posts, and media tables; each page load fires 4 joins and read latency is now the bottleneck.",
     "prompt": "What is the primary tradeoff of denormalizing this profile-plus-posts data into a single document?",
@@ -808,12 +862,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "There is no free lunch — duplicated data makes writes and updates harder to keep consistent, which is the cost you accept."
       }
     ],
+    "payload": null,
     "explanation": "Normalization optimizes write-simplicity and integrity by storing each fact once; denormalization optimizes read-cost by precomputing joins at the price of update anomalies and duplication. Choose based on your read/write ratio and consistency tolerance."
   },
   {
     "track": "architecture",
     "title": "arch-storage-04",
     "topic": "storage",
+    "kind": "mcq",
     "difficulty": 3,
     "scenario": "A B2B reporting product lets customers run ad-hoc SQL over their own data. Ingestion is heavy (continuous CDC updates), but analysts also expect sub-second point lookups of individual records by primary key alongside the big aggregations. The team wants to avoid running two separate systems.",
     "prompt": "Which single-system approach best balances these mixed OLTP-ish point reads and OLAP scans?",
@@ -834,12 +890,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Point reads would be fast, but full-table grouped aggregations over large data on a row store blow the analysts' latency expectations."
       }
     ],
+    "payload": null,
     "explanation": "When a workload genuinely mixes point access and large scans, neither pure layout wins; HTAP designs combine a write-optimized row/delta tier with a scan-optimized columnar tier. The tradeoff is added engine complexity in exchange for avoiding two synced systems."
   },
   {
     "track": "architecture",
     "title": "arch-processing-01",
     "topic": "processing",
+    "kind": "mcq",
     "difficulty": 1,
     "scenario": "Finance needs a daily revenue report delivered by 6 AM covering the prior full day. There is no requirement for intra-day freshness, and the source data is only finalized at midnight after end-of-day reconciliation.",
     "prompt": "Which processing model fits best?",
@@ -860,12 +918,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Frequent micro-batches produce partial, pre-reconciliation numbers all day for a report that only cares about the finalized daily total."
       }
     ],
+    "payload": null,
     "explanation": "Latency requirements, not technology fashion, should pick the model. When the SLA is periodic and inputs finalize on a schedule, batch trades freshness (unneeded here) for higher throughput and lower operational cost."
   },
   {
     "track": "architecture",
     "title": "arch-processing-02",
     "topic": "processing",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A fraud system must block a suspicious card transaction before it completes — an end-to-end decision within a few hundred milliseconds of the swipe. Each decision depends on features computed from the last few seconds of that card's activity.",
     "prompt": "Which processing model is required here?",
@@ -886,12 +946,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "A once-a-day score can't reflect the last few seconds of activity nor block an in-flight swipe."
       }
     ],
+    "payload": null,
     "explanation": "Streaming trades higher operational complexity and per-event overhead for low end-to-end latency. When the business action must happen within the event's lifetime, latency dominates and real-time is genuinely worth its cost."
   },
   {
     "track": "architecture",
     "title": "arch-processing-03",
     "topic": "processing",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A dashboard shows order counts that stakeholders are happy to see refresh 'every minute or so.' The volume is high and the team wants streaming-like freshness but with simpler failure recovery and better throughput than event-at-a-time processing.",
     "prompt": "Which approach best fits a near-real-time-but-not-instant requirement at high volume?",
@@ -912,12 +974,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Hourly is far coarser than the ~1-minute expectation, so stakeholders would see stale counts most of the time."
       }
     ],
+    "payload": null,
     "explanation": "Micro-batching is the middle of the latency/throughput spectrum: it sacrifices sub-second freshness to regain batch's throughput and simpler recovery. When the freshness SLA is seconds-to-minutes, it often beats both pure streaming and coarse batch."
   },
   {
     "track": "architecture",
     "title": "arch-processing-04",
     "topic": "processing",
+    "kind": "mcq",
     "difficulty": 3,
     "scenario": "A team is under pressure to 'make the recommendations real-time.' Investigation shows the recommendation model is retrained weekly and its inputs (aggregated 30-day user preferences) barely move hour-to-hour. The current nightly batch scoring meets all product metrics.",
     "prompt": "What is the strongest engineering judgment here?",
@@ -938,12 +1002,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Even 5-minute recompute is pointless when the 30-day inputs are stable and the model only changes weekly — it's cost without benefit."
       }
     ],
+    "payload": null,
     "explanation": "Real-time is only worth it when the underlying signal actually changes within the freshness window and a faster decision changes an outcome. When inputs are slow-moving, streaming trades real cost for imperceptible freshness — the mature call is not to build it."
   },
   {
     "track": "architecture",
     "title": "arch-modeling-01",
     "topic": "modeling",
+    "kind": "mcq",
     "difficulty": 1,
     "scenario": "You're modeling a data warehouse for BI. Analysts slice a large fact table of sales events by date, product, store, and customer, and they need fast, intuitive joins and clean aggregation.",
     "prompt": "Which modeling pattern is the conventional best fit?",
@@ -964,12 +1030,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "A single mega-table can work but sacrifices dimension reuse and makes conformed dimensions and slowly-changing attributes far harder to manage."
       }
     ],
+    "payload": null,
     "explanation": "Dimensional (star) modeling trades some storage redundancy in dimensions for query simplicity and speed — the right call for read-heavy BI. Normalization minimizes redundancy but multiplies join hops, which analytics doesn't want."
   },
   {
     "track": "architecture",
     "title": "arch-modeling-02",
     "topic": "modeling",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A customer dimension has an address that changes over time. Analysts must be able to attribute historical orders to the address the customer had at the time of each order, not their current address.",
     "prompt": "Which slowly-changing-dimension strategy is required?",
@@ -990,12 +1058,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "This offloads history to fragile ad-hoc reconstruction instead of modeling it, and often the source logs won't reliably reproduce past states."
       }
     ],
+    "payload": null,
     "explanation": "SCD Type 2 trades extra rows and join complexity for the ability to reconstruct point-in-time truth; Type 1 trades history away for a simple current-state model. The requirement 'attribute to the value at event time' forces Type 2."
   },
   {
     "track": "architecture",
     "title": "arch-modeling-03",
     "topic": "modeling",
+    "kind": "mcq",
     "difficulty": 3,
     "scenario": "An event-tracking table is consumed by dozens of downstream jobs. Product wants to add optional new fields to events frequently, and old data in Parquet must remain readable by consumers that haven't been updated yet. Rewriting petabytes of history on every change is off the table.",
     "prompt": "Which schema-evolution approach best fits?",
@@ -1016,12 +1086,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "A catch-all blob dodges migrations but destroys columnar pushdown/typing and pushes parsing cost and schema chaos onto every consumer."
       }
     ],
+    "payload": null,
     "explanation": "Schema evolution trades change flexibility against consumer stability. Additive/backward-compatible changes preserve old readers and old files (no rewrite), while destructive changes force lock-step migration — so favor additive evolution when many independent consumers and large history exist."
   },
   {
     "track": "architecture",
     "title": "arch-modeling-04",
     "topic": "modeling",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A feature store must serve ML models a wide set of ~300 precomputed features per entity, keyed by entity ID, at low latency for online inference. Different models read different, sparse subsets of the features.",
     "prompt": "What is the main tradeoff between a wide table (one row, 300 columns) and a narrow key-value/EAV table (entity, feature_name, value)?",
@@ -1042,12 +1114,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Wide tables represent sparsity fine via nulls; the real cost is schema rigidity, not inability to store missing values."
       }
     ],
+    "payload": null,
     "explanation": "Wide tables trade schema flexibility for cheap whole-entity reads; narrow/EAV tables trade read cost and pivoting for effortless addition of new attributes. Online inference's low-latency single-fetch need usually tips toward wide, accepting migration friction."
   },
   {
     "track": "architecture",
     "title": "arch-scaling-01",
     "topic": "scaling",
+    "kind": "mcq",
     "difficulty": 1,
     "scenario": "A single database has hit its write ceiling; you must shard a table of user activity across many nodes. Queries are almost always 'get activity for one user_id,' and you want writes and reads to spread evenly.",
     "prompt": "Which partition key is the best choice?",
@@ -1068,12 +1142,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Country has few, skewed values, so a handful of large countries create badly unbalanced hot partitions."
       }
     ],
+    "payload": null,
     "explanation": "A good partition key aligns with the dominant query (so it hits one shard) and has high, even cardinality (so load spreads). Time and low-cardinality keys trade query locality or balance away, producing hot partitions."
   },
   {
     "track": "architecture",
     "title": "arch-scaling-02",
     "topic": "scaling",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A shopping-cart service must stay writable during a network partition between data-center replicas — customers must always be able to add items, even if two replicas briefly diverge. Occasional merge of divergent carts is acceptable to the business.",
     "prompt": "Given a network partition, which tradeoff does this requirement demand?",
@@ -1094,12 +1170,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "If the leader is on the far side of the partition, clients can't write at all, violating the availability requirement."
       }
     ],
+    "payload": null,
     "explanation": "Under a partition, CAP forces a choice between consistency and availability. When the business tolerates temporary divergence and merge but not downtime, choosing AP (available, eventually consistent) is correct; the cost is reconciling conflicting writes."
   },
   {
     "track": "architecture",
     "title": "arch-scaling-03",
     "topic": "scaling",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A read-heavy product catalog serves 100:1 reads-to-writes. The single primary handles writes fine, but read traffic is saturating it. Stakeholders confirm that a read seeing an update a second or two late is acceptable.",
     "prompt": "Which scaling approach best fits?",
@@ -1120,12 +1198,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Synchronous replication would slow every write to satisfy a consistency guarantee the business explicitly said it doesn't need."
       }
     ],
+    "payload": null,
     "explanation": "Read replicas trade read-your-own-write freshness for read scalability; sharding trades simplicity for write scalability. Diagnose whether the bottleneck is reads or writes, and let the tolerated staleness decide sync vs async."
   },
   {
     "track": "architecture",
     "title": "arch-scaling-04",
     "topic": "scaling",
+    "kind": "mcq",
     "difficulty": 3,
     "scenario": "An events table is sharded by hash(customer_id). It worked until one enterprise customer grew to 40% of all traffic; now that customer's shard is a hot partition maxing out one node while others idle.",
     "prompt": "What is the most effective fix for this hot partition?",
@@ -1146,12 +1226,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "This spreads load perfectly but destroys per-customer locality, turning the common 'all events for a customer' query into a scatter across every shard."
       }
     ],
+    "payload": null,
     "explanation": "Hot partitions arise when a single key value carries disproportionate load; hashing more nodes doesn't help because the value still maps to one place. Adding a second key dimension trades some query locality for load distribution — the standard whale-customer remedy."
   },
   {
     "track": "architecture",
     "title": "arch-reliability-01",
     "topic": "reliability",
+    "kind": "mcq",
     "difficulty": 1,
     "scenario": "A payment consumer reads from a queue that guarantees at-least-once delivery, so the same 'charge $50' message can be delivered more than once after a retry. Double-charging a customer is unacceptable.",
     "prompt": "What is the essential safeguard?",
@@ -1172,12 +1254,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Backoff reduces frequency but never eliminates duplicates, so a double charge remains possible — unacceptable for payments."
       }
     ],
+    "payload": null,
     "explanation": "With at-least-once delivery, correctness comes from making effects idempotent, not from wishing duplicates away. Idempotency keys trade a little dedup storage/bookkeeping for exactly-once effect on top of cheaper at-least-once transport."
   },
   {
     "track": "architecture",
     "title": "arch-reliability-02",
     "topic": "reliability",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A streaming job aggregates ad clicks into 1-minute windows. Due to mobile networks, some click events arrive up to 10 minutes late, after their window has already been emitted. Late clicks must still be counted correctly.",
     "prompt": "Which mechanism handles this late/out-of-order data best?",
@@ -1198,12 +1282,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Discarding late clicks undercounts and biases the metric, which the requirement to 'still count them' forbids."
       }
     ],
+    "payload": null,
     "explanation": "Late data is handled by reasoning in event time with watermarks and a bounded lateness allowance, trading some extra state retention and possible restatement for correctness. Processing-time logic is simpler but attributes delayed events to the wrong window."
   },
   {
     "track": "architecture",
     "title": "arch-reliability-03",
     "topic": "reliability",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A bug caused three days of a nightly aggregation to be wrong. You must reprocess those days. The output table is consumed live by dashboards, and each daily run is independent per partition. You want a rerun to be safe to trigger even more than once.",
     "prompt": "Which backfill design is safest?",
@@ -1224,12 +1310,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "A full recompute is far more expensive than needed for three days and risks a large window of missing data visible to live dashboards mid-run."
       }
     ],
+    "payload": null,
     "explanation": "Backfills should be idempotent and scoped: partition-level atomic overwrite lets you rerun safely and cheaply without duplicates. The tradeoff is designing outputs to be partitioned and replaceable, which pays off every time you must reprocess."
   },
   {
     "track": "architecture",
     "title": "arch-reliability-04",
     "topic": "reliability",
+    "kind": "mcq",
     "difficulty": 3,
     "scenario": "A pipeline feeds an executive revenue dashboard. Upstream occasionally ships malformed rows (null revenue, negative quantities) that silently skew totals. Leadership cares more about never showing wrong numbers than about the dashboard always being current.",
     "prompt": "Which data-quality strategy best matches this priority?",
@@ -1250,12 +1338,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Silent dropping avoids halting but quietly undercounts revenue and hides the upstream problem, still producing numbers that are wrong."
       }
     ],
+    "payload": null,
     "explanation": "Data-quality checks can be blocking (circuit-breaker) or non-blocking (warn/quarantine), trading freshness against correctness. When wrong numbers are costlier than stale ones, make critical assertions block the pipeline and alert rather than let suspect data through."
   },
   {
     "track": "architecture",
     "title": "arch-cost-01",
     "topic": "cost",
+    "kind": "mcq",
     "difficulty": 1,
     "scenario": "Analysts query a warehouse only during business hours, with idle nights and weekends, but the dataset must stay queryable and durable at all times. Data volume grows steadily while query load is bursty and intermittent.",
     "prompt": "Which architecture controls cost best?",
@@ -1276,12 +1366,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Storage growth doesn't require more compute; permanently scaling compute with data size pays for capacity the bursty workload rarely uses."
       }
     ],
+    "payload": null,
     "explanation": "Separating storage from compute lets each scale and bill independently, trading a bit of network/latency for the ability to pay for compute only when used. It's the standard answer for durable data with intermittent, bursty query load."
   },
   {
     "track": "architecture",
     "title": "arch-cost-02",
     "topic": "cost",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "A warehouse bills by bytes scanned. The biggest table is queried almost exclusively with a filter on event_date, but it's currently stored as one big pile of uncompressed JSON files, so every query scans everything.",
     "prompt": "Which change most reduces scan cost for these date-filtered queries?",
@@ -1302,12 +1394,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Row-style indexes don't apply to a flat file pile the way pruning does, and without physical partitioning/columnar layout the engine still scans the files."
       }
     ],
+    "payload": null,
     "explanation": "In scan-priced systems, cost is bytes read, so the levers are partition pruning (skip irrelevant files) and columnar compression (read fewer bytes per column). Physical layout, not more compute, is what shrinks the bill."
   },
   {
     "track": "architecture",
     "title": "arch-cost-03",
     "topic": "cost",
+    "kind": "mcq",
     "difficulty": 2,
     "scenario": "An API endpoint recomputes an expensive 'top products this week' aggregation on every request. The result is identical for all users and only meaningfully changes a few times per hour, but it's queried thousands of times per minute.",
     "prompt": "Which change best cuts cost without hurting the user experience?",
@@ -1328,12 +1422,14 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "Faster-but-still-per-request recomputation still pays for the aggregation thousands of times a minute; the redundancy, not the speed, is the cost driver."
       }
     ],
+    "payload": null,
     "explanation": "Caching trades a bounded staleness window for massive read amplification savings when a result is shared and changes slowly. The question to ask is not 'how do I compute this faster' but 'how do I avoid recomputing it at all.'"
   },
   {
     "track": "architecture",
     "title": "arch-cost-04",
     "topic": "cost",
+    "kind": "mcq",
     "difficulty": 3,
     "scenario": "A stakeholder asks for an automated daily pipeline to refresh a report that, in practice, one analyst looks at roughly once a month and could rebuild by hand in 15 minutes. The source data and requirements are still shifting week to week.",
     "prompt": "What is the best engineering call?",
@@ -1354,7 +1450,641 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "rationale": "This compounds the mistake — more infrastructure to maintain around a pipeline that shouldn't exist yet given the low, unstable usage."
       }
     ],
+    "payload": null,
     "explanation": "Automation is an investment that pays off only when frequency and stability make manual cost exceed build-plus-maintenance cost. When usage is rare and requirements churn, the cheapest correct answer is often not to build the pipeline at all."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-01",
+    "topic": "sampling",
+    "kind": "estimate",
+    "difficulty": 1,
+    "scenario": "A random poll of 400 likely voters found 42% favor a new transit levy. That 42% is just a sample; the true share among all voters could differ.",
+    "prompt": "Place your best estimate and a 90% interval for the true share of all voters who favor the levy.",
+    "choices": [],
+    "payload": {
+      "unit": "%",
+      "min": 0,
+      "max": 100,
+      "truth": 44,
+      "good": {
+        "lo": 38,
+        "hi": 46
+      }
+    },
+    "explanation": "This teaches margin of error: a sample rate is an estimate, not the exact truth. With n=400 the standard error is about 2.5 percentage points, so a 90% interval spans roughly the sample value plus or minus 4 points. Sampling error shrinks with the square root of n, so bigger samples earn tighter bands."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-02",
+    "topic": "sampling",
+    "kind": "estimate",
+    "difficulty": 2,
+    "scenario": "A startup surveyed 100 of its users and 30% said they would pay for a premium tier. Only 100 people were asked, so the real figure across all users is uncertain.",
+    "prompt": "Place your best estimate and a 90% interval for the true share of users who would pay.",
+    "choices": [],
+    "payload": {
+      "unit": "%",
+      "min": 0,
+      "max": 100,
+      "truth": 33,
+      "good": {
+        "lo": 23,
+        "hi": 38
+      }
+    },
+    "explanation": "Because n is only 100, the standard error is about 4.6 percentage points and the 90% margin of error is roughly 7.5 points, far wider than the same result from a large sample. Smaller samples demand wider honest intervals; do not report a small-sample percentage as if it were precise."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-03",
+    "topic": "uncertainty",
+    "kind": "estimate",
+    "difficulty": 3,
+    "scenario": "In a pilot test, 6 of 25 patients responded to a new therapy, a 24% response rate. The trial was tiny, so this rate could swing a lot if the study were repeated.",
+    "prompt": "Place your best estimate and a 90% interval for the true response rate.",
+    "choices": [],
+    "payload": {
+      "unit": "%",
+      "min": 0,
+      "max": 60,
+      "truth": 20,
+      "good": {
+        "lo": 11,
+        "hi": 38
+      }
+    },
+    "explanation": "This teaches small-n volatility: with only 25 observations the standard error is about 8.5 percentage points, giving a 90% margin near 14 points. A rate from a handful of cases carries huge uncertainty, so the honest band is very wide even though the point estimate looks specific."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-04",
+    "topic": "variation",
+    "kind": "estimate",
+    "difficulty": 2,
+    "scenario": "An online store's checkout conversion averages about 5% month to month, but last month it spiked to 9%, its best ever, after a lucky viral post. You must forecast next month.",
+    "prompt": "Place your best estimate and a 90% interval for next month's conversion rate.",
+    "choices": [],
+    "payload": {
+      "unit": "%",
+      "min": 0,
+      "max": 15,
+      "truth": 6,
+      "good": {
+        "lo": 4,
+        "hi": 8
+      }
+    },
+    "explanation": "This teaches regression to the mean: an extreme reading is usually part luck, so the next value tends to fall back toward the long-run average rather than repeat the extreme. Center your estimate nearer the 5% mean than the 9% spike, and keep the interval wide because a noisy metric will keep bouncing."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-05",
+    "topic": "variation",
+    "kind": "estimate",
+    "difficulty": 3,
+    "scenario": "A basketball player shoots 44% from the field over the season, but in last night's game he hit 55%. A commentator wants a prediction for his shooting percentage in tonight's game.",
+    "prompt": "Place your best estimate and a 90% interval for his field-goal percentage tonight.",
+    "choices": [],
+    "payload": {
+      "unit": "%",
+      "min": 20,
+      "max": 70,
+      "truth": 45,
+      "good": {
+        "lo": 36,
+        "hi": 52
+      }
+    },
+    "explanation": "Regression to the mean again: a single hot game reflects the player's true ability plus random variation, so tonight's expected value sits close to the 44% season average, not the 55% peak. Single-game percentages are noisy, so the honest interval stays wide even as it centers near the baseline."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-06",
+    "topic": "base_rates",
+    "kind": "estimate",
+    "difficulty": 3,
+    "scenario": "A screening test for a rare disease that affects 1% of people catches 90% of true cases but also flags 9% of healthy people. A randomly screened person just tested positive.",
+    "prompt": "Place your best estimate and a 90% interval for the chance this person actually has the disease.",
+    "choices": [],
+    "payload": {
+      "unit": "%",
+      "min": 0,
+      "max": 50,
+      "truth": 9,
+      "good": {
+        "lo": 6,
+        "hi": 14
+      }
+    },
+    "explanation": "This teaches base-rate neglect: because the disease is rare, most positives come from the huge healthy majority. Bayes' rule gives 0.9 x 1% / (0.9 x 1% + 9% x 99%), which is about 9%, far below the test's accuracy. When the base rate is tiny, a positive result usually still means low probability."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-07",
+    "topic": "base_rates",
+    "kind": "estimate",
+    "difficulty": 2,
+    "scenario": "About 0.5% of card transactions are fraudulent. A detector flags 95% of true fraud but also flags 3% of legitimate transactions. A transaction was just flagged.",
+    "prompt": "Place your best estimate and a 90% interval for the chance this flagged transaction is truly fraud.",
+    "choices": [],
+    "payload": {
+      "unit": "%",
+      "min": 0,
+      "max": 60,
+      "truth": 14,
+      "good": {
+        "lo": 9,
+        "hi": 20
+      }
+    },
+    "explanation": "This teaches how base rates dominate alerts: with fraud at only 0.5%, the flood of legitimate transactions produces many false alarms. Bayes gives 0.95 x 0.5% / (0.95 x 0.5% + 3% x 99.5%), about 14%. Even a fairly accurate detector yields mostly false positives when the underlying event is rare."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-08",
+    "topic": "association",
+    "kind": "estimate",
+    "difficulty": 2,
+    "scenario": "An observational study finds coffee drinkers have roughly 30% lower mortality than non-drinkers. But coffee drinkers in the data also exercised more and smoked less, which independently lower mortality.",
+    "prompt": "Place your best estimate and a 90% interval for the true reduction in mortality caused by coffee itself.",
+    "choices": [],
+    "payload": {
+      "unit": "pp",
+      "min": 0,
+      "max": 35,
+      "truth": 8,
+      "good": {
+        "lo": 2,
+        "hi": 18
+      }
+    },
+    "explanation": "This teaches confounding: a raw association mixes the effect of interest with the effects of other correlated factors, so the observed 30% overstates coffee's own contribution. The honest causal estimate is much smaller and its interval stays wide, reaching near zero, because we cannot fully separate coffee from the healthier habits of its drinkers."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-09",
+    "topic": "aggregation",
+    "kind": "estimate",
+    "difficulty": 3,
+    "scenario": "A lender approves 70% of applicants in its prime segment and 40% in its subprime segment. Next quarter's applicant pool is projected to be about 60% prime and 40% subprime, but that mix is only an estimate.",
+    "prompt": "Place your best estimate and a 90% interval for next quarter's overall approval rate.",
+    "choices": [],
+    "payload": {
+      "unit": "%",
+      "min": 0,
+      "max": 100,
+      "truth": 56,
+      "good": {
+        "lo": 50,
+        "hi": 64
+      }
+    },
+    "explanation": "This teaches that a pooled rate depends on the subgroup mix: weighting gives 0.6 x 70% + 0.4 x 40% = 58%, not a simple average of 55%. Because the projected mix and each segment's rate carry their own uncertainty, the honest interval widens around that weighted estimate rather than treating 58% as exact."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-01",
+    "topic": "storage",
+    "kind": "duel",
+    "difficulty": 1,
+    "scenario": "A session store serving one user profile row per request behind a login flow.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "point lookups by user_id · p99 < 10ms · 50k QPS · single-row reads",
+      "designA": {
+        "name": "Row store (indexed OLTP table)",
+        "sketch": "App → row-store DB (PK index on user_id) → single-row read",
+        "bullets": [
+          "One seek returns the whole row for a user_id",
+          "Tight p99 on point lookups, cache-friendly pages",
+          "Poor at wide aggregate scans over columns",
+          "Cheap single-key writes"
+        ]
+      },
+      "designB": {
+        "name": "Columnar analytical store",
+        "sketch": "App → columnar store (Parquet-style, per-column files) → row reassembly",
+        "bullets": [
+          "Excellent for scanning few columns over many rows",
+          "Heavy compression on repeated column values",
+          "Point lookup must stitch a row from many column segments",
+          "Optimized for throughput, not per-row latency"
+        ]
+      },
+      "better": "A",
+      "deskRationale": "The constraint is single-row point lookups at very low p99, which a PK-indexed row store answers in one seek. B is a fine warehouse engine but reassembling a single row from separate column segments turns a 10ms lookup into many segment reads, so B misses the latency target.",
+      "failureMode": "row stitching blows p99"
+    },
+    "explanation": "The constraint is single-row point lookups at very low p99, which a PK-indexed row store answers in one seek. B is a fine warehouse engine but reassembling a single row from separate column segments turns a 10ms lookup into many segment reads, so B misses the latency target."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-02",
+    "topic": "storage",
+    "kind": "duel",
+    "difficulty": 2,
+    "scenario": "An analyst dashboard aggregating a handful of columns across a very wide events table.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "ad-hoc scans over 3 of 200 columns · 5 TB table · minimize bytes scanned",
+      "designA": {
+        "name": "Denormalized row store",
+        "sketch": "BI → row-store wide table → full-row reads → aggregate",
+        "bullets": [
+          "Every query reads full 200-column rows off disk",
+          "Great when most columns are needed together",
+          "No per-column pruning of I/O",
+          "Simple single-copy layout"
+        ]
+      },
+      "designB": {
+        "name": "Columnar (Parquet) table",
+        "sketch": "BI → columnar files → read only 3 column chunks → aggregate",
+        "bullets": [
+          "Reads only the columns the query touches",
+          "Column-level compression shrinks scanned bytes",
+          "Cheap wide aggregates over few columns",
+          "Slower for full-row single-record fetches"
+        ]
+      },
+      "better": "B",
+      "deskRationale": "The binding constraint is scanning only 3 of 200 columns while minimizing bytes read, which columnar pruning delivers by skipping the other 197 columns entirely. A's row store must pull whole rows, so it scans roughly 60x the needed bytes and inflates the query.",
+      "failureMode": "reads all columns wastefully"
+    },
+    "explanation": "The binding constraint is scanning only 3 of 200 columns while minimizing bytes read, which columnar pruning delivers by skipping the other 197 columns entirely. A's row store must pull whole rows, so it scans roughly 60x the needed bytes and inflates the query."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-03",
+    "topic": "processing",
+    "kind": "duel",
+    "difficulty": 1,
+    "scenario": "A real-time fraud gate that must block suspicious transactions as they happen.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "fraud flag must reflect events < 30s old · continuous decisions",
+      "designA": {
+        "name": "Streaming pipeline",
+        "sketch": "API → Kafka → Flink (stateful) → feature store → decision",
+        "bullets": [
+          "Sub-minute end-to-end latency",
+          "Continuous stateful feature updates",
+          "More operational complexity to run",
+          "Freshness measured in seconds"
+        ]
+      },
+      "designB": {
+        "name": "Nightly batch scoring",
+        "sketch": "Events → daily dump → batch job (nightly) → precomputed flags",
+        "bullets": [
+          "Simple, cheap, easy to reason about",
+          "Great for backfills and reporting",
+          "Flags are up to 24h stale",
+          "No mid-day recomputation"
+        ]
+      },
+      "better": "A",
+      "deskRationale": "A sub-30-second freshness requirement forces continuous processing, which streaming provides end to end. B's nightly batch leaves flags up to a day stale, so fraud within the current session is scored on yesterday's state and slips through.",
+      "failureMode": "stale under freshness SLA"
+    },
+    "explanation": "A sub-30-second freshness requirement forces continuous processing, which streaming provides end to end. B's nightly batch leaves flags up to a day stale, so fraud within the current session is scored on yesterday's state and slips through."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-04",
+    "topic": "processing",
+    "kind": "duel",
+    "difficulty": 2,
+    "scenario": "An internal metrics rollup that leadership reviews a few times a day.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "hourly refresh is fine · tight compute budget · bursty low-volume events",
+      "designA": {
+        "name": "Always-on true streaming",
+        "sketch": "Events → Kafka → Flink cluster (24/7) → live rollups",
+        "bullets": [
+          "Seconds-fresh output at all times",
+          "Standing cluster bills continuously, even when idle",
+          "Overkill when refresh need is hourly",
+          "Complex to operate and tune"
+        ]
+      },
+      "designB": {
+        "name": "Scheduled micro-batch",
+        "sketch": "Events → object store → hourly batch job → rollup table",
+        "bullets": [
+          "Compute spins up hourly, idle otherwise",
+          "Cost scales with actual data, not clock time",
+          "Latency bounded by the hour-long cadence",
+          "Simple to schedule and retry"
+        ]
+      },
+      "better": "B",
+      "deskRationale": "With an hourly refresh target and a tight compute budget, a scheduled micro-batch pays only when it runs and easily meets the cadence. A's standing streaming cluster burns compute 24/7 for freshness nobody needs, blowing the budget to solve a problem that isn't posed.",
+      "failureMode": "idle cluster burns budget"
+    },
+    "explanation": "With an hourly refresh target and a tight compute budget, a scheduled micro-batch pays only when it runs and easily meets the cadence. A's standing streaming cluster burns compute 24/7 for freshness nobody needs, blowing the budget to solve a problem that isn't posed."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-05",
+    "topic": "modeling",
+    "kind": "duel",
+    "difficulty": 2,
+    "scenario": "A customer dimension where address and tier must be queryable as they stood on any past date.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "auditors need as-of-date attribute history · dimensions change over time",
+      "designA": {
+        "name": "Overwrite-in-place dimension (Type 1)",
+        "sketch": "CDC → upsert dim row (latest only) → fact joins to current",
+        "bullets": [
+          "Always reflects the current attribute value",
+          "Compact, one row per entity",
+          "No record of prior values",
+          "Simple joins, minimal storage"
+        ]
+      },
+      "designB": {
+        "name": "SCD Type 2 dimension",
+        "sketch": "CDC → new versioned row (valid_from/valid_to) → as-of joins",
+        "bullets": [
+          "Keeps every historical version with effective dates",
+          "Facts join to the version valid at event time",
+          "More rows and surrogate-key management",
+          "Enables point-in-time and audit queries"
+        ]
+      },
+      "better": "B",
+      "deskRationale": "Auditors requiring as-of-date history make attribute versioning mandatory, which SCD Type 2 provides via effective-dated rows. A's overwrite keeps only the current value, so any question about what a customer's tier was last quarter is unanswerable — the history was destroyed on update.",
+      "failureMode": "overwrite erases history"
+    },
+    "explanation": "Auditors requiring as-of-date history make attribute versioning mandatory, which SCD Type 2 provides via effective-dated rows. A's overwrite keeps only the current value, so any question about what a customer's tier was last quarter is unanswerable — the history was destroyed on update."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-06",
+    "topic": "modeling",
+    "kind": "duel",
+    "difficulty": 3,
+    "scenario": "A finance BI layer where analysts slice revenue, cost, and headcount by shared date/org/product dimensions.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "self-serve BI · non-technical analysts · many conformed dimensions reused across facts",
+      "designA": {
+        "name": "Star schema (conformed dims)",
+        "sketch": "fact tables → shared date/org/product dims → BI joins on keys",
+        "bullets": [
+          "Dimensions defined once, reused across facts",
+          "Predictable joins that BI tools model natively",
+          "Consistent filters across subject areas",
+          "Requires modeling discipline up front"
+        ]
+      },
+      "designB": {
+        "name": "One big table per subject",
+        "sketch": "ETL → flatten all attributes into one wide fact table → BI",
+        "bullets": [
+          "No joins at query time, fast single-table scans",
+          "Attribute definitions get duplicated per table",
+          "Great for a single well-known query shape",
+          "Dimension changes must be re-applied everywhere"
+        ]
+      },
+      "better": "A",
+      "deskRationale": "Self-serve analysts reusing conformed dimensions across many facts need one consistent definition of date/org/product, which the star schema centralizes. B's one-big-table duplicates those attributes per subject, so a definition drift or org restructure yields inconsistent slices across tables and breaks cross-fact comparisons.",
+      "failureMode": "duplicated dims drift apart"
+    },
+    "explanation": "Self-serve analysts reusing conformed dimensions across many facts need one consistent definition of date/org/product, which the star schema centralizes. B's one-big-table duplicates those attributes per subject, so a definition drift or org restructure yields inconsistent slices across tables and breaks cross-fact comparisons."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-07",
+    "topic": "scaling",
+    "kind": "duel",
+    "difficulty": 3,
+    "scenario": "A social feed keyed by author where a few mega-accounts dominate reads and writes.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "one celebrity key = 40% of traffic · even load across shards required",
+      "designA": {
+        "name": "Range partition on author_id",
+        "sketch": "requests → range-partitioned by author_id → contiguous key ranges",
+        "bullets": [
+          "Efficient range scans over adjacent keys",
+          "Contiguous keys land on the same partition",
+          "A single hot key pins load to one partition",
+          "Good for ordered/time-range access"
+        ]
+      },
+      "designB": {
+        "name": "Hash partition (with key salting)",
+        "sketch": "requests → hash(author_id[+salt]) → spread across N shards",
+        "bullets": [
+          "Distributes keys uniformly across shards",
+          "Salting fans a hot key over multiple partitions",
+          "Loses cheap contiguous range scans",
+          "Balances load under skewed access"
+        ]
+      },
+      "better": "B",
+      "deskRationale": "With one key carrying 40% of traffic and a hard even-load requirement, hashing plus salting fans that hot key across shards so no single partition is pinned. A's range partition places the celebrity's contiguous keys on one partition, creating a hot shard that saturates while others idle.",
+      "failureMode": "hot-shard skew"
+    },
+    "explanation": "With one key carrying 40% of traffic and a hard even-load requirement, hashing plus salting fans that hot key across shards so no single partition is pinned. A's range partition places the celebrity's contiguous keys on one partition, creating a hot shard that saturates while others idle."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-08",
+    "topic": "scaling",
+    "kind": "duel",
+    "difficulty": 3,
+    "scenario": "A shopping-cart service for a global storefront that cannot reject adds during cross-region link failures.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "must stay writable during network partitions · brief staleness tolerable",
+      "designA": {
+        "name": "Strongly consistent (quorum/linearizable)",
+        "sketch": "writes → synchronous quorum across regions → linearizable reads",
+        "bullets": [
+          "Every read sees the latest committed write",
+          "Rejects writes when quorum is unreachable",
+          "Simple correctness, no merge logic",
+          "Availability drops during partitions"
+        ]
+      },
+      "designB": {
+        "name": "Eventually consistent (AP, conflict merge)",
+        "sketch": "writes → local region accept → async replicate → converge/merge",
+        "bullets": [
+          "Accepts writes even when regions are split",
+          "Reads may briefly return stale state",
+          "Needs conflict resolution on converge",
+          "High availability under partitions"
+        ]
+      },
+      "better": "B",
+      "deskRationale": "The constraint demands writability during partitions while tolerating brief staleness, which is exactly the AP tradeoff eventual consistency makes. A's quorum model must reject writes when regions can't reach consensus, so a link failure makes carts read-only and drops adds — unacceptable here.",
+      "failureMode": "rejects writes on partition"
+    },
+    "explanation": "The constraint demands writability during partitions while tolerating brief staleness, which is exactly the AP tradeoff eventual consistency makes. A's quorum model must reject writes when regions can't reach consensus, so a link failure makes carts read-only and drops adds — unacceptable here."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-09",
+    "topic": "reliability",
+    "kind": "duel",
+    "difficulty": 2,
+    "scenario": "A payments ledger writer consuming a transaction stream that can redeliver messages.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "no double-charge · retries expected · sink supports keyed upsert",
+      "designA": {
+        "name": "At-least-once + idempotent upsert",
+        "sketch": "Kafka → consumer → upsert by txn_id (dedupe key) → ledger",
+        "bullets": [
+          "Redeliveries collapse onto the same txn_id key",
+          "Simple, well-supported delivery mode",
+          "Correctness lives in the idempotent sink",
+          "Retries are safe by construction"
+        ]
+      },
+      "designB": {
+        "name": "End-to-end exactly-once framework",
+        "sketch": "Kafka → txn coordinator (2PC across broker+sink) → ledger",
+        "bullets": [
+          "Framework-level exactly-once semantics",
+          "Requires transactional sinks and coordination",
+          "Higher latency and operational fragility",
+          "Correct, but heavy for an upsertable sink"
+        ]
+      },
+      "better": "A",
+      "deskRationale": "The sink already supports keyed upsert, so at-least-once delivery with idempotent upsert on txn_id makes retries free of duplicates with minimal machinery. B chases full exactly-once via distributed transactions the workload doesn't need, adding 2PC coordination that raises latency and failure surface for no correctness gain here.",
+      "failureMode": "needless 2PC overhead"
+    },
+    "explanation": "The sink already supports keyed upsert, so at-least-once delivery with idempotent upsert on txn_id makes retries free of duplicates with minimal machinery. B chases full exactly-once via distributed transactions the workload doesn't need, adding 2PC coordination that raises latency and failure surface for no correctness gain here."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-10",
+    "topic": "reliability",
+    "kind": "duel",
+    "difficulty": 3,
+    "scenario": "A metrics aggregator counting events per minute from mobile clients on flaky networks.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "events arrive up to 10 min late · per-minute windowed counts must be correct",
+      "designA": {
+        "name": "Watermarked event-time windows",
+        "sketch": "Kafka → Flink event-time windows + watermark(10m) + allowed lateness",
+        "bullets": [
+          "Assigns events to windows by event timestamp",
+          "Watermark holds windows open for late arrivals",
+          "Correct counts despite out-of-order delivery",
+          "Adds bounded latency before window close"
+        ]
+      },
+      "designB": {
+        "name": "Naive processing-time windows",
+        "sketch": "Kafka → tumbling windows on arrival time → immediate counts",
+        "bullets": [
+          "Buckets events by when they arrive, not occur",
+          "Lowest latency, no waiting",
+          "Late events fall into the wrong minute",
+          "Simple with no watermark bookkeeping"
+        ]
+      },
+      "better": "A",
+      "deskRationale": "With events up to 10 minutes late and a requirement that per-minute counts be correct, event-time windows with a matching watermark assign each event to its true minute and wait for stragglers. B's processing-time windows bucket late events into whatever minute they land in, systematically undercounting the correct window and overcounting later ones.",
+      "failureMode": "late events misbucketed"
+    },
+    "explanation": "With events up to 10 minutes late and a requirement that per-minute counts be correct, event-time windows with a matching watermark assign each event to its true minute and wait for stragglers. B's processing-time windows bucket late events into whatever minute they land in, systematically undercounting the correct window and overcounting later ones."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-11",
+    "topic": "cost",
+    "kind": "duel",
+    "difficulty": 2,
+    "scenario": "A usage-analytics table where nearly every query restricts to a small date range but the table spans years.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "queries filter on event_date · scan bill is the cost driver · huge historical table",
+      "designA": {
+        "name": "Unpartitioned full-scan table",
+        "sketch": "query(date filter) → engine scans entire table → filter after read",
+        "bullets": [
+          "Single flat layout, no partition upkeep",
+          "Every query reads the full history",
+          "Scan cost independent of the filter range",
+          "Fine when queries touch most data anyway"
+        ]
+      },
+      "designB": {
+        "name": "Date-partitioned + pruned scans",
+        "sketch": "query(date filter) → prune to matching partitions → scan only those",
+        "bullets": [
+          "Partition pruning reads only relevant dates",
+          "Scan bytes scale with the queried range",
+          "Needs partition-key discipline on write",
+          "Dramatically lower cost for narrow ranges"
+        ]
+      },
+      "better": "B",
+      "deskRationale": "When scan volume is the cost driver and queries filter on event_date, partition pruning reads only the matching dates and cuts bytes scanned to the query's range. A's unpartitioned table scans years of history on every narrow query, so the scan bill explodes even though 99% of the data is discarded by the filter.",
+      "failureMode": "scan bill explodes"
+    },
+    "explanation": "When scan volume is the cost driver and queries filter on event_date, partition pruning reads only the matching dates and cuts bytes scanned to the query's range. A's unpartitioned table scans years of history on every narrow query, so the scan bill explodes even though 99% of the data is discarded by the filter."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-12",
+    "topic": "cost",
+    "kind": "duel",
+    "difficulty": 2,
+    "scenario": "A data platform where the dataset balloons monthly but heavy queries run only during business hours.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "storage grows fast · compute is spiky and mostly idle · pay for what you use",
+      "designA": {
+        "name": "Coupled storage+compute cluster",
+        "sketch": "provisioned nodes hold data + run queries → scale both together",
+        "bullets": [
+          "Data local to compute, low query latency",
+          "Adding storage forces adding compute nodes",
+          "Idle nodes still bill around the clock",
+          "Scaling one resource drags the other"
+        ]
+      },
+      "designB": {
+        "name": "Separated storage + elastic compute",
+        "sketch": "object store (data) ← elastic compute (spin up on demand) → results",
+        "bullets": [
+          "Storage scales independently and cheaply",
+          "Compute spins up for spikes, down when idle",
+          "Small remote-read overhead per query",
+          "Pay compute only while queries run"
+        ]
+      },
+      "better": "B",
+      "deskRationale": "With fast-growing storage and spiky, mostly-idle compute, separating the two lets storage grow on cheap object stores while compute bills only during the business-hours spikes. A's coupled cluster forces you to buy compute nodes just to hold the growing data, paying for idle CPUs 24/7 to satisfy a storage need.",
+      "failureMode": "pays idle coupled compute"
+    },
+    "explanation": "With fast-growing storage and spiky, mostly-idle compute, separating the two lets storage grow on cheap object stores while compute bills only during the business-hours spikes. A's coupled cluster forces you to buy compute nodes just to hold the growing data, paying for idle CPUs 24/7 to satisfy a storage need."
   }
 ];
 
@@ -1367,9 +2097,11 @@ export async function syncQuizItems(prisma: PrismaClient): Promise<number> {
     const data = {
       track: q.track,
       topic: q.topic,
+      kind: q.kind,
       scenario: q.scenario,
       prompt: q.prompt,
       choices: JSON.stringify(q.choices),
+      payload: q.payload == null ? null : JSON.stringify(q.payload),
       explanation: q.explanation,
       difficulty: q.difficulty,
     };

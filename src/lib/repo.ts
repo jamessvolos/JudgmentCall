@@ -34,10 +34,12 @@ import {
   levelStanding,
   badgeConferrals,
   topicProgress,
+  calibration,
   type QuizRow,
   type LevelStanding,
   type Conferral as QuizConferral,
   type TopicProgress,
+  type Calibration,
 } from "./train-tracks";
 
 export type { Finding, Variant, Comparison, Session };
@@ -1063,6 +1065,7 @@ async function quizRows(sessionId: string, track: string): Promise<QuizRow[]> {
       topic: true,
       difficulty: true,
       correct: true,
+      confidence: true,
       ratingAfter: true,
       createdAt: true,
     },
@@ -1139,6 +1142,7 @@ export async function recordQuizAttempt(input: {
   difficulty: number;
   correct: boolean;
   choiceIndex: number;
+  confidence: number | null;
   latencyMs: number;
 }): Promise<{ liveRating: number; ratingDelta: number; count: number }> {
   return withTxRetry(() =>
@@ -1160,6 +1164,7 @@ export async function recordQuizAttempt(input: {
           difficulty: input.difficulty,
           correct: input.correct,
           choiceIndex: input.choiceIndex,
+          confidence: input.confidence,
           latencyMs: input.latencyMs,
           ratingAfter: next.session,
         },
@@ -1182,9 +1187,10 @@ export type QuizStanding = {
   level: LevelStanding;
   badges: QuizConferral[];
   topics: TopicProgress[];
+  calibration: Calibration;
 };
 
-/** The Record for a track — level, badges, topic map — a pure fold over rows. */
+/** The Record for a track — level, badges, topic map, calibration — a pure fold. */
 export async function getQuizStanding(sessionId: string, track: string): Promise<QuizStanding | null> {
   const t = getTrack(track);
   if (!t) return null;
@@ -1195,7 +1201,25 @@ export async function getQuizStanding(sessionId: string, track: string): Promise
     level: levelStanding(t, rows),
     badges: badgeConferrals(t, rows),
     topics: topicProgress(t, rows),
+    calibration: calibration(rows),
   };
+}
+
+/** Live "The Room" tally for a duel item — how everyone who has faced it picked
+ *  (choiceIndex 0 = Design A, 1 = Design B). Powers the You / Room / Desk reveal. */
+export async function getDuelTally(quizItemId: string): Promise<{ a: number; b: number; total: number }> {
+  const rows = await prisma.quizAttempt.groupBy({
+    by: ["choiceIndex"],
+    where: { quizItemId },
+    _count: { _all: true },
+  });
+  let a = 0;
+  let b = 0;
+  for (const r of rows) {
+    if (r.choiceIndex === 0) a = r._count._all;
+    else if (r.choiceIndex === 1) b = r._count._all;
+  }
+  return { a, b, total: a + b };
 }
 
 // ---------------------------------------------------------------------------
