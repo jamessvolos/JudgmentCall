@@ -136,7 +136,8 @@ const DRILL_BASE: DrillSeed[] = [
 // The full pool the Training Room serves: six hand-authored base items plus the
 // deep authored/reviewed pool (spot + fix + calibrate across all ten skills).
 import { CASE_SEEDS } from "./drills-cases";
-export const DRILL_SEEDS: DrillSeed[] = [...DRILL_BASE, ...DRILL_POOL, ...CASE_SEEDS];
+import { EDITION2 } from "./drills-edition2";
+export const DRILL_SEEDS: DrillSeed[] = [...DRILL_BASE, ...DRILL_POOL, ...CASE_SEEDS, ...EDITION2];
 
 // Idempotent content sync: upsert every seed by its stable title. Runs on every
 // build (see scripts/prod-init.ts) so the pool ships without a reseed — and the

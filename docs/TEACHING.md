@@ -544,3 +544,33 @@ that keeps it from the study is absolute:
   THE DOSSIER credential once the case shelf is deep enough, and the
   evolving-dossier format (readout changes between sub-questions). Blinding
   held; drill attempts still never enter analytics.
+- **2026-07-12 (Edition 2)** — **First content-cadence edition** (the mechanism
+  Training Room v3 built for; user-requested "next batch"). A pool audit found
+  the Checkpoint's real cost: each form burns ten unseen items, so per-cell
+  depth is now load-bearing, and `padding` sat at the floor (only 2 non-case
+  d2+ items). Shipped twelve authored+reviewed items: **CASE FILE · BELLWETHER**
+  (a school-district story — a new reading curriculum, volunteer tutors, an
+  attendance push, and a re-normed state test all landing at once, with a memo
+  that credits the curriculum for a seven-point gain) + eight pool items
+  restocking the thinnest skill/difficulty/mode cells (two `padding`, plus
+  base_rate/cause ledgers, false_precision/buried_lede, missing_sowhat/
+  absent_caveat calibrates). The adversarial pass fixed **7 defects across 6
+  items**, headlined by two that only a content-under-pressure review catches:
+  (a) a **craft-contract violation** — the padded spot's weaker telling
+  narrated verification steps (log exports, vendor reconciliation) the readout
+  never recorded, breaking the rule that BOTH craft tellings be faithful; fixed
+  by grounding the audit trail in the snippet. (b) a **stray fidelity overreach
+  inside a craft item** — a false_precision telling ended "the strongest reading
+  on record" when only one prior quarter existed; the precision was supposed to
+  be the only flaw. Plus the dossier-specific hazard again: a **Q3→Q4
+  forward-leak** in Bellwether (Q3's choices pre-taught the expansion design and
+  pre-killed the "mandate all 31" pattern, collapsing Q4 to a 2-way guess),
+  neutralized by reframing Q4's distractor set — no reveal weakened. Pool: 59 →
+  **71 items** (3 dossiers × 4, 59 pool); `padding` d2+ 2 → 4; every skill still
+  clears the exam feasibility floor. **Verified:** 71-item content test (case
+  contracts + exam floor), all unit suites, a live drive (Bellwether sits in
+  caseSeq order across all four modes and files; the Checkpoint still fills a
+  full 10-item form off the deeper pool), the three-dossier dashboard
+  screenshotted, and the full gate green with all Edition-2 company names
+  audited drill-chunk-only. This is the cadence working: the format built last
+  edition, fed. Blinding held; drill attempts still never enter analytics.
