@@ -84,6 +84,12 @@ export const CASE_META: CaseMeta[] = [
     blurb: "Three changes shipped at once. One is taking the credit.",
     length: 4,
   },
+  {
+    id: "bellwether",
+    name: "CASE FILE · BELLWETHER",
+    blurb: "The reading scores went up. Everyone is taking a bow.",
+    length: 4,
+  },
 ];
 
 export const EXAM_META = {
