@@ -27,7 +27,18 @@ import {
   EXAM_LENGTH,
   type ExamStanding,
 } from "./drill-exam";
-import type { Finding, Variant, Comparison, Session, DrillItem } from "@prisma/client";
+import type { Finding, Variant, Comparison, Session, DrillItem, QuizItem } from "@prisma/client";
+import {
+  getTrack,
+  liveRating as foldLiveRating,
+  levelStanding,
+  badgeConferrals,
+  topicProgress,
+  type QuizRow,
+  type LevelStanding,
+  type Conferral as QuizConferral,
+  type TopicProgress,
+} from "./train-tracks";
 
 export type { Finding, Variant, Comparison, Session };
 
@@ -1033,6 +1044,158 @@ export async function recordDrillAttempt(input: {
       };
     }, WRITE_TX_OPTS)
   );
+}
+
+// ---------------------------------------------------------------------------
+// TRAINING TRACKS (statistics, architecture) — an isolated multiple-choice
+// world. Same Elo settle as the drill (drillElo), but the session-side rating
+// lives entirely in QuizAttempt.ratingAfter — nothing on Session — so a track's
+// whole standing (rating, level, badges, topic map) is a pure fold over its
+// rows (src/lib/train-tracks.ts). Never touches the study or the overclaim drill.
+
+/** A session's ordered attempt ledger for one track, projected to the fold shape. */
+async function quizRows(sessionId: string, track: string): Promise<QuizRow[]> {
+  const rows = await prisma.quizAttempt.findMany({
+    where: { sessionId, track },
+    orderBy: { createdAt: "asc" },
+    select: {
+      quizItemId: true,
+      topic: true,
+      difficulty: true,
+      correct: true,
+      ratingAfter: true,
+      createdAt: true,
+    },
+  });
+  return rows;
+}
+
+export async function getQuizItem(id: string): Promise<QuizItem | null> {
+  return prisma.quizItem.findUnique({ where: { id } });
+}
+
+export async function hasAttemptedQuiz(sessionId: string, quizItemId: string): Promise<boolean> {
+  const n = await prisma.quizAttempt.count({ where: { sessionId, quizItemId } });
+  return n > 0;
+}
+
+/**
+ * Serve the next quiz item for a track: skip everything the session has already
+ * answered, prefer topics not yet faced (curriculum coverage), then weight by a
+ * difficulty ladder + item-rating closeness — the same self-gating climb the
+ * drill uses, so a reliable learner advances to the subtle calls and a
+ * struggling one stays on the foundational tier.
+ */
+export async function getNextQuizItem(
+  sessionId: string,
+  track: string,
+  opts?: { topic?: string }
+): Promise<{ item: QuizItem | null; remaining: number; liveRating: number; count: number }> {
+  const [rows, items] = await Promise.all([
+    quizRows(sessionId, track),
+    prisma.quizItem.findMany({
+      where: { track, status: "active", ...(opts?.topic ? { topic: opts.topic } : {}) },
+    }),
+  ]);
+  const rating = foldLiveRating(rows);
+  const attempted = new Set(rows.map((r) => r.quizItemId));
+  const pool = items.filter((it) => !attempted.has(it.id));
+  if (pool.length === 0) {
+    return { item: null, remaining: 0, liveRating: Math.round(rating), count: rows.length };
+  }
+  // Coverage first: unfaced topics before reinforcement (unless a topic filter
+  // already narrowed the pool).
+  const faced = new Set(rows.map((r) => r.topic));
+  const fresh = opts?.topic ? [] : pool.filter((it) => !faced.has(it.topic));
+  const candidates = fresh.length > 0 ? fresh : pool;
+  const targetDifficulty = rating < 1300 ? 1 : rating < 1420 ? 2 : 3;
+  const weighted = candidates.map((it) => {
+    const diffCloseness = 1 / (1 + Math.abs(it.difficulty - targetDifficulty));
+    const eloCloseness = 1 / (1 + Math.abs(it.rating - rating) / 400);
+    return { it, w: 0.15 + diffCloseness + 0.35 * eloCloseness };
+  });
+  const total = weighted.reduce((s, x) => s + x.w, 0);
+  let roll = Math.random() * total;
+  let chosen = weighted[0].it;
+  for (const x of weighted) {
+    roll -= x.w;
+    if (roll <= 0) {
+      chosen = x.it;
+      break;
+    }
+  }
+  return { item: chosen, remaining: pool.length, liveRating: Math.round(rating), count: rows.length };
+}
+
+/** Atomically: settle both Elo ratings and log the attempt. The current
+ *  session-side rating is the last ratingAfter for (session, track); the new
+ *  one is written onto this row, so The Record stays a fold with nothing on
+ *  Session to desync. */
+export async function recordQuizAttempt(input: {
+  sessionId: string;
+  quizItemId: string;
+  track: string;
+  topic: string;
+  difficulty: number;
+  correct: boolean;
+  choiceIndex: number;
+  latencyMs: number;
+}): Promise<{ liveRating: number; ratingDelta: number; count: number }> {
+  return withTxRetry(() =>
+    prisma.$transaction(async (tx) => {
+      const item = await tx.quizItem.findUniqueOrThrow({ where: { id: input.quizItemId } });
+      const last = await tx.quizAttempt.findFirst({
+        where: { sessionId: input.sessionId, track: input.track },
+        orderBy: { createdAt: "desc" },
+        select: { ratingAfter: true },
+      });
+      const current = last?.ratingAfter ?? 1200;
+      const next = drillElo(current, item.rating, input.correct);
+      await tx.quizAttempt.create({
+        data: {
+          sessionId: input.sessionId,
+          quizItemId: input.quizItemId,
+          track: input.track,
+          topic: input.topic,
+          difficulty: input.difficulty,
+          correct: input.correct,
+          choiceIndex: input.choiceIndex,
+          latencyMs: input.latencyMs,
+          ratingAfter: next.session,
+        },
+      });
+      await tx.quizItem.update({
+        where: { id: item.id },
+        data: { rating: next.item, attempts: { increment: 1 } },
+      });
+      const count = await tx.quizAttempt.count({
+        where: { sessionId: input.sessionId, track: input.track },
+      });
+      return { liveRating: next.session, ratingDelta: next.session - current, count };
+    }, WRITE_TX_OPTS)
+  );
+}
+
+export type QuizStanding = {
+  liveRating: number;
+  count: number;
+  level: LevelStanding;
+  badges: QuizConferral[];
+  topics: TopicProgress[];
+};
+
+/** The Record for a track — level, badges, topic map — a pure fold over rows. */
+export async function getQuizStanding(sessionId: string, track: string): Promise<QuizStanding | null> {
+  const t = getTrack(track);
+  if (!t) return null;
+  const rows = await quizRows(sessionId, track);
+  return {
+    liveRating: Math.round(foldLiveRating(rows)),
+    count: rows.length,
+    level: levelStanding(t, rows),
+    badges: badgeConferrals(t, rows),
+    topics: topicProgress(t, rows),
+  };
 }
 
 // ---------------------------------------------------------------------------

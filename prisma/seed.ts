@@ -18,6 +18,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import { syncDrillItems } from "./drills";
+import { syncQuizItems } from "./quiz";
 import {
   ATTRIBUTE_KEYS,
   CAVEAT_PLACEMENTS,
@@ -726,8 +727,10 @@ async function main(): Promise<void> {
   await prisma.deck.deleteMany();
   await prisma.session.deleteMany();
   await prisma.drillItem.deleteMany();
+  await prisma.quizItem.deleteMany();
 
   await syncDrillItems(prisma);
+  await syncQuizItems(prisma);
 
   for (const f of findings) {
     await prisma.finding.create({

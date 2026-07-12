@@ -1,0 +1,314 @@
+[
+  {
+    "title": "arch-storage-01",
+    "topic": "storage",
+    "difficulty": 1,
+    "scenario": "You run a checkout service that writes ~2,000 orders/sec. Each request inserts one order and updates the customer's balance; reads fetch a single order by its ID. Writes must commit durably and the record must be readable immediately.",
+    "prompt": "Which storage engine best fits this workload?",
+    "choices": [
+      { "text": "A row-oriented OLTP database (B-tree indexed)", "correct": true, "rationale": "Point inserts, single-row updates, and read-by-key touch whole rows, which row storage colocates on a page for cheap single-record I/O." },
+      { "text": "A columnar analytical store (e.g. Parquet-backed warehouse)", "correct": false, "rationale": "Columnar layout shines for scanning few columns over many rows, but paying per-column write and reconstructing a full row per point-read is exactly the wrong shape here." },
+      { "text": "A flat append-only log with no secondary indexes", "correct": false, "rationale": "Appends are fast but read-by-ID and per-customer balance updates would require full scans without indexes, breaking the immediate single-record read requirement." }
+    ],
+    "explanation": "Match physical layout to access pattern: row stores colocate a full record for cheap point reads/writes (OLTP), while columnar stores optimize scanning a few columns across many rows (OLAP). The axis is per-record locality versus per-column scan efficiency."
+  },
+  {
+    "title": "arch-storage-02",
+    "topic": "storage",
+    "difficulty": 2,
+    "scenario": "An analytics team queries a 5-billion-row events table. Typical queries are 'SUM(revenue) and COUNT(*) grouped by country over a date range' — touching 3 of the table's 60 columns. Query latency for these dashboards must stay under a few seconds.",
+    "prompt": "Which physical storage choice best serves these scan-heavy aggregations?",
+    "choices": [
+      { "text": "Columnar format (e.g. Parquet/ORC) with per-column compression", "correct": true, "rationale": "Reading only 3 of 60 columns means the engine skips ~95% of bytes, and columnar compression plus run-length encoding shrinks the scan further." },
+      { "text": "Row-oriented store with a B-tree on country", "correct": false, "rationale": "The index helps point lookups, but a range aggregation over billions of rows still reads every full 60-column row from disk — enormous wasted I/O." },
+      { "text": "A key-value store keyed by event ID", "correct": false, "rationale": "KV stores excel at get-by-key, not multi-row grouped aggregations, which would require scanning and reassembling every value." }
+    ],
+    "explanation": "Columnar storage trades expensive full-row reconstruction for cheap wide scans of a few columns, the inverse of row storage. When queries read few columns over many rows, columnar wins on both I/O volume and compression ratio."
+  },
+  {
+    "title": "arch-storage-03",
+    "topic": "storage",
+    "difficulty": 2,
+    "scenario": "A social app shows a user's profile plus their last 20 posts on every page load, 50,000 times/sec. The data lives in a normalized schema across users, posts, and media tables; each page load fires 4 joins and read latency is now the bottleneck.",
+    "prompt": "What is the primary tradeoff of denormalizing this profile-plus-posts data into a single document?",
+    "choices": [
+      { "text": "You trade write-time complexity and storage duplication for far cheaper reads (no join fan-out)", "correct": true, "rationale": "Denormalization precomputes the join so the hot read path is a single fetch, at the cost of updating duplicated data in multiple places on writes." },
+      { "text": "You trade slower reads for guaranteed referential integrity", "correct": false, "rationale": "This inverts the tradeoff: denormalization speeds reads and it is normalization that preserves single-source-of-truth integrity." },
+      { "text": "You gain both cheaper reads and simpler writes with no downside", "correct": false, "rationale": "There is no free lunch — duplicated data makes writes and updates harder to keep consistent, which is the cost you accept." }
+    ],
+    "explanation": "Normalization optimizes write-simplicity and integrity by storing each fact once; denormalization optimizes read-cost by precomputing joins at the price of update anomalies and duplication. Choose based on your read/write ratio and consistency tolerance."
+  },
+  {
+    "title": "arch-storage-04",
+    "topic": "storage",
+    "difficulty": 3,
+    "scenario": "A B2B reporting product lets customers run ad-hoc SQL over their own data. Ingestion is heavy (continuous CDC updates), but analysts also expect sub-second point lookups of individual records by primary key alongside the big aggregations. The team wants to avoid running two separate systems.",
+    "prompt": "Which single-system approach best balances these mixed OLTP-ish point reads and OLAP scans?",
+    "choices": [
+      { "text": "A hybrid/HTAP-style engine with a columnar analytical store plus an indexed row-oriented delta for recent writes and point reads", "correct": true, "rationale": "The columnar side serves scans while the indexed row delta absorbs frequent CDC writes and answers point lookups, merging results at query time — directly targeting the mixed pattern." },
+      { "text": "A pure columnar warehouse and accept full-column scans for point lookups", "correct": false, "rationale": "Columnar stores have no cheap per-key access, so 'find one record' degrades to scanning a column — violating the sub-second point-lookup need." },
+      { "text": "A pure row-oriented OLTP database and accept slow aggregations", "correct": false, "rationale": "Point reads would be fast, but full-table grouped aggregations over large data on a row store blow the analysts' latency expectations." }
+    ],
+    "explanation": "When a workload genuinely mixes point access and large scans, neither pure layout wins; HTAP designs combine a write-optimized row/delta tier with a scan-optimized columnar tier. The tradeoff is added engine complexity in exchange for avoiding two synced systems."
+  },
+  {
+    "title": "arch-processing-01",
+    "topic": "processing",
+    "difficulty": 1,
+    "scenario": "Finance needs a daily revenue report delivered by 6 AM covering the prior full day. There is no requirement for intra-day freshness, and the source data is only finalized at midnight after end-of-day reconciliation.",
+    "prompt": "Which processing model fits best?",
+    "choices": [
+      { "text": "A nightly batch job scheduled after midnight", "correct": true, "rationale": "The data isn't complete until midnight and the SLA is once-per-day, so batch maximizes throughput and simplicity with no benefit lost." },
+      { "text": "A streaming pipeline updating revenue continuously", "correct": false, "rationale": "Real-time infrastructure adds cost and operational burden to deliver freshness the business explicitly does not need, and the source isn't even final until midnight." },
+      { "text": "Micro-batches every 5 minutes", "correct": false, "rationale": "Frequent micro-batches produce partial, pre-reconciliation numbers all day for a report that only cares about the finalized daily total." }
+    ],
+    "explanation": "Latency requirements, not technology fashion, should pick the model. When the SLA is periodic and inputs finalize on a schedule, batch trades freshness (unneeded here) for higher throughput and lower operational cost."
+  },
+  {
+    "title": "arch-processing-02",
+    "topic": "processing",
+    "difficulty": 2,
+    "scenario": "A fraud system must block a suspicious card transaction before it completes — an end-to-end decision within a few hundred milliseconds of the swipe. Each decision depends on features computed from the last few seconds of that card's activity.",
+    "prompt": "Which processing model is required here?",
+    "choices": [
+      { "text": "Stream processing that computes features and scores per event as it arrives", "correct": true, "rationale": "A sub-second, act-before-completion decision requires per-event processing with low tail latency, which streaming provides and batch cannot." },
+      { "text": "An hourly batch job scoring the last hour of transactions", "correct": false, "rationale": "Batch throughput is high but its latency floor is the batch interval, so a decision arrives long after the transaction has already cleared." },
+      { "text": "A nightly recompute of a fraud score per card", "correct": false, "rationale": "A once-a-day score can't reflect the last few seconds of activity nor block an in-flight swipe." }
+    ],
+    "explanation": "Streaming trades higher operational complexity and per-event overhead for low end-to-end latency. When the business action must happen within the event's lifetime, latency dominates and real-time is genuinely worth its cost."
+  },
+  {
+    "title": "arch-processing-03",
+    "topic": "processing",
+    "difficulty": 2,
+    "scenario": "A dashboard shows order counts that stakeholders are happy to see refresh 'every minute or so.' The volume is high and the team wants streaming-like freshness but with simpler failure recovery and better throughput than event-at-a-time processing.",
+    "prompt": "Which approach best fits a near-real-time-but-not-instant requirement at high volume?",
+    "choices": [
+      { "text": "Micro-batching: process small batches on a short interval (e.g. every 30–60s)", "correct": true, "rationale": "Micro-batching hits ~1-minute freshness while amortizing overhead across each batch and giving batch-style checkpoint/replay recovery — matching the relaxed SLA." },
+      { "text": "Per-event streaming with exactly-once state", "correct": false, "rationale": "This delivers freshness the dashboard doesn't need while paying maximum per-event overhead and operational complexity." },
+      { "text": "An hourly batch job", "correct": false, "rationale": "Hourly is far coarser than the ~1-minute expectation, so stakeholders would see stale counts most of the time." }
+    ],
+    "explanation": "Micro-batching is the middle of the latency/throughput spectrum: it sacrifices sub-second freshness to regain batch's throughput and simpler recovery. When the freshness SLA is seconds-to-minutes, it often beats both pure streaming and coarse batch."
+  },
+  {
+    "title": "arch-processing-04",
+    "topic": "processing",
+    "difficulty": 3,
+    "scenario": "A team is under pressure to 'make the recommendations real-time.' Investigation shows the recommendation model is retrained weekly and its inputs (aggregated 30-day user preferences) barely move hour-to-hour. The current nightly batch scoring meets all product metrics.",
+    "prompt": "What is the strongest engineering judgment here?",
+    "choices": [
+      { "text": "Keep batch scoring; real-time adds cost and complexity with no signal to act on", "correct": true, "rationale": "When inputs change slowly and the model updates weekly, real-time recomputation refreshes numbers that are effectively identical — spend nowhere returns value." },
+      { "text": "Rebuild as a streaming pipeline to satisfy the 'real-time' request", "correct": false, "rationale": "Streaming would deliver freshness the underlying signal doesn't have, adding operational burden for a distinction users can't perceive." },
+      { "text": "Move to 5-minute micro-batches as a compromise", "correct": false, "rationale": "Even 5-minute recompute is pointless when the 30-day inputs are stable and the model only changes weekly — it's cost without benefit." }
+    ],
+    "explanation": "Real-time is only worth it when the underlying signal actually changes within the freshness window and a faster decision changes an outcome. When inputs are slow-moving, streaming trades real cost for imperceptible freshness — the mature call is not to build it."
+  },
+  {
+    "title": "arch-modeling-01",
+    "topic": "modeling",
+    "difficulty": 1,
+    "scenario": "You're modeling a data warehouse for BI. Analysts slice a large fact table of sales events by date, product, store, and customer, and they need fast, intuitive joins and clean aggregation.",
+    "prompt": "Which modeling pattern is the conventional best fit?",
+    "choices": [
+      { "text": "A star schema: a central fact table with denormalized dimension tables", "correct": true, "rationale": "Star schemas give analysts simple single-hop joins from the fact table to each dimension, optimizing readable, fast aggregation queries." },
+      { "text": "A fully normalized (3NF/snowflake to the extreme) model", "correct": false, "rationale": "Heavy normalization minimizes redundancy but forces many-hop joins that slow and complicate the analytical queries the warehouse exists to serve." },
+      { "text": "One giant flat table with every attribute inlined per event", "correct": false, "rationale": "A single mega-table can work but sacrifices dimension reuse and makes conformed dimensions and slowly-changing attributes far harder to manage." }
+    ],
+    "explanation": "Dimensional (star) modeling trades some storage redundancy in dimensions for query simplicity and speed — the right call for read-heavy BI. Normalization minimizes redundancy but multiplies join hops, which analytics doesn't want."
+  },
+  {
+    "title": "arch-modeling-02",
+    "topic": "modeling",
+    "difficulty": 2,
+    "scenario": "A customer dimension has an address that changes over time. Analysts must be able to attribute historical orders to the address the customer had at the time of each order, not their current address.",
+    "prompt": "Which slowly-changing-dimension strategy is required?",
+    "choices": [
+      { "text": "SCD Type 2: add a new dimension row per change with effective-from/to dates", "correct": true, "rationale": "Keeping a versioned row per change preserves point-in-time history so each fact joins to the address that was valid when the order occurred." },
+      { "text": "SCD Type 1: overwrite the address in place", "correct": false, "rationale": "Overwriting keeps only the current value and destroys history, so past orders would wrongly attribute to the new address." },
+      { "text": "Store only the current customer record and recompute history from logs on demand", "correct": false, "rationale": "This offloads history to fragile ad-hoc reconstruction instead of modeling it, and often the source logs won't reliably reproduce past states." }
+    ],
+    "explanation": "SCD Type 2 trades extra rows and join complexity for the ability to reconstruct point-in-time truth; Type 1 trades history away for a simple current-state model. The requirement 'attribute to the value at event time' forces Type 2."
+  },
+  {
+    "title": "arch-modeling-03",
+    "topic": "modeling",
+    "difficulty": 3,
+    "scenario": "An event-tracking table is consumed by dozens of downstream jobs. Product wants to add optional new fields to events frequently, and old data in Parquet must remain readable by consumers that haven't been updated yet. Rewriting petabytes of history on every change is off the table.",
+    "prompt": "Which schema-evolution approach best fits?",
+    "choices": [
+      { "text": "Additive, backward-compatible evolution: only add new nullable/optional columns and never repurpose or drop existing ones", "correct": true, "rationale": "Additive changes let old readers ignore new columns and read old files where the field is simply absent/null, avoiding any history rewrite." },
+      { "text": "Rename or retype existing columns in place as needs change", "correct": false, "rationale": "Renaming or retyping breaks old readers and old files, forcing coordinated consumer upgrades and expensive rewrites — exactly what's ruled out." },
+      { "text": "Freeze the schema and encode all new attributes inside one opaque JSON blob column", "correct": false, "rationale": "A catch-all blob dodges migrations but destroys columnar pushdown/typing and pushes parsing cost and schema chaos onto every consumer." }
+    ],
+    "explanation": "Schema evolution trades change flexibility against consumer stability. Additive/backward-compatible changes preserve old readers and old files (no rewrite), while destructive changes force lock-step migration — so favor additive evolution when many independent consumers and large history exist."
+  },
+  {
+    "title": "arch-modeling-04",
+    "topic": "modeling",
+    "difficulty": 2,
+    "scenario": "A feature store must serve ML models a wide set of ~300 precomputed features per entity, keyed by entity ID, at low latency for online inference. Different models read different, sparse subsets of the features.",
+    "prompt": "What is the main tradeoff between a wide table (one row, 300 columns) and a narrow key-value/EAV table (entity, feature_name, value)?",
+    "choices": [
+      { "text": "The wide table gives fast single-row fetch of all features but is rigid to schema change; the narrow table flexes to new features freely but needs pivoting and multi-row reads", "correct": true, "rationale": "Correctly names both sides: wide = read-efficient/rigid, narrow = evolution-friendly/read-costly, which is the real design decision here." },
+      { "text": "The narrow table is always faster to read for online serving", "correct": false, "rationale": "Reassembling a feature vector from many narrow rows costs more per lookup than fetching one wide row, so narrow is usually slower for online serving." },
+      { "text": "The wide table cannot represent sparse features at all", "correct": false, "rationale": "Wide tables represent sparsity fine via nulls; the real cost is schema rigidity, not inability to store missing values." }
+    ],
+    "explanation": "Wide tables trade schema flexibility for cheap whole-entity reads; narrow/EAV tables trade read cost and pivoting for effortless addition of new attributes. Online inference's low-latency single-fetch need usually tips toward wide, accepting migration friction."
+  },
+  {
+    "title": "arch-scaling-01",
+    "topic": "scaling",
+    "difficulty": 1,
+    "scenario": "A single database has hit its write ceiling; you must shard a table of user activity across many nodes. Queries are almost always 'get activity for one user_id,' and you want writes and reads to spread evenly.",
+    "prompt": "Which partition key is the best choice?",
+    "choices": [
+      { "text": "Hash of user_id", "correct": true, "rationale": "Hashing user_id spreads users evenly across shards and keeps each user's data on one shard, so the common single-user query hits exactly one partition." },
+      { "text": "Signup timestamp (range-partitioned)", "correct": false, "rationale": "Time-ranged keys funnel all recent writes into the newest partition, creating a hot shard, and scatter a single user's activity across many partitions." },
+      { "text": "Country of the user", "correct": false, "rationale": "Country has few, skewed values, so a handful of large countries create badly unbalanced hot partitions." }
+    ],
+    "explanation": "A good partition key aligns with the dominant query (so it hits one shard) and has high, even cardinality (so load spreads). Time and low-cardinality keys trade query locality or balance away, producing hot partitions."
+  },
+  {
+    "title": "arch-scaling-02",
+    "topic": "scaling",
+    "difficulty": 2,
+    "scenario": "A shopping-cart service must stay writable during a network partition between data-center replicas — customers must always be able to add items, even if two replicas briefly diverge. Occasional merge of divergent carts is acceptable to the business.",
+    "prompt": "Given a network partition, which tradeoff does this requirement demand?",
+    "choices": [
+      { "text": "Favor availability over strong consistency (AP): accept writes on both sides and reconcile later", "correct": true, "rationale": "'Always writable during a partition' is the definition of choosing availability, tolerating temporary divergence that's merged afterward." },
+      { "text": "Favor strong consistency over availability (CP): reject writes on the minority side until the partition heals", "correct": false, "rationale": "CP preserves a single consistent view but makes part of the system unavailable for writes during the partition — the opposite of the stated must-stay-writable need." },
+      { "text": "Use a single-leader synchronous system and route all writes through the leader", "correct": false, "rationale": "If the leader is on the far side of the partition, clients can't write at all, violating the availability requirement." }
+    ],
+    "explanation": "Under a partition, CAP forces a choice between consistency and availability. When the business tolerates temporary divergence and merge but not downtime, choosing AP (available, eventually consistent) is correct; the cost is reconciling conflicting writes."
+  },
+  {
+    "title": "arch-scaling-03",
+    "topic": "scaling",
+    "difficulty": 2,
+    "scenario": "A read-heavy product catalog serves 100:1 reads-to-writes. The single primary handles writes fine, but read traffic is saturating it. Stakeholders confirm that a read seeing an update a second or two late is acceptable.",
+    "prompt": "Which scaling approach best fits?",
+    "choices": [
+      { "text": "Add asynchronous read replicas and route reads to them", "correct": true, "rationale": "Read replicas absorb the 100x read load and the accepted second-or-two staleness makes async replication lag a non-issue." },
+      { "text": "Shard writes across multiple primaries", "correct": false, "rationale": "Write sharding solves a write-throughput problem the system doesn't have and adds cross-shard complexity without relieving the read bottleneck." },
+      { "text": "Require synchronous replication to all replicas before acking writes", "correct": false, "rationale": "Synchronous replication would slow every write to satisfy a consistency guarantee the business explicitly said it doesn't need." }
+    ],
+    "explanation": "Read replicas trade read-your-own-write freshness for read scalability; sharding trades simplicity for write scalability. Diagnose whether the bottleneck is reads or writes, and let the tolerated staleness decide sync vs async."
+  },
+  {
+    "title": "arch-scaling-04",
+    "topic": "scaling",
+    "difficulty": 3,
+    "scenario": "An events table is sharded by hash(customer_id). It worked until one enterprise customer grew to 40% of all traffic; now that customer's shard is a hot partition maxing out one node while others idle.",
+    "prompt": "What is the most effective fix for this hot partition?",
+    "choices": [
+      { "text": "Add a compound/composite key that further splits the hot customer's data (e.g. customer_id + a bucket derived from event_id or time)", "correct": true, "rationale": "Introducing a second key dimension spreads a single dominant customer's events across multiple partitions, breaking the hotspot while keeping related data co-locatable." },
+      { "text": "Add more shards and rehash on customer_id alone", "correct": false, "rationale": "Rehashing on the same key still maps one customer to one shard, so the whale's traffic just lands on a single (different) hot node." },
+      { "text": "Switch the partition key to hash(event_id)", "correct": false, "rationale": "This spreads load perfectly but destroys per-customer locality, turning the common 'all events for a customer' query into a scatter across every shard." }
+    ],
+    "explanation": "Hot partitions arise when a single key value carries disproportionate load; hashing more nodes doesn't help because the value still maps to one place. Adding a second key dimension trades some query locality for load distribution — the standard whale-customer remedy."
+  },
+  {
+    "title": "arch-reliability-01",
+    "topic": "reliability",
+    "difficulty": 1,
+    "scenario": "A payment consumer reads from a queue that guarantees at-least-once delivery, so the same 'charge $50' message can be delivered more than once after a retry. Double-charging a customer is unacceptable.",
+    "prompt": "What is the essential safeguard?",
+    "choices": [
+      { "text": "Make the charge handler idempotent, keyed by a unique payment/idempotency ID so duplicates are no-ops", "correct": true, "rationale": "Deduplicating on a stable key means a redelivered message applies the effect at most once, neutralizing at-least-once duplicates." },
+      { "text": "Trust the broker to never deliver duplicates", "correct": false, "rationale": "At-least-once delivery explicitly permits duplicates; relying on the broker not to send them contradicts its own guarantee." },
+      { "text": "Increase the retry backoff so duplicates are rarer", "correct": false, "rationale": "Backoff reduces frequency but never eliminates duplicates, so a double charge remains possible — unacceptable for payments." }
+    ],
+    "explanation": "With at-least-once delivery, correctness comes from making effects idempotent, not from wishing duplicates away. Idempotency keys trade a little dedup storage/bookkeeping for exactly-once effect on top of cheaper at-least-once transport."
+  },
+  {
+    "title": "arch-reliability-02",
+    "topic": "reliability",
+    "difficulty": 2,
+    "scenario": "A streaming job aggregates ad clicks into 1-minute windows. Due to mobile networks, some click events arrive up to 10 minutes late, after their window has already been emitted. Late clicks must still be counted correctly.",
+    "prompt": "Which mechanism handles this late/out-of-order data best?",
+    "choices": [
+      { "text": "Event-time windowing with a watermark and allowed lateness, so late events update their correct window", "correct": true, "rationale": "Assigning events to windows by their event time and holding/updating windows via watermarks and allowed lateness places late clicks in the minute they actually happened." },
+      { "text": "Processing-time windows based on arrival time", "correct": false, "rationale": "Bucketing by arrival time puts a 10-minute-late click in the wrong minute, systematically miscounting exactly the events that were delayed." },
+      { "text": "Drop any event that arrives after its window closed", "correct": false, "rationale": "Discarding late clicks undercounts and biases the metric, which the requirement to 'still count them' forbids." }
+    ],
+    "explanation": "Late data is handled by reasoning in event time with watermarks and a bounded lateness allowance, trading some extra state retention and possible restatement for correctness. Processing-time logic is simpler but attributes delayed events to the wrong window."
+  },
+  {
+    "title": "arch-reliability-03",
+    "topic": "reliability",
+    "difficulty": 2,
+    "scenario": "A bug caused three days of a nightly aggregation to be wrong. You must reprocess those days. The output table is consumed live by dashboards, and each daily run is independent per partition. You want a rerun to be safe to trigger even more than once.",
+    "prompt": "Which backfill design is safest?",
+    "choices": [
+      { "text": "Idempotent per-partition overwrite: each day's rerun atomically replaces (overwrites) that day's output partition", "correct": true, "rationale": "Overwriting a partition makes reruns idempotent — running twice yields the same result — and swapping partitions atomically keeps dashboards consistent." },
+      { "text": "Append the recomputed rows to the existing table", "correct": false, "rationale": "Appending duplicates the affected days on every rerun, doubling counts and corrupting the very data you're trying to fix." },
+      { "text": "Delete all history and recompute the entire table from scratch each time", "correct": false, "rationale": "A full recompute is far more expensive than needed for three days and risks a large window of missing data visible to live dashboards mid-run." }
+    ],
+    "explanation": "Backfills should be idempotent and scoped: partition-level atomic overwrite lets you rerun safely and cheaply without duplicates. The tradeoff is designing outputs to be partitioned and replaceable, which pays off every time you must reprocess."
+  },
+  {
+    "title": "arch-reliability-04",
+    "topic": "reliability",
+    "difficulty": 3,
+    "scenario": "A pipeline feeds an executive revenue dashboard. Upstream occasionally ships malformed rows (null revenue, negative quantities) that silently skew totals. Leadership cares more about never showing wrong numbers than about the dashboard always being current.",
+    "prompt": "Which data-quality strategy best matches this priority?",
+    "choices": [
+      { "text": "Enforce validation checks as a blocking gate: fail/halt the load and alert when critical assertions (non-null revenue, non-negative quantity) break", "correct": true, "rationale": "A blocking gate stops bad data from ever reaching the dashboard, matching the stated preference for correctness over freshness." },
+      { "text": "Load everything and log warnings for later review", "correct": false, "rationale": "Warn-and-continue lets the malformed rows into the totals immediately — precisely the wrong-numbers outcome leadership wants to avoid." },
+      { "text": "Silently drop rows that fail checks and keep loading", "correct": false, "rationale": "Silent dropping avoids halting but quietly undercounts revenue and hides the upstream problem, still producing numbers that are wrong." }
+    ],
+    "explanation": "Data-quality checks can be blocking (circuit-breaker) or non-blocking (warn/quarantine), trading freshness against correctness. When wrong numbers are costlier than stale ones, make critical assertions block the pipeline and alert rather than let suspect data through."
+  },
+  {
+    "title": "arch-cost-01",
+    "topic": "cost",
+    "difficulty": 1,
+    "scenario": "Analysts query a warehouse only during business hours, with idle nights and weekends, but the dataset must stay queryable and durable at all times. Data volume grows steadily while query load is bursty and intermittent.",
+    "prompt": "Which architecture controls cost best?",
+    "choices": [
+      { "text": "Separated storage and compute: keep data in cheap object storage, spin compute up on demand and down when idle", "correct": true, "rationale": "Decoupling lets you pay for large durable storage cheaply while paying for compute only during the bursty query hours, matching the idle pattern." },
+      { "text": "A fixed always-on cluster sized for peak with local attached disks", "correct": false, "rationale": "Coupled compute+storage forces you to keep (and pay for) peak compute even during nights and weekends when nobody queries." },
+      { "text": "Scale the whole cluster up permanently as data grows", "correct": false, "rationale": "Storage growth doesn't require more compute; permanently scaling compute with data size pays for capacity the bursty workload rarely uses." }
+    ],
+    "explanation": "Separating storage from compute lets each scale and bill independently, trading a bit of network/latency for the ability to pay for compute only when used. It's the standard answer for durable data with intermittent, bursty query load."
+  },
+  {
+    "title": "arch-cost-02",
+    "topic": "cost",
+    "difficulty": 2,
+    "scenario": "A warehouse bills by bytes scanned. The biggest table is queried almost exclusively with a filter on event_date, but it's currently stored as one big pile of uncompressed JSON files, so every query scans everything.",
+    "prompt": "Which change most reduces scan cost for these date-filtered queries?",
+    "choices": [
+      { "text": "Store as compressed columnar files (Parquet) partitioned by event_date", "correct": true, "rationale": "Date partitioning lets the engine prune to only the needed days, and columnar+compression cuts bytes read per column — directly lowering bytes scanned." },
+      { "text": "Add more compute nodes to scan the JSON faster", "correct": false, "rationale": "More nodes speed the scan but you still read (and pay for) every byte; in a bytes-scanned billing model this raises or holds cost, not lowers it." },
+      { "text": "Create a secondary index on event_date over the JSON files", "correct": false, "rationale": "Row-style indexes don't apply to a flat file pile the way pruning does, and without physical partitioning/columnar layout the engine still scans the files." }
+    ],
+    "explanation": "In scan-priced systems, cost is bytes read, so the levers are partition pruning (skip irrelevant files) and columnar compression (read fewer bytes per column). Physical layout, not more compute, is what shrinks the bill."
+  },
+  {
+    "title": "arch-cost-03",
+    "topic": "cost",
+    "difficulty": 2,
+    "scenario": "An API endpoint recomputes an expensive 'top products this week' aggregation on every request. The result is identical for all users and only meaningfully changes a few times per hour, but it's queried thousands of times per minute.",
+    "prompt": "Which change best cuts cost without hurting the user experience?",
+    "choices": [
+      { "text": "Cache the computed result and refresh it on a short TTL (e.g. every few minutes)", "correct": true, "rationale": "Because the answer is shared and slow-changing, one cached computation serves thousands of reads, collapsing redundant recomputation at negligible staleness." },
+      { "text": "Add read replicas so more nodes can run the aggregation", "correct": false, "rationale": "Replicas let you run the same expensive query in more places — it scales the waste rather than eliminating the redundant recomputation." },
+      { "text": "Precompute nothing but buy a larger warehouse to make each recompute faster", "correct": false, "rationale": "Faster-but-still-per-request recomputation still pays for the aggregation thousands of times a minute; the redundancy, not the speed, is the cost driver." }
+    ],
+    "explanation": "Caching trades a bounded staleness window for massive read amplification savings when a result is shared and changes slowly. The question to ask is not 'how do I compute this faster' but 'how do I avoid recomputing it at all.'"
+  },
+  {
+    "title": "arch-cost-04",
+    "topic": "cost",
+    "difficulty": 3,
+    "scenario": "A stakeholder asks for an automated daily pipeline to refresh a report that, in practice, one analyst looks at roughly once a month and could rebuild by hand in 15 minutes. The source data and requirements are still shifting week to week.",
+    "prompt": "What is the best engineering call?",
+    "choices": [
+      { "text": "Don't build the pipeline yet; keep it a manual/ad-hoc query until usage and requirements stabilize", "correct": true, "rationale": "Monthly use and unstable requirements mean a maintained daily pipeline costs more in build and upkeep than the manual effort it replaces, and churn would force constant rework." },
+      { "text": "Build the full automated daily pipeline now to look proactive", "correct": false, "rationale": "Automating a monthly, still-changing report pays ongoing maintenance and rewrites for a task whose total manual cost is minutes per month." },
+      { "text": "Build it daily but add extensive monitoring and alerting up front", "correct": false, "rationale": "This compounds the mistake — more infrastructure to maintain around a pipeline that shouldn't exist yet given the low, unstable usage." }
+    ],
+    "explanation": "Automation is an investment that pays off only when frequency and stability make manual cost exceed build-plus-maintenance cost. When usage is rare and requirements churn, the cheapest correct answer is often not to build the pipeline at all."
+  }
+]

@@ -755,6 +755,34 @@ function Dashboard({
         <TheRecord credentials={credentials} />
       </div>
 
+      {/* OTHER TRAINING ROOMS — sibling studios, each with its own ladder + badges */}
+      <div className="mt-10">
+        <div className="mb-3 flex items-center gap-3">
+          <p className="kicker text-muted">Other training rooms</p>
+          <span className="h-px flex-1 bg-card-border" aria-hidden />
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Link
+            href="/train/statistics"
+            className="rounded-lg border border-card-border bg-card px-4 py-3 transition-colors hover:border-rule-strong"
+          >
+            <span className="text-sm font-semibold text-ink-strong">Statistics</span>
+            <span className="mt-0.5 block font-mono text-[0.65rem] text-muted">
+              Read the numbers the way the data supports · levels &amp; badges
+            </span>
+          </Link>
+          <Link
+            href="/train/architecture"
+            className="rounded-lg border border-card-border bg-card px-4 py-3 transition-colors hover:border-rule-strong"
+          >
+            <span className="text-sm font-semibold text-ink-strong">Data Architecture</span>
+            <span className="mt-0.5 block font-mono text-[0.65rem] text-muted">
+              Pick the design the constraints call for · levels &amp; badges
+            </span>
+          </Link>
+        </div>
+      </div>
+
       <div className="mt-8 text-center">
         <Link href="/" className="font-mono text-xs text-muted hover:text-ink-strong">
           ← back to Judgment Call

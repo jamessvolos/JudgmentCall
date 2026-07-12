@@ -47,9 +47,9 @@ const SURFACES: {
   {
     n: "03",
     label: "Train",
-    href: "/drill",
+    href: "/train",
     benefit: "Sharpen your eye.",
-    mode: "Training room · spot the weaker telling · instant feedback",
+    mode: "Three rooms · overreach, statistics, architecture · levels & badges",
   },
   {
     n: "04",

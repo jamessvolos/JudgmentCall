@@ -4,6 +4,7 @@
 import { execSync } from "child_process";
 import { PrismaClient } from "@prisma/client";
 import { syncDrillItems } from "../prisma/drills";
+import { syncQuizItems } from "../prisma/quiz";
 
 const prisma = new PrismaClient();
 
@@ -20,6 +21,8 @@ async function main() {
   // variants, votes, or item ratings — only drill-item content fields.
   const n = await syncDrillItems(prisma);
   console.log(`prod-init: synced ${n} drill items.`);
+  const q = await syncQuizItems(prisma);
+  console.log(`prod-init: synced ${q} quiz items.`);
 }
 
 main()

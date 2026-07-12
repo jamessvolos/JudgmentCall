@@ -121,6 +121,7 @@ model Session {
   decks       Deck[]
   xpEvents    XpEvent[]
   drillAttempts DrillAttempt[]
+  quizAttempts  QuizAttempt[]
 }
 
 // Auditable XP ledger — every point traceable, like everything else in the study.
@@ -177,6 +178,54 @@ model DrillAttempt {
 
   @@index([sessionId])
   @@index([drillItemId])
+}
+
+// ---------------------------------------------------------------------------
+// TRAINING TRACKS — an isolated multiple-choice training world (statistics,
+// data-engineering architecture). Separate from the overclaim drill AND from
+// the study: items never serve in the voting pool, attempts never enter
+// analytics. Each item is an MCQ; a session's per-track rating lives entirely
+// in QuizAttempt.ratingAfter, so there is nothing on Session that could desync
+// from the ledger (the same "nothing stored that can lie" discipline as The
+// Record). Choices are stored as JSON with exactly one correct entry; the
+// serving path sends only shuffled { i, text } so the answer never crosses the
+// wire before the learner commits.
+model QuizItem {
+  id           String        @id @default(cuid())
+  track        String // "statistics" | "architecture"
+  title        String        @unique // stable natural key for idempotent content sync
+  topic        String // sub-skill id within the track
+  scenario     String // concrete setup/context
+  prompt       String // the question
+  choices      String // JSON [{text,correct,rationale}] — exactly one correct
+  explanation  String // the teach-back shown after a pick
+  difficulty   Int           @default(1) // 1 (foundational) .. 3 (subtle)
+  rating       Float         @default(1200)
+  attempts     Int           @default(0)
+  status       String        @default("active") // active | retired
+  createdAt    DateTime      @default(now())
+  quizAttempts QuizAttempt[]
+
+  @@index([track, status])
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  session     Session  @relation(fields: [sessionId], references: [id])
+  sessionId   String
+  item        QuizItem @relation(fields: [quizItemId], references: [id])
+  quizItemId  String
+  track       String // denormalized for fast per-track folds without a join
+  topic       String // denormalized for topic progress
+  difficulty  Int      @default(1) // denormalized for badge folds
+  correct     Boolean
+  choiceIndex Int      @default(-1) // the picked original index (audit; grading re-checks server-side)
+  latencyMs   Int      @default(0)
+  ratingAfter Float? // per-track session rating after this attempt settled
+  createdAt   DateTime @default(now())
+
+  @@index([sessionId, track])
+  @@index([quizItemId])
 }
 
 // BYO-data deck (ROADMAP §3): a private pool of findings owned by the session
