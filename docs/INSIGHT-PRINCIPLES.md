@@ -165,7 +165,11 @@ data via exactly one device:
 1. **Causal language on correlational data** — "*because of* the price increase"
    when all you have is co-movement plus a partial survey.
 2. **Single-cause attribution** — crediting one factor when several moved and
-   nothing rules the others out.
+   nothing rules the others out. Its mirror is the same exceedance with the
+   sign flipped: *exonerating* one driver — "the rebrand contributed nothing" —
+   asserts a causal claim (of zero effect) the data can no more support than
+   crediting it, and it hides better, because a denial reads as modesty where a
+   boast reads as a reach.
 3. **Trend extrapolation** — projecting one or two periods forward as if the
    line were a law.
 4. **Certainty inflation** — "guarantees", "is over", "will" where the data

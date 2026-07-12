@@ -131,3 +131,49 @@ taxonomy; the synthesis loop surfacing a durable aggregate pattern worth
 encoding; or a genuinely sharper distinction/example clearing the constitution
 bar. The standing anti-churn policy above still holds, now keyed to this note's
 state (constitution includes the spine; four surfaces unchanged).
+
+## 2026-07-12 · The acquittal — single-cause's mirror shape (constitution only)
+
+**Why this round wasn't a no-op.** The re-open trigger fired legitimately: three
+dossiers of case authoring since the last convergence (NORTHGATE, HELIOS,
+BELLWETHER) each surfaced a move the constitution's device catalogue did not
+name — the **acquittal**. Device #2 (single-cause attribution) was framed only
+as *crediting* one of several live drivers; but HELIOS Q3 ("the rebrand
+contributed nothing") and BELLWETHER's re-norm over-correction distractor both
+turn on the *mirror*: **exonerating** a driver — asserting zero effect — is a
+causal claim the data can no more support than crediting one, and the
+adversarial reviewer independently flagged it as "the subtle mirror-image flag."
+That is a genuine one-sidedness in the source of truth, not a manufactured one.
+
+**The change (one edit, internal only).** Extended device #2's definition to
+name its sign-flipped mirror and *why it hides better* — a denial reads as
+modesty where a boast reads as a reach, so the exoneration travels under cover
+the way the credit does not. This is a **sharpening of an existing device**,
+exactly the admissible category the structural-convergence bound named; it adds
+no sixth conviction and maps to no new attribute (the acquittal is single-cause
+with the sign flipped, same `single_cause` skill, same `/results` contrast).
+
+**Propagation — deliberately none.** The mirror is a *fidelity-device* shape, so
+it is blinding-sensitive by construction and stays out of all four public
+surfaces:
+- `house-view.ts`, `lessons.ts` — craft-only, user-facing; a fidelity device
+  shape may never appear.
+- `ATTRIBUTES.md` fidelity section / `generate.ts` overclaim path — these are
+  the internal generation surfaces where the shape *could* enrich the
+  single-cause overclaim's generative range, but the loop's PRIME directive
+  ("keep fidelity vocabulary out of generation prompts; when in doubt, keep the
+  change out") makes that the wrong place to reach this round. The teaching pool
+  already realizes the shape (three reviewed case items test it), so the
+  generative gap is already covered where it matters; the constitution just now
+  *records* the pattern the content discovered.
+
+**Decision.** One internal constitution edit; no surface touched; no deploy (per
+loop instruction). No TypeScript modified, so tsc/lint N/A. This is the first
+genuine device-shape refinement since the spine, and it converges here.
+
+**Re-open triggers** (unchanged): study data overruling a desk stance with a
+clean interval; a new craft attribute or a genuinely new (not mirror-of-existing)
+overclaim device; the synthesis loop surfacing a durable aggregate pattern; or a
+sharper distinction/example clearing the constitution bar. Anti-churn policy
+holds, re-keyed to this note (constitution now catalogues the acquittal mirror;
+four surfaces unchanged since 2026-07-04).
