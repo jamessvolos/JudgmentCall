@@ -494,3 +494,53 @@ that keeps it from the study is absolute:
   empty, guard PASS (~205 KB) with the credential vocabulary confirmed
   drill-chunk-only. Blinding held; drill attempts still never enter
   analytics; nothing gamified writes to the rating.
+- **2026-07-12** — **Training Room, third edition: case files + The Checkpoint**
+  (the v2 spec's named next sitting, greenlit by the user; Foundry Four spec →
+  build → author → adversarial review, all same-day). **Case files** — the
+  focus group's unanimous module: one dossier readout, four ordered calls
+  spanning all four item types, sat as its own sitting. The core ruling that
+  made it one-session feasible: the attempt rows ARE the state machine — a
+  case is four ordinary DrillItems grouped by two new columns
+  (`caseId`/`caseSeq`), excluded from every normal pool by default, resumed by
+  deriving the lowest unanswered seq, graded at normal per-item Elo, and
+  FILED (once, forever) the moment every item has an attempt — derived, never
+  stored. Two dossiers ship: NORTHGATE (a price change, a churn spike, and a
+  memo that wants a hero) and HELIOS (three changes shipped at once; one is
+  taking the credit — carrying a zero-flag clean ledger at d3). The
+  adversarial pass caught **10 defects across 7 items**, headlined by the
+  failure mode unique to dossiers: **two forward-leaks**, where an early
+  question's reveal pre-taught a later question's answer (NORTHGATE Q1's
+  reveal pre-unpacking Q2's denominator swap; HELIOS Q1+Q2 pre-adjudicating
+  Q3's distractors) — both fixed by reframing the later question, never by
+  weakening a reveal. **The Checkpoint** — the focus group's #1 demand in
+  substance: one fixed form, ten unseen calls, one per skill in canonical
+  order, difficulty floored at the mid tier, dealt to the learner's band by a
+  deterministic seed, riding `attempt.mode="exam"` with zero attempt-schema.
+  Eight of ten passes (stated on the door); one form a day; abandonment is
+  unexploitable (position = examAttempts mod 10 — a bad start must be
+  finished, never discarded); the POST recomputes the pick and refuses
+  hand-picked items; exhaustion is an honest refusal, never a seen-item
+  substitution. Passing confers **EXAM-CERTIFIED** — a monotone window-fold
+  printed BESIDE the grade (whose fold is untouched, pinned by a pre-v3
+  regression fixture) — and re-aims the selector to mid-tier+ (the honest
+  form of expert placement; the rating moved only by the ten normal Elo
+  settles). `effectiveMode` now lets only "field" override the item's own
+  mode, so exam rows can't mint ALL BENCHES or hide from THE AUDITOR.
+  **Verified:** 59-item content test (case contracts: 4 questions, contiguous
+  seq, byte-identical shared readout, all four types, exactly one craft
+  question; exam feasibility floor: every skill keeps ≥2 non-case items at
+  d≥2), 24-assertion exam unit suite (slot arithmetic, deterministic banded
+  picks, monotone window-fold, satToday edges), extended credential fixtures,
+  and a **63-assertion live drive**: a full form sat in canonical order on
+  unseen d2+ items with refresh-determinism and forged-POST refusal, same-day
+  re-sit blocked, standing arithmetic exact; NORTHGATE sat to FILED across
+  all four modes with resume-by-derivation; 30 mixed/docket/field draws with
+  zero case leaks. Screenshots light+dark: the sittings dashboard (docket,
+  two dossiers, the Checkpoint door with its printed rule), the exam run
+  header, a case verdict, and the CASE FILED recap certificate. Full gate
+  green; the new vocabulary (NORTHGATE/HELIOS/CHECKPOINT/EXAM-CERTIFIED)
+  audited drill-chunk-only; the poster string byte-identical. Next
+  candidates: fresh dossiers on the content cadence (the format now exists),
+  THE DOSSIER credential once the case shelf is deep enough, and the
+  evolving-dossier format (readout changes between sub-questions). Blinding
+  held; drill attempts still never enter analytics.
