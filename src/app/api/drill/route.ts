@@ -65,12 +65,14 @@ async function getHandler(request: Request) {
   const mode = searchParams.get("mode") ?? undefined;
   const skill = searchParams.get("skill") ?? undefined;
   const docket = searchParams.get("docket") === "1";
+  const caseId = searchParams.get("caseId") ?? undefined;
+  const exam = searchParams.get("exam") === "1";
   if (!sessionId) return NextResponse.json({ error: "sessionId required" }, { status: 400 });
   const session = await getSession(sessionId);
   if (!session) return NextResponse.json({ error: "unknown session" }, { status: 404 });
 
-  const [{ item, remaining, skillProgress }, standing] = await Promise.all([
-    getNextDrillItem(sessionId, { mode, skill, docket }),
+  const [{ item, remaining, skillProgress, sitting, examBlocked }, standing] = await Promise.all([
+    getNextDrillItem(sessionId, { mode, skill, docket, caseId, exam }),
     getDrillStanding(sessionId),
   ]);
   const record = {
@@ -82,6 +84,10 @@ async function getHandler(request: Request) {
     },
     nextGate: standing.grade.nextGate,
     credentials: standing.credentials,
+    exam: standing.exam,
+    cases: standing.cases,
+    ...(sitting ? { sitting } : {}),
+    ...(examBlocked ? { examBlocked } : {}),
   };
   if (!item) {
     // Cleared the (filtered) pool: return the per-skill map for the recap.
@@ -97,6 +103,8 @@ async function getHandler(request: Request) {
 
   const isField = mode === "field";
   const base = {
+    exam: exam || undefined,
+    caseId: caseId || undefined,
     id: item.id,
     mode: isField ? "field" : item.mode,
     skill: item.skill,
@@ -148,7 +156,7 @@ async function getHandler(request: Request) {
 //         fieldCall?: "bounds"|"exceeds", stamps?: boolean[] }
 async function postHandler(request: Request) {
   const body = await request.json().catch(() => null);
-  const { sessionId, drillId, picked, pickedIndex, fieldCall, stamps, latencyMs } = body ?? {};
+  const { sessionId, drillId, picked, pickedIndex, fieldCall, stamps, latencyMs, exam } = body ?? {};
   if (typeof sessionId !== "string" || typeof drillId !== "string") {
     return NextResponse.json({ error: "invalid drill payload" }, { status: 400 });
   }
@@ -157,6 +165,15 @@ async function postHandler(request: Request) {
     return NextResponse.json({ error: "unknown session or drill" }, { status: 404 });
   }
   const isField = fieldCall !== undefined;
+  const isExam = exam === true;
+  if (isExam) {
+    // The mark must mean the form was sat in order: recompute the position's
+    // deterministic pick and refuse a hand-picked drillId or a blocked form.
+    const expected = await getNextDrillItem(sessionId, { exam: true });
+    if (expected.examBlocked || !expected.item || expected.item.id !== drillId) {
+      return NextResponse.json({ error: "the form moved" }, { status: 409 });
+    }
+  }
   if (await hasAttemptedDrill(sessionId, drillId, { field: isField })) {
     return NextResponse.json({ error: "already attempted" }, { status: 409 });
   }
@@ -231,7 +248,7 @@ async function postHandler(request: Request) {
     drillItemId: drillId,
     correct,
     latencyMs: latency,
-    mode: isField ? "field" : "",
+    mode: isField ? "field" : isExam ? "exam" : "",
   });
 
   return NextResponse.json({

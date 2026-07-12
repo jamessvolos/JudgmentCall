@@ -195,5 +195,26 @@ eq("grade I holds with an empty record", gradeFor([], 1200).grade.n, 1);
 eq("nextGate names a concrete need", gradeFor([], 1200).nextGate?.includes("GRADE II"), true);
 eq("poster label is neutral English", drillGradeLabel(gradeII, 1250), "Grade II · Close Reader");
 
+// --- v3 guard: exam rows see through to the item's own mode -------------------
+const examLedger = [
+  row({ itemMode: "ledger", mode: "exam", correct: true, difficulty: 2 }),
+  row({ itemMode: "ledger", mode: "exam", correct: true, difficulty: 3 }),
+  ...Array.from({ length: 3 }, () => row({ itemMode: "ledger", correct: true, difficulty: 1 })),
+];
+eq("auditor counts exam-served ledgers", got(examLedger, "auditor"), true);
+const examBenches = [
+  row({ itemMode: "spot" }),
+  row({ itemMode: "fix" }),
+  row({ itemMode: "calibrate" }),
+  row({ itemMode: "ledger" }),
+  row({ mode: "exam", itemMode: "spot" }), // an exam spot IS a spot — no sixth bench
+];
+eq("exam rows cannot mint ALL BENCHES", got(examBenches, "all_benches"), false);
+eq("field still completes the benches", got([...examBenches.slice(0, 4), row({ mode: "field", itemMode: "spot" })], "all_benches"), true);
+// regression: a pre-v3 history (modes "" and "field" only) is untouched by the guard
+const preV3 = [...sweep, ...coldReader, ...benches];
+const before = JSON.stringify(conferrals(SID, preV3).map((c) => ({ c: c.code, e: c.earnedAt?.getTime() ?? null })));
+eq("pre-v3 records are byte-identical under the guard", JSON.stringify(conferrals(SID, preV3).map((c) => ({ c: c.code, e: c.earnedAt?.getTime() ?? null }))), before);
+
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);

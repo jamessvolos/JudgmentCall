@@ -10,7 +10,7 @@ import {
   skillFor,
   type SkillId,
 } from "@/lib/teaching";
-import { GRADE_META, CREDENTIAL_DEFS } from "@/lib/drill-credentials-meta";
+import { GRADE_META, CREDENTIAL_DEFS, CASE_META, EXAM_META } from "@/lib/drill-credentials-meta";
 
 // The Training Room — a data-insight skills studio. A separate world from the
 // study: items never enter the voting pool, attempts never touch analytics, and
@@ -40,6 +40,19 @@ type Item = {
 };
 type GradeDto = { n: number; roman: string; title: string; earnedAt: string | null };
 type ConferralDto = { code: string; earnedAt: string | null };
+type ExamDto = {
+  passedAt: string | null;
+  latestPassAt: string | null;
+  latestPassScore: number | null;
+  formsSat: number;
+  best: number | null;
+  form: number;
+  position: number;
+  satToday: boolean;
+};
+type CaseDto = { id: string; answered: number; total: number; correct: number; filedAt: string | null };
+type SittingDto = { position: number; total: number; correctSoFar: number };
+type ExamBlockedDto = { reason: "sat_today" } | { reason: "exhausted"; skill: string };
 type SkillProgress = { id: string; attempted: number; caught: number };
 type DrillGet = {
   item: Item | null;
@@ -50,6 +63,10 @@ type DrillGet = {
   grade: GradeDto;
   nextGate: string | null;
   credentials: ConferralDto[];
+  exam: ExamDto;
+  cases: CaseDto[];
+  sitting?: SittingDto;
+  examBlocked?: ExamBlockedDto;
 };
 type RevealClaim = { i: number; text: string; exceeds: boolean; stamped: boolean; rationale: string };
 type RevealChoice = { i: number; text: string; correct: boolean; rationale: string };
@@ -153,10 +170,16 @@ export default function TrainingRoom() {
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // The Record — grade + credentials, derived server-side on every GET.
+  // The Record — grade + credentials + exam + cases, derived server-side on every GET.
   const [grade, setGrade] = useState<GradeDto>({ n: 1, roman: "I", title: "Reader", earnedAt: null });
   const [nextGate, setNextGate] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<ConferralDto[]>([]);
+  const [exam, setExam] = useState<ExamDto>({
+    passedAt: null, latestPassAt: null, latestPassScore: null,
+    formsSat: 0, best: null, form: 0, position: 0, satToday: false,
+  });
+  const [cases, setCases] = useState<CaseDto[]>([]);
+  const [examBlocked, setExamBlocked] = useState<ExamBlockedDto | null>(null);
 
   // run counters
   const [runStartRating, setRunStartRating] = useState(1200);
@@ -164,10 +187,16 @@ export default function TrainingRoom() {
   const [runCorrect, setRunCorrect] = useState(0);
   const [runSkills, setRunSkills] = useState<string[]>([]);
   const [runLength, setRunLength] = useState(RUN_LENGTH);
-  const [isDocket, setIsDocket] = useState(false);
+  // "" = full sitting · "docket" · "case" · "exam"
+  const [runKind, setRunKind] = useState<"" | "docket" | "case" | "exam">("");
+  const [runCaseId, setRunCaseId] = useState("");
+  const [sittingStart, setSittingStart] = useState(0); // correctSoFar when the run resumed
   // conferral diff: what the run earned = post-run standing minus this snapshot
   const [runStartGrade, setRunStartGrade] = useState(1);
   const [runStartCreds, setRunStartCreds] = useState<Set<string>>(new Set());
+  const [runStartPass, setRunStartPass] = useState<string | null>(null);
+  const [runStartForms, setRunStartForms] = useState(0);
+  const [runStartFiled, setRunStartFiled] = useState<Set<string>>(new Set());
 
   // active-recall "name the move" beat: after the pick is graded, the learner
   // names the pattern before it's revealed. Formative only — never re-grades the
@@ -206,12 +235,18 @@ export default function TrainingRoom() {
     if (data.grade) setGrade(data.grade);
     setNextGate(data.nextGate ?? null);
     setCredentials(data.credentials ?? []);
+    if (data.exam) setExam(data.exam);
+    setCases(data.cases ?? []);
+    setExamBlocked(data.examBlocked ?? null);
   }, []);
 
+  type FetchOpts = { docket?: boolean; caseId?: string; exam?: boolean };
   const fetchItem = useCallback(
-    async (m: string, skill = "", docket = false): Promise<Item | null> => {
+    async (m: string, skill = "", opts: FetchOpts = {}): Promise<DrillGet> => {
       const sid = sessionIdRef.current!;
-      const q = `${m ? `&mode=${m}` : ""}${skill ? `&skill=${skill}` : ""}${docket ? "&docket=1" : ""}`;
+      const q =
+        `${m ? `&mode=${m}` : ""}${skill ? `&skill=${skill}` : ""}` +
+        `${opts.docket ? "&docket=1" : ""}${opts.caseId ? `&caseId=${opts.caseId}` : ""}${opts.exam ? "&exam=1" : ""}`;
       const res = await fetch(`/api/drill?sessionId=${encodeURIComponent(sid)}${q}`);
       if (!res.ok) throw new Error("fetch failed");
       const data: DrillGet = await res.json();
@@ -221,7 +256,10 @@ export default function TrainingRoom() {
       if (data.grade) setGrade(data.grade);
       setNextGate(data.nextGate ?? null);
       setCredentials(data.credentials ?? []);
-      return data.item;
+      if (data.exam) setExam(data.exam);
+      setCases(data.cases ?? []);
+      setExamBlocked(data.examBlocked ?? null);
+      return data;
     },
     []
   );
@@ -246,8 +284,12 @@ export default function TrainingRoom() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function startRun(m: string, skill = "", opts?: { docket?: boolean }) {
-    const docket = opts?.docket ?? false;
+  async function startRun(
+    m: string,
+    skill = "",
+    opts?: { docket?: boolean; caseId?: string; exam?: boolean }
+  ) {
+    const kind = opts?.exam ? "exam" : opts?.caseId ? "case" : opts?.docket ? "docket" : "";
     setMode(m);
     setSkillFocus(skill);
     setRunStartRating(rating);
@@ -259,19 +301,39 @@ export default function TrainingRoom() {
     setVerdict(null);
     setNamed(null);
     setNameSkipped(false);
-    setRunLength(docket ? DOCKET_LENGTH : RUN_LENGTH);
-    setIsDocket(docket);
+    setRunKind(kind);
+    setRunCaseId(opts?.caseId ?? "");
+    setRunLength(kind === "docket" ? DOCKET_LENGTH : RUN_LENGTH);
     // snapshot standing so the recap can confer exactly what this run earned
     setRunStartGrade(grade.n);
     setRunStartCreds(new Set(credentials.filter((c) => c.earnedAt).map((c) => c.code)));
+    setRunStartPass(exam.latestPassAt);
+    setRunStartForms(exam.formsSat);
+    setRunStartFiled(new Set(cases.filter((c) => c.filedAt).map((c) => c.id)));
     try {
-      const it = await fetchItem(m, skill, docket);
-      if (!it) {
+      const data = await fetchItem(m, skill, {
+        docket: opts?.docket,
+        caseId: opts?.caseId,
+        exam: opts?.exam,
+      });
+      if (data.sitting) {
+        // sittings (case/exam) size the run and carry resumed progress
+        setRunLength(data.sitting.total - (data.sitting.position - 1));
+        setSittingStart(data.sitting.correctSoFar);
+      } else {
+        setSittingStart(0);
+      }
+      if (!data.item) {
+        // a blocked exam door or an already-filed case stays on the dashboard
+        if (kind === "exam" || kind === "case") {
+          setPhase("dashboard");
+          return;
+        }
         setItem(null);
         setPhase("recap");
         return;
       }
-      setItem(it);
+      setItem(data.item);
       renderedAt.current = nowMs();
       setPhase("run");
     } catch {
@@ -290,6 +352,7 @@ export default function TrainingRoom() {
           sessionId: sessionIdRef.current,
           drillId: item.id,
           latencyMs: Math.round(nowMs() - renderedAt.current),
+          ...(runKind === "exam" ? { exam: true } : {}),
           ...body,
         }),
       });
@@ -318,13 +381,17 @@ export default function TrainingRoom() {
       return;
     }
     try {
-      const it = await fetchItem(mode, skillFocus, isDocket);
-      if (!it) {
+      const data = await fetchItem(mode, skillFocus, {
+        docket: runKind === "docket",
+        caseId: runCaseId || undefined,
+        exam: runKind === "exam",
+      });
+      if (!data.item) {
         await loadDashboard().catch(() => {});
         setPhase("recap");
         return;
       }
-      setItem(it);
+      setItem(data.item);
       renderedAt.current = nowMs();
     } catch {
       setError(true);
@@ -373,6 +440,9 @@ export default function TrainingRoom() {
           grade={grade}
           nextGate={nextGate}
           credentials={credentials}
+          exam={exam}
+          cases={cases}
+          examBlocked={examBlocked}
           progressFor={progressFor}
           onStart={startRun}
         />
@@ -387,6 +457,20 @@ export default function TrainingRoom() {
           runLength={runLength}
           rating={rating}
           gradeRoman={grade.roman}
+          sittingLabel={
+            runKind === "exam"
+              ? `CHECKPOINT · FORM ${exam.form + 1}`
+              : runKind === "case"
+                ? (CASE_META.find((c) => c.id === runCaseId)?.name ?? "CASE FILE")
+                : null
+          }
+          sittingTotal={
+            runKind === "exam"
+              ? 10
+              : runKind === "case"
+                ? (CASE_META.find((c) => c.id === runCaseId)?.length ?? 4)
+                : null
+          }
           named={named}
           nameSkipped={nameSkipped}
           onName={nameTheMove}
@@ -409,7 +493,11 @@ export default function TrainingRoom() {
           newGrade={grade.n > runStartGrade ? grade : null}
           newCreds={credentials.filter((c) => c.earnedAt && !runStartCreds.has(c.code))}
           credentials={credentials}
-          isDocket={isDocket}
+          runKind={runKind}
+          examPassedNow={exam.latestPassAt !== null && exam.latestPassAt !== runStartPass}
+          examFailedNow={exam.formsSat > runStartForms && exam.latestPassAt === runStartPass}
+          examScore={sittingStart + runCorrect}
+          filedNow={cases.filter((c) => c.filedAt && !runStartFiled.has(c.id))}
           skills={runSkills}
           progressFor={progressFor}
           onAgain={() => setPhase("dashboard")}
@@ -426,6 +514,9 @@ function Dashboard({
   grade,
   nextGate,
   credentials,
+  exam,
+  cases,
+  examBlocked,
   progressFor,
   onStart,
 }: {
@@ -434,8 +525,11 @@ function Dashboard({
   grade: GradeDto;
   nextGate: string | null;
   credentials: ConferralDto[];
+  exam: ExamDto;
+  cases: CaseDto[];
+  examBlocked: ExamBlockedDto | null;
   progressFor: (id: string) => SkillProgress;
-  onStart: (mode: string, skill?: string, opts?: { docket?: boolean }) => void;
+  onStart: (mode: string, skill?: string, opts?: { docket?: boolean; caseId?: string; exam?: boolean }) => void;
 }) {
   const [mode, setMode] = useState<string>("");
   return (
@@ -466,6 +560,13 @@ function Dashboard({
           {nextGate && (
             <p className="mt-2 font-mono text-[0.6875rem] text-muted tabular-nums">{nextGate}</p>
           )}
+          {exam.latestPassAt && (
+            <p className="mt-1.5 font-mono text-[0.6875rem] font-semibold tracking-[0.12em] text-accent tabular-nums">
+              EXAM-CERTIFIED ·{" "}
+              {new Date(exam.latestPassAt).toUTCString().slice(5, 16).toUpperCase()}
+              {exam.latestPassScore !== null && ` · ${exam.latestPassScore} OF 10`}
+            </p>
+          )}
         </div>
       </div>
 
@@ -489,6 +590,100 @@ function Dashboard({
             <span className="ml-1 text-accent group-hover:underline">Open it →</span>
           </p>
         </button>
+
+        {/* CASE FILES — one dossier, four ordered calls; filed once, forever */}
+        <div className="mt-3 space-y-3">
+          {CASE_META.map((meta) => {
+            const st = cases.find((c) => c.id === meta.id);
+            const filed = !!st?.filedAt;
+            const started = (st?.answered ?? 0) > 0 && !filed;
+            const stateLine = filed
+              ? `FILED ${new Date(st!.filedAt!).toUTCString().slice(5, 16).toUpperCase()} · ${st!.correct} OF ${st!.total} CAUGHT`
+              : started
+                ? `RESUME · Q${(st?.answered ?? 0) + 1} OF ${st?.total ?? meta.length} →`
+                : `OPEN · ${meta.length} CALLS, ONE DOSSIER →`;
+            const inner = (
+              <>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-strong">
+                    {meta.name}
+                  </span>
+                  <span className={`shrink-0 font-mono text-[0.625rem] tabular-nums ${filed ? "text-muted" : "text-accent"}`}>
+                    {stateLine}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-muted">{meta.blurb}</p>
+              </>
+            );
+            return filed ? (
+              <div key={meta.id} className="block w-full rounded-card border border-card-border bg-card/60 p-4 text-left">
+                {inner}
+              </div>
+            ) : (
+              <button
+                key={meta.id}
+                onClick={() => onStart("", "", { caseId: meta.id })}
+                className="block w-full rounded-card border border-card-border bg-card p-4 text-left transition hover:border-rule-strong hover:shadow-[var(--shadow-lift)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                {inner}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* THE CHECKPOINT — the door states its own rule; a miss costs nothing */}
+        <div className="mt-3">
+          {(() => {
+            const midForm = exam.position > 0;
+            const blockedToday = !midForm && exam.satToday;
+            const exhausted = examBlocked?.reason === "exhausted";
+            const stateLine = exhausted
+              ? `THE FORM CAN'T PRINT — nothing unseen left in ${
+                  SKILLS[(examBlocked as { reason: "exhausted"; skill: string }).skill as SkillId]?.short ??
+                  (examBlocked as { skill: string }).skill
+                }. New editions restock the room.`
+              : blockedToday
+                ? "SAT TODAY · A NEW FORM PRINTS TOMORROW"
+                : midForm
+                  ? `FORM ${exam.form + 1} · RESUMES AT Q${exam.position + 1} OF 10 →`
+                  : "SIT THE FORM →";
+            const inert = blockedToday || exhausted;
+            const inner = (
+              <>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-strong">
+                    {EXAM_META.name}
+                  </span>
+                  {exam.latestPassAt && (
+                    <span className="shrink-0 font-mono text-[0.625rem] text-accent tabular-nums">
+                      CERTIFIED {new Date(exam.latestPassAt).toUTCString().slice(5, 16).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1.5 font-mono text-[0.6875rem] leading-relaxed text-muted">
+                  {EXAM_META.door[0]}
+                </p>
+                <p className="mt-0.5 font-mono text-[0.6875rem] leading-relaxed text-muted">
+                  {EXAM_META.door[1]}
+                </p>
+                <p className={`mt-2 font-mono text-[0.625rem] tabular-nums ${inert ? "text-muted" : "text-accent"}`}>
+                  {stateLine}
+                  {exam.formsSat > 0 && ` · forms sat ${exam.formsSat}${exam.best !== null ? ` · best ${exam.best}/10` : ""}`}
+                </p>
+              </>
+            );
+            return inert ? (
+              <div className="block w-full rounded-card border border-card-border bg-card/60 p-4 text-left">{inner}</div>
+            ) : (
+              <button
+                onClick={() => onStart("", "", { exam: true })}
+                className="block w-full rounded-card border border-card-border bg-card p-4 text-left transition hover:border-rule-strong hover:shadow-[var(--shadow-lift)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                {inner}
+              </button>
+            );
+          })()}
+        </div>
       </div>
 
       {/* the full sitting — mode picker */}
@@ -672,6 +867,8 @@ function Run({
   runLength,
   rating,
   gradeRoman,
+  sittingLabel,
+  sittingTotal,
   named,
   nameSkipped,
   onName,
@@ -686,6 +883,8 @@ function Run({
   runLength: number;
   rating: number;
   gradeRoman: string;
+  sittingLabel: string | null;
+  sittingTotal: number | null;
   named: string | null;
   nameSkipped: boolean;
   onName: (skillId: string) => void;
@@ -704,7 +903,9 @@ function Run({
       {/* run header */}
       <div className="flex items-center justify-between font-mono text-xs text-muted">
         <span>
-          Call {runDone + (verdict ? 0 : 1)} of {runLength}
+          {sittingLabel && sittingTotal
+            ? `${sittingLabel} · Q${sittingTotal - runLength + runDone + (verdict ? 0 : 1)} of ${sittingTotal}`
+            : `Call ${runDone + (verdict ? 0 : 1)} of ${runLength}`}
         </span>
         <span className="tabular-nums">
           G-{gradeRoman} · {rating}
@@ -1144,7 +1345,11 @@ function Recap({
   newGrade,
   newCreds,
   credentials,
-  isDocket,
+  runKind,
+  examPassedNow,
+  examFailedNow,
+  examScore,
+  filedNow,
   skills,
   progressFor,
   onAgain,
@@ -1160,7 +1365,11 @@ function Recap({
   newGrade: GradeDto | null;
   newCreds: ConferralDto[];
   credentials: ConferralDto[];
-  isDocket: boolean;
+  runKind: "" | "docket" | "case" | "exam";
+  examPassedNow: boolean;
+  examFailedNow: boolean;
+  examScore: number;
+  filedNow: CaseDto[];
   skills: string[];
   progressFor: (id: string) => SkillProgress;
   onAgain: () => void;
@@ -1179,14 +1388,26 @@ function Recap({
   return (
     <div className="rise mt-6">
       <div className="text-center">
-        <p className="kicker text-muted">{isDocket ? "Docket filed" : "Session recap"}</p>
-        {isDocket && (
+        <p className="kicker text-muted">
+          {runKind === "docket"
+            ? "Docket filed"
+            : runKind === "case"
+              ? "Case filed"
+              : runKind === "exam"
+                ? "The Checkpoint"
+                : "Session recap"}
+        </p>
+        {runKind === "docket" && (
           <p className="mt-1 font-mono text-[0.6875rem] text-muted">{docketDate()}</p>
         )}
         <p className="mt-3 font-sans text-2xl font-semibold text-ink-strong tracking-[-0.02em]">
-          {done === 0
-            ? "No calls this round"
-            : `${correct} of ${done} caught`}
+          {runKind === "exam" && (examPassedNow || examFailedNow)
+            ? examPassedNow
+              ? `${examScore} of 10 — the form passes`
+              : `${examScore} of 10 — the rule is 8`
+            : done === 0
+              ? "No calls this round"
+              : `${correct} of ${done} caught`}
         </p>
         <p className="mt-1 font-mono text-xs text-muted tabular-nums">
           rating {ratingDelta >= 0 ? "+" : ""}
@@ -1198,6 +1419,41 @@ function Recap({
           </p>
         )}
       </div>
+
+      {/* certificates: exam pass + filed cases lead the record entries */}
+      {(examPassedNow || filedNow.length > 0) && (
+        <div className="mt-8">
+          <p className="kicker text-muted mb-2">Entered into the record</p>
+          <div className="space-y-2">
+            {examPassedNow && (
+              <div className="card-reveal rounded-card border border-accent bg-card px-4 py-3.5">
+                <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-accent">
+                  Exam-certified
+                </p>
+                <p className="mt-1 font-mono text-[0.6875rem] text-muted">
+                  Ten unseen calls, one per pattern, mid tier or above
+                </p>
+                <p className="mt-1 font-mono text-[0.625rem] text-muted tabular-nums">
+                  CERTIFIED {docketDate()} · {examScore} OF 10 · reading at {rating}
+                </p>
+              </div>
+            )}
+            {filedNow.map((c) => {
+              const meta = CASE_META.find((m) => m.id === c.id);
+              return (
+                <div key={c.id} className="card-reveal rounded-card border border-card-border border-l-2 border-l-accent bg-card px-4 py-3">
+                  <p className="font-mono text-[0.6875rem] font-semibold tracking-[0.14em] text-accent">
+                    {meta?.name ?? "CASE FILED"}
+                  </p>
+                  <p className="mt-1 font-mono text-[0.625rem] text-muted tabular-nums">
+                    FILED {docketDate()} · {c.correct} OF {c.total} CAUGHT
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* stamps earned this sitting — the room's one ceremony, entrance-only */}
       {(gradeMeta || newCreds.length > 0) && (
@@ -1267,13 +1523,18 @@ function Recap({
         </div>
       )}
 
+      {examFailedNow && (
+        <p className="mt-6 text-center font-mono text-[0.6875rem] text-muted">
+          The form is closed. Another prints tomorrow.
+        </p>
+      )}
       {nextOnDesk && (
         <div className="mt-6">
           <p className="kicker text-muted mb-1.5">Next on the desk</p>
           <p className="font-mono text-[0.6875rem] leading-relaxed text-muted tabular-nums">{nextOnDesk}</p>
         </div>
       )}
-      {isDocket && (
+      {runKind === "docket" && (
         <p className="mt-4 text-center font-mono text-[0.6875rem] text-muted">
           A new docket prints tomorrow.
         </p>

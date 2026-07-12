@@ -22,7 +22,10 @@ export type CredAttempt = {
   item: { skill: string; difficulty: number; mode: string };
 };
 
-const effectiveMode = (a: CredAttempt) => a.mode || a.item.mode;
+// Only "field" is a true attempt-mode override; an exam-served spot call IS a
+// spot call — anything else falls through to the item's own mode, so exam rows
+// can't mint ALL BENCHES as a sixth bench or hide ledgers from THE AUDITOR.
+const effectiveMode = (a: CredAttempt) => (a.mode === "field" ? "field" : a.item.mode);
 
 // ---------------------------------------------------------------------------
 // THE GRADES — floors on the selection ladder's own cut points (1240/1340 are

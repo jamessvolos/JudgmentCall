@@ -54,6 +54,7 @@ model Variant {
   comparisonsWon Comparison[] @relation("winner")
 
   @@index([findingId])
+  @@index([status]) // review queue + approved-serving filters
 }
 
 model Comparison {
@@ -81,10 +82,13 @@ model Comparison {
   deckId       String? // BYO-data deck scope; null = the public study
   ipHash       String? // salted SHA-256 of client IP — sybil forensics only, never reversible
   userAgent    String?
+  clientVoteId String?  @unique // uuid stamped per pair render; makes a retried/double-tapped vote a server-side no-op
   createdAt    DateTime @default(now())
 
   @@index([sessionId])
   @@index([findingId])
+  @@index([contrastAttrs]) // coverage balancing groupBy
+  @@index([createdAt]) // votes/day series, latest-run reads, freshness keys
 }
 
 model Session {
@@ -137,13 +141,20 @@ model XpEvent {
 // are never served in the voting pool.
 model DrillItem {
   id              String         @id @default(cuid())
-  title           String
+  title           String         @unique // stable natural key for idempotent content sync
   contextSnippet  String
   sourceLabel     String
-  faithfulText    String
-  overclaimedText String
+  faithfulText    String // spot mode; "" for fix/calibrate
+  overclaimedText String // spot mode; "" for fix/calibrate
   explanation     String // the claims-ledger reveal shown after an attempt
-  device          String // the overclaim device used, e.g. "trend extrapolation"
+  device          String // the precise move, e.g. "trend extrapolation"; "" for calibrate
+  mode            String         @default("spot") // spot | fix | calibrate
+  skill           String         @default("") // skill id: fidelity family or craft flaw
+  difficulty      Int            @default(1) // 1 (obvious) .. 3 (subtle)
+  promptText      String? // mode-specific question; null falls back to a per-mode default
+  choices         String? // JSON [{text,correct,rationale}] for fix/calibrate; null for spot
+  caseId          String         @default("") // groups a case file's sub-questions; "" = ordinary item, excluded from no pool
+  caseSeq         Int            @default(0) // authored reading order inside a case
   rating          Float          @default(1200)
   attempts        Int            @default(0)
   status          String         @default("active") // active | retired

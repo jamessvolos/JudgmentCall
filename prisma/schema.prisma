@@ -153,6 +153,8 @@ model DrillItem {
   difficulty      Int            @default(1) // 1 (obvious) .. 3 (subtle)
   promptText      String? // mode-specific question; null falls back to a per-mode default
   choices         String? // JSON [{text,correct,rationale}] for fix/calibrate; null for spot
+  caseId          String         @default("") // groups a case file's sub-questions; "" = ordinary item, excluded from no pool
+  caseSeq         Int            @default(0) // authored reading order inside a case
   rating          Float          @default(1200)
   attempts        Int            @default(0)
   status          String         @default("active") // active | retired

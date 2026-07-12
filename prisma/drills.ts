@@ -28,6 +28,10 @@ export type DrillSeed = {
   // fix / calibrate mode (exactly one correct) and ledger mode (each claim in
   // reading order; correct:true = the claim EXCEEDS the data; 0-2 flagged):
   choices?: DrillChoice[];
+  // case files: sub-questions share a caseId and serve in caseSeq order;
+  // omitted = ordinary item.
+  caseId?: string;
+  caseSeq?: number;
 };
 
 const DRILL_BASE: DrillSeed[] = [
@@ -131,7 +135,8 @@ const DRILL_BASE: DrillSeed[] = [
 
 // The full pool the Training Room serves: six hand-authored base items plus the
 // deep authored/reviewed pool (spot + fix + calibrate across all ten skills).
-export const DRILL_SEEDS: DrillSeed[] = [...DRILL_BASE, ...DRILL_POOL];
+import { CASE_SEEDS } from "./drills-cases";
+export const DRILL_SEEDS: DrillSeed[] = [...DRILL_BASE, ...DRILL_POOL, ...CASE_SEEDS];
 
 // Idempotent content sync: upsert every seed by its stable title. Runs on every
 // build (see scripts/prod-init.ts) so the pool ships without a reseed — and the
@@ -154,6 +159,8 @@ export async function syncDrillItems(prisma: PrismaClient): Promise<number> {
       difficulty: d.difficulty,
       promptText: d.prompt ?? null,
       choices: d.choices ? JSON.stringify(d.choices) : null,
+      caseId: d.caseId ?? "",
+      caseSeq: d.caseSeq ?? 0,
     };
     await prisma.drillItem.upsert({
       where: { title: d.title },

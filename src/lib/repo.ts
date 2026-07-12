@@ -18,6 +18,15 @@ import {
   type Conferral,
   type CredAttempt,
 } from "./drill-credentials";
+import {
+  examPick,
+  examSkillFor,
+  examSlot,
+  examStanding,
+  examTargetDifficulty,
+  EXAM_LENGTH,
+  type ExamStanding,
+} from "./drill-exam";
 import type { Finding, Variant, Comparison, Session, DrillItem } from "@prisma/client";
 
 export type { Finding, Variant, Comparison, Session };
@@ -651,14 +660,19 @@ export function docketRand(sessionId: string, seenCount: number): () => number {
   };
 }
 
+export type SittingInfo = { position: number; total: number; correctSoFar: number };
+export type ExamBlocked = { reason: "sat_today" } | { reason: "exhausted"; skill: string };
+
 export async function getNextDrillItem(
   sessionId: string,
-  opts?: { mode?: string; skill?: string; docket?: boolean }
+  opts?: { mode?: string; skill?: string; docket?: boolean; caseId?: string; exam?: boolean }
 ): Promise<{
   item: DrillItem | null;
   remaining: number;
   session: Session | null;
   skillProgress: SkillProgressRow[];
+  sitting?: SittingInfo;
+  examBlocked?: ExamBlocked;
 }> {
   const [attempts, session] = await Promise.all([
     prisma.drillAttempt.findMany({
@@ -676,6 +690,63 @@ export async function getNextDrillItem(
   // Per-skill recap map, derived from the attempts we just fetched — no second scan.
   const skillProgress = tallySkillProgress(attempts);
 
+  // CASE FILE sitting — the attempt rows are the state machine: serve the
+  // lowest-caseSeq unattempted item, in the author's order, no draw.
+  if (opts?.caseId) {
+    const items = await prisma.drillItem.findMany({
+      where: { status: "active", caseId: opts.caseId },
+      orderBy: { caseSeq: "asc" },
+    });
+    const byId = new Set(items.map((it) => it.id));
+    const caseAttempts = attempts.filter((a) => byId.has(a.drillItemId));
+    const answered = new Set(caseAttempts.map((a) => a.drillItemId));
+    const nextItem = items.find((it) => !answered.has(it.id)) ?? null;
+    const sitting: SittingInfo = {
+      position: Math.min(answered.size + 1, items.length),
+      total: items.length,
+      correctSoFar: caseAttempts.filter((a) => a.correct).length,
+    };
+    return {
+      item: nextItem,
+      remaining: items.length - answered.size,
+      session,
+      skillProgress,
+      sitting,
+    };
+  }
+
+  // THE CHECKPOINT — form arithmetic over exam-mode rows; unseen-by-any-mode,
+  // near-band floored at d2, deterministically dealt. Refusals are honest and
+  // typed; a seen item is never substituted.
+  if (opts?.exam) {
+    const examRows = attempts.filter((a) => a.mode === "exam");
+    const { form, position } = examSlot(examRows.length);
+    const standing = examStanding(
+      examRows.map((a) => ({ correct: a.correct, createdAt: a.createdAt, mode: "exam" }))
+    );
+    if (position === 0 && standing.satToday) {
+      return { item: null, remaining: 0, session, skillProgress, examBlocked: { reason: "sat_today" } };
+    }
+    const skill = examSkillFor(position);
+    const seenIds = attempts.map((a) => a.drillItemId);
+    const candidates = await prisma.drillItem.findMany({
+      where: { status: "active", caseId: "", skill, id: { notIn: seenIds } },
+      select: { id: true, difficulty: true, rating: true },
+    });
+    const rating = session?.drillRating ?? 1200;
+    const pick = examPick(candidates, rating, sessionId, form, skill);
+    if (!pick) {
+      return { item: null, remaining: 0, session, skillProgress, examBlocked: { reason: "exhausted", skill } };
+    }
+    const item = await prisma.drillItem.findUnique({ where: { id: pick.id } });
+    const sitting: SittingInfo = {
+      position: position + 1,
+      total: EXAM_LENGTH,
+      correctSoFar: examRows.slice(form * EXAM_LENGTH).filter((a) => a.correct).length,
+    };
+    return { item, remaining: EXAM_LENGTH - position, session, skillProgress, sitting };
+  }
+
   let pool: DrillItem[];
   if (opts?.mode === "field") {
     // FIELD READ — an attempt mode over the existing fidelity spot pool, not an
@@ -690,6 +761,7 @@ export async function getNextDrillItem(
     const all = await prisma.drillItem.findMany({
       where: {
         status: "active",
+        caseId: "",
         mode: "spot",
         skill: { in: [...FIDELITY_SKILLS] },
         ...(opts?.skill ? { skill: opts.skill } : {}),
@@ -707,6 +779,7 @@ export async function getNextDrillItem(
     pool = await prisma.drillItem.findMany({
       where: {
         status: "active",
+        caseId: "",
         id: { notIn: seen },
         ...(opts?.mode ? { mode: opts.mode } : {}),
         ...(opts?.skill ? { skill: opts.skill } : {}),
@@ -748,7 +821,16 @@ export async function getNextDrillItem(
   // stays on tier 1 while a reliable one advances. Authored difficulty is the
   // signal that matters here — the item Elo `rating` sits near its 1200 default
   // until items accrue attempts, so it only *refines* the match once data exists.
-  const targetDifficulty = rating < 1240 ? 1 : rating < 1340 ? 2 : 3;
+  // EXAM-CERTIFIED re-aims the selector (expert placement): a certified
+  // session stops being dealt d1 warm-ups. Selection, not measurement.
+  const certified =
+    examStanding(
+      attempts
+        .filter((a) => a.mode === "exam")
+        .map((a) => ({ correct: a.correct, createdAt: a.createdAt, mode: "exam" }))
+    ).passedAt !== null;
+  const ladderTarget = rating < 1240 ? 1 : rating < 1340 ? 2 : 3;
+  const targetDifficulty = certified ? examTargetDifficulty(rating) : ladderTarget;
   const weighted = candidates.map((it) => {
     // Primary: proximity of the item's authored tier to the target (1, .5, .33).
     const diffCloseness = 1 / (1 + Math.abs(it.difficulty - targetDifficulty));
@@ -833,11 +915,21 @@ export async function recordDrillNaming(
 
 /** The Record: grades + credentials, derived fresh from the attempt rows on
  *  every read. Nothing stored, nothing to desync. */
+export type CaseStanding = {
+  id: string;
+  answered: number;
+  total: number;
+  correct: number;
+  filedAt: Date | null;
+};
+
 export async function getDrillStanding(sessionId: string): Promise<{
   grade: ReturnType<typeof gradeFor>;
   credentials: Conferral[];
+  exam: ExamStanding;
+  cases: CaseStanding[];
 }> {
-  const [rows, session] = await Promise.all([
+  const [rows, session, caseTotals] = await Promise.all([
     prisma.drillAttempt.findMany({
       where: { sessionId },
       orderBy: { createdAt: "asc" },
@@ -848,14 +940,42 @@ export async function getDrillStanding(sessionId: string): Promise<{
         ratingAfter: true,
         namedSkill: true,
         mode: true,
-        item: { select: { skill: true, difficulty: true, mode: true } },
+        item: { select: { skill: true, difficulty: true, mode: true, caseId: true } },
       },
     }),
     prisma.session.findUnique({ where: { id: sessionId }, select: { drillRating: true } }),
+    prisma.drillItem.groupBy({
+      by: ["caseId"],
+      where: { caseId: { not: "" }, status: "active" },
+      _count: { _all: true },
+    }),
   ]);
-  const attempts = rows as CredAttempt[];
+  const attempts = rows as (CredAttempt & { item: { caseId: string } })[];
   const liveRating = session?.drillRating ?? 1200;
-  return { grade: gradeFor(attempts, liveRating), credentials: conferrals(sessionId, attempts) };
+
+  // FILED is derived, never stored: every item of the case attempted.
+  const cases: CaseStanding[] = caseTotals.map((c) => {
+    const caseRows = attempts.filter((a) => a.item.caseId === c.caseId);
+    const total = c._count._all;
+    const answered = new Set(caseRows.map((a) => a.drillItemId)).size;
+    return {
+      id: c.caseId,
+      answered,
+      total,
+      correct: caseRows.filter((a) => a.correct).length,
+      filedAt:
+        answered >= total && caseRows.length > 0
+          ? caseRows.reduce((m, a) => (a.createdAt > m ? a.createdAt : m), caseRows[0].createdAt)
+          : null,
+    };
+  });
+
+  return {
+    grade: gradeFor(attempts, liveRating),
+    credentials: conferrals(sessionId, attempts),
+    exam: examStanding(attempts.map((a) => ({ correct: a.correct, createdAt: a.createdAt, mode: a.mode }))),
+    cases,
+  };
 }
 
 /** Atomically: log the attempt, move both Elo ratings, award XP if correct. */

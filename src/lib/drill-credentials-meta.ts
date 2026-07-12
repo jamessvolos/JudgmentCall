@@ -65,3 +65,33 @@ export const CREDENTIAL_DEFS: CredentialDef[] = [
   { code: "all_benches", name: "ALL BENCHES", tier: "exploration", criterion: "At least one call on every instrument." },
   { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a difficulty-3 call in both families — catching it not required, stepping up is the point." },
 ];
+
+// ---------------------------------------------------------------------------
+// CASE FILES + THE CHECKPOINT (Training Room v3). Names/blurbs/door copy are
+// display vocabulary — drill-client-only, like everything above.
+
+export type CaseMeta = { id: string; name: string; blurb: string; length: number };
+export const CASE_META: CaseMeta[] = [
+  {
+    id: "northgate",
+    name: "CASE FILE · NORTHGATE",
+    blurb: "A price change, a churn spike, and a memo that wants a hero.",
+    length: 4,
+  },
+  {
+    id: "helios",
+    name: "CASE FILE · HELIOS",
+    blurb: "Three changes shipped at once. One is taking the credit.",
+    length: 4,
+  },
+];
+
+export const EXAM_META = {
+  formLength: 10,
+  passAt: 8,
+  name: "THE CHECKPOINT",
+  door: [
+    "Ten unseen calls, one per pattern, both families, mid tier or above, dealt to your band.",
+    "Eight of ten passes. Every call settles the rating exactly as it always does. One form a day.",
+  ],
+} as const;

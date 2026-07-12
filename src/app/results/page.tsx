@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { computeAnalyticsCached, MIN_N, wilson, type ValuePairStat } from "@/lib/analytics";
-import { HOUSE_VIEW, stanceFor, type HouseStance } from "@/lib/house-view";
-import { deskVerdict, verdictChipLabel, verdictChipTone, type DeskVerdict } from "@/lib/desk-verdict";
+import { HOUSE_VIEW, stanceFor } from "@/lib/house-view";
+import { deskVerdict, verdictChipLabel, verdictChipTone } from "@/lib/desk-verdict";
 import { getAnalysisSnapshots } from "@/lib/repo";
 import { ATTRIBUTE_LABELS, VALUE_LABELS } from "@/lib/types";
 import { CountUp } from "@/components/CountUp";

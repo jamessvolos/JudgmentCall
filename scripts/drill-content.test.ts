@@ -78,6 +78,27 @@ for (const d of DRILL_SEEDS) {
     ok(`${d.mode} has >=2 choices: ${d.title}`, (d.choices ?? []).length >= 2);
   }
 }
+// --- case-file contracts (Training Room v3) ---
+const CASE_TYPES = ["spot", "ledger", "fix", "calibrate"];
+const CRAFT = new Set(["buried_lede", "false_precision", "missing_sowhat", "absent_caveat", "padding"]);
+const caseIds = [...new Set(DRILL_SEEDS.filter((d) => d.caseId).map((d) => d.caseId!))];
+for (const cid of caseIds) {
+  const qs = DRILL_SEEDS.filter((d) => d.caseId === cid).sort((a, b) => (a.caseSeq ?? 0) - (b.caseSeq ?? 0));
+  ok(`case ${cid}: exactly 4 questions`, qs.length === 4, `${qs.length}`);
+  ok(`case ${cid}: caseSeq contiguous 1..4`, qs.map((q) => q.caseSeq).join(",") === "1,2,3,4", qs.map((q) => q.caseSeq).join(","));
+  ok(
+    `case ${cid}: identical shared readout`,
+    qs.every((q) => q.contextSnippet === qs[0].contextSnippet && q.sourceLabel === qs[0].sourceLabel)
+  );
+  ok(`case ${cid}: all four item types`, CASE_TYPES.every((m) => qs.some((q) => q.mode === m)));
+  ok(`case ${cid}: exactly one craft question`, qs.filter((q) => CRAFT.has(q.skill)).length === 1);
+}
+// --- exam feasibility floor: every skill keeps >=2 non-case items at d>=2 ---
+for (const skill of [...validSkills]) {
+  const n = DRILL_SEEDS.filter((d) => !d.caseId && d.skill === skill && d.difficulty >= 2).length;
+  ok(`exam floor: ${skill} has >=2 non-case items at d>=2`, n >= 2, `${n}`);
+}
+
 console.log(`\n  (${DRILL_SEEDS.length} items checked)`);
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
