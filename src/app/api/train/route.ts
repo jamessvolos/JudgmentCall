@@ -30,9 +30,13 @@ function shuffled<T>(xs: T[]): T[] {
   return a;
 }
 
-function clampConfidence(x: unknown): number | null {
+// Conviction is clamped to [floor, 99], where the floor is the item's chance
+// level — 1/k for a k-option MCQ (25% for four options), 50% for a binary duel.
+// A 50% floor on a 4-option item would mislabel every honest guess as
+// overconfident and pollute the calibration signal.
+function clampConfidence(x: unknown, floor: number): number | null {
   if (typeof x !== "number" || !Number.isFinite(x)) return null;
-  return Math.max(50, Math.min(99, Math.round(x)));
+  return Math.max(floor, Math.min(99, Math.round(x)));
 }
 
 type EstimatePayload = { unit: string; min: number; max: number; truth: number; good: { lo: number; hi: number } };
@@ -117,7 +121,10 @@ async function postHandler(request: Request) {
   if (await hasAttemptedQuiz(sessionId, quizId)) {
     return NextResponse.json({ error: "already attempted" }, { status: 409 });
   }
-  const confidence = clampConfidence(body?.confidence);
+  // per-item conviction floor = chance level (1/k for MCQ, 50% for a binary duel)
+  const nChoices = item.kind === "mcq" ? Math.max(2, parseChoices(item.choices).length) : 2;
+  const confFloor = Math.round(100 / nChoices);
+  const confidence = clampConfidence(body?.confidence, confFloor);
   const latency = Number.isFinite(latencyMs) ? Math.max(0, Math.round(latencyMs)) : 0;
 
   let correct: boolean;

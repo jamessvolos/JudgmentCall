@@ -60,3 +60,41 @@ level/badge system without destabilising it:
   Null Hypothesis) for architecture.
 - **Verifiable credential card** (Proof & Guild): OG-image proof, ledger-hashed.
 - Whatever the simulated user testing surfaces as highest-value.
+
+## v2 roadmap — from simulated user testing
+
+Four personas stress-tested v1 (a busy analyst, a staff data engineer, a
+career-switcher, and a calibration scientist). Their findings, prioritised:
+
+**Tier 1 — correctness (the score was teaching the wrong lesson):**
+1. *Proper scoring.* The headline score was ECE, which is **not** a proper
+   rule — staking your base rate on every call drives ECE→0 and wins, rewarding
+   timidity. Replace with a **Brier skill score** (`1 − Brier/Brier_ref` vs. an
+   always-base-rate reference); keep ECE as a diagnostic; raise the score floor
+   from n=5 to n≥30 (5 fixed bins at n=5 is noise).
+2. *Conviction floor 1/k.* Chance on a 4-option MCQ is 25%, but the slider
+   floored at 50% — building a structural 25-point overconfidence artifact into
+   every honest guess. Floor conviction at `1/k` per item (25% for 4 options,
+   50% for duels); start the reliability x-axis there.
+3. *Duels can leak the answer.* "Writable during partitions" *is* CAP's A — a
+   keyword match, not a tradeoff. (Backlog: re-author so both designs satisfy the
+   headline constraint and a secondary pressure decides; add an "also defensible
+   when…" line.)
+
+**Tier 2 — badges & signals:**
+4. Knows-What-They-Know required only 85% at 90% conviction — certifies
+   overconfidence; raise to ≥90%. Calibration badges latched on the first lucky
+   prefix; evaluate them on the sustained ledger instead.
+5. "The Room" showed n=1 as crowd wisdom; gate it behind a real sample with an
+   empty state.
+
+**Tier 3 — onboarding & mobile (analyst + newcomer converged):**
+6. Trim/de-jargon the dashboard: "Start a run" higher, caption the bare rating,
+   rename cryptic gate chips, a "what's this?" on the calibration graph.
+7. First-run hint explaining conviction + calibration (taught only by grading now).
+8. Estimate band: bigger touch handles + a value label above the dragged handle.
+
+**Shipped in v2:** 1, 2, 4, 5, 6, 7, 8.
+**Backlog (v3):** duel content-hardening (3), interval-coverage calibration track
+(fold Estimate bands via empirical-vs-nominal coverage + Winkler score), Brier
+decomposition viz with bootstrap bands, the Descent roguelike, more manipulables.

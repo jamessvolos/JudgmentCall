@@ -163,9 +163,25 @@ seq = 0;
 const under = calibration(Array.from({ length: 20 }, (_, i) => staked(i % 20 !== 0, 60)));
 eq("calibration: 60% conviction / 95% accuracy is underconfident", under.tendency, "underconfident");
 seq = 0;
-// score is null below 5 staked calls, present at/above
-eq("calibration: score null under 5 staked calls", calibration([staked(true, 80), staked(true, 80)]).score, null);
-eq("calibration: score present at 5 staked calls", typeof calibration(Array.from({ length: 5 }, () => staked(true, 80))).score, "number");
+// score is null below 30 staked calls (5 bins are noise at low n), present at/above
+eq("calibration: score null under 30 staked calls", calibration(Array.from({ length: 10 }, () => staked(true, 80))).score, null);
+eq("calibration: score present at 30 staked calls", typeof calibration(Array.from({ length: 30 }, (_, i) => staked(i % 5 !== 0, 80))).score, "number");
+seq = 0;
+// PROPER SCORING: the base-rate hedge (stake your accuracy on everything) must
+// NOT win. 30 calls at 70% conviction, 70% correct → Brier skill 0 → score 0.
+const hedge = calibration([
+  ...Array.from({ length: 21 }, () => staked(true, 70)),
+  ...Array.from({ length: 9 }, () => staked(false, 70)),
+]);
+eq("proper scoring: base-rate hedge scores ~0 (cannot game it)", hedge.score! <= 5, true);
+seq = 0;
+// A sharp forecaster (95% when right, 50% on true coin-flips) beats the hedge.
+const sharp = calibration([
+  ...Array.from({ length: 20 }, () => staked(true, 95)),
+  ...Array.from({ length: 5 }, () => staked(true, 50)),
+  ...Array.from({ length: 5 }, () => staked(false, 50)),
+]);
+eq("proper scoring: sharp forecaster beats the hedge", sharp.score! > hedge.score!, true);
 seq = 0;
 // unstaked rows are ignored by calibration
 eq("calibration: rows without confidence are ignored", calibration([row("sampling", 1, true, 1210), row("variation", 1, false, 1190)]).n, 0);

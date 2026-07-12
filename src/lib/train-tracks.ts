@@ -40,9 +40,9 @@ export type BadgeTier = "competence" | "exploration" | "calibration";
 // Calibration badges — shared across both rooms (calibration reads the same in
 // statistics and architecture). Folded over the conviction each call carried.
 const CALIBRATION_BADGES: Badge[] = [
-  { code: "honest_broker", name: "HONEST BROKER", tier: "calibration", criterion: "Twenty staked calls with confidence and accuracy within six points." },
-  { code: "knows_knows", name: "KNOWS WHAT THEY KNOW", tier: "calibration", criterion: "Ten locked-in calls (90%+), 85% of them landed." },
-  { code: "no_bluff", name: "NO BLUFF", tier: "calibration", criterion: "Fifteen staked calls, no confidence tier you couldn't back up." },
+  { code: "honest_broker", name: "HONEST BROKER", tier: "calibration", criterion: "Thirty staked calls, confidence and accuracy within six points — and still holding." },
+  { code: "knows_knows", name: "KNOWS WHAT THEY KNOW", tier: "calibration", criterion: "Ten locked-in calls (90%+), nine in ten landed." },
+  { code: "no_bluff", name: "NO BLUFF", tier: "calibration", criterion: "No confidence tier you couldn't back up, across fifteen-plus staked calls." },
 ];
 
 export type Badge = {
@@ -412,28 +412,28 @@ function deepEndIndex(rows: QuizRow[]): number {
   });
 }
 
-// --- calibration badge predicates (fold over the staked rows) ---------------
-function honestBrokerIndex(rows: QuizRow[]): number {
-  // 20 staked calls with expected calibration error ≤ 6 points
-  return firstIndex(rows, (prefix) => {
-    const c = calibration(prefix);
-    return c.n >= 20 && c.ece <= 0.06;
-  });
+// --- calibration badges: held on the SUSTAINED ledger, not latched on the
+// first lucky prefix. Each returns whether the badge holds on the full rows now;
+// badgeConferrals stamps the last staked call's time while it holds (so a badge
+// can be lost if calibration slips — an honest, non-inflating signal).
+function honestBrokerHeld(rows: QuizRow[]): boolean {
+  const c = calibration(rows);
+  return c.n >= 30 && c.ece <= 0.06; // 30-call sustained window, diagnostic ECE tight
 }
-function knowsKnowsIndex(rows: QuizRow[]): number {
-  // ≥10 calls at conviction ≥90, accuracy ≥85% on them
-  return firstIndex(rows, (prefix) => {
-    const locked = prefix.filter((r) => r.confidence != null && (r.confidence as number) >= 90);
-    return locked.length >= 10 && locked.filter((r) => r.correct).length / locked.length >= 0.85;
-  });
+function knowsKnowsHeld(rows: QuizRow[]): boolean {
+  // ≥10 locked-in calls (90%+), and ≥90% of them right — a calibrated 90% claim
+  // should land ~90%+, so the old 85% bar certified overconfidence.
+  const locked = rows.filter((r) => r.confidence != null && (r.confidence as number) >= 90);
+  return locked.length >= 10 && locked.filter((r) => r.correct).length / locked.length >= 0.9;
 }
-function noBluffIndex(rows: QuizRow[]): number {
-  // ≥15 staked calls and no confidence bin (n≥4) is overconfident by >12 points
-  return firstIndex(rows, (prefix) => {
-    const c = calibration(prefix);
-    if (c.n < 15) return false;
-    return c.bins.every((b) => b.count < 4 || b.accuracy >= b.meanConf - 0.12);
-  });
+function noBluffHeld(rows: QuizRow[]): boolean {
+  const c = calibration(rows);
+  if (c.n < 15) return false;
+  return c.bins.every((b) => b.count < 4 || b.accuracy >= b.meanConf - 0.12);
+}
+function lastStakedTime(rows: QuizRow[]): Date | null {
+  for (let i = rows.length - 1; i >= 0; i--) if (rows[i].confidence != null) return rows[i].createdAt;
+  return null;
 }
 
 export type Conferral = {
@@ -454,16 +454,28 @@ export function badgeConferrals(track: Track, rows: QuizRow[]): Conferral[] {
     correction: correctionIndex(rows),
     full_map: fullMapIndex(rows, nTopics),
     deep_end: deepEndIndex(rows),
-    honest_broker: honestBrokerIndex(rows),
-    knows_knows: knowsKnowsIndex(rows),
-    no_bluff: noBluffIndex(rows),
+  };
+  // Calibration badges hold on the sustained ledger (can be lost), so they are
+  // stamped from the latest staked call while they hold — not latched forever.
+  const calStamp = lastStakedTime(rows);
+  const calHeld: Record<string, boolean> = {
+    honest_broker: honestBrokerHeld(rows),
+    knows_knows: knowsKnowsHeld(rows),
+    no_bluff: noBluffHeld(rows),
   };
   return track.badges.map((b) => ({
     code: b.code,
     name: b.name,
     tier: b.tier,
     criterion: b.criterion,
-    earnedAt: idxFor[b.code] >= 0 ? rows[idxFor[b.code]].createdAt : null,
+    earnedAt:
+      b.tier === "calibration"
+        ? calHeld[b.code]
+          ? calStamp
+          : null
+        : idxFor[b.code] >= 0
+          ? rows[idxFor[b.code]].createdAt
+          : null,
   }));
 }
 
@@ -508,22 +520,32 @@ export type CalBin = {
 export type Calibration = {
   n: number; // staked calls
   brier: number; // mean (p - o)^2 over staked calls, 0..1 (lower is better)
-  ece: number; // expected calibration error, 0..1 (lower is better)
+  brierRef: number; // Brier of an always-predict-base-rate forecaster (the reference)
+  skill: number; // Brier skill score 1 - brier/brierRef (higher is better; can be < 0)
+  ece: number; // expected calibration error — a DIAGNOSTIC only, not the grade
   accuracy: number; // overall accuracy over staked calls, 0..1
   meanConf: number; // overall mean confidence, 0..1
   tendency: "overconfident" | "underconfident" | "sharp" | "unrated";
-  score: number | null; // 0..100 calibration score; null until n>=5
+  score: number | null; // 0..100 Brier-skill grade; null until SCORE_MIN_N staked calls
   gap: number; // signed meanConf - accuracy (positive = overconfident), 0..1
-  bins: CalBin[];
+  bins: CalBin[]; // for the reliability diagram + No-Bluff diagnostic
 };
 
+// Bins span the FULL usable conviction range. Chance on a 4-option MCQ is 25%,
+// so the reliability diagram and the No-Bluff diagnostic start at 25, not 50 —
+// otherwise an honest "no idea" guess is mislabelled as overconfident.
 const CAL_BINS: [number, number][] = [
-  [50, 60],
-  [60, 70],
-  [70, 80],
-  [80, 90],
+  [25, 45],
+  [45, 60],
+  [60, 75],
+  [75, 90],
   [90, 100],
 ];
+export const CAL_AXIS_MIN = 25; // reliability-diagram x-axis floor (percent)
+// The grade needs enough staked calls to be more than binned noise (a decision
+// scientist's floor: 5 fixed bins are meaningless at n=5).
+const SCORE_MIN_N = 30;
+const RATE_MIN_N = 5; // tendency (over/under/sharp) needs only a coarse read
 
 export function calibration(rows: QuizRow[]): Calibration {
   const staked = rows.filter((r) => r.confidence != null);
@@ -543,19 +565,24 @@ export function calibration(rows: QuizRow[]): Calibration {
     };
   });
   if (n === 0) {
-    return { n: 0, brier: 0, ece: 0, accuracy: 0, meanConf: 0, tendency: "unrated", score: null, gap: 0, bins };
+    return { n: 0, brier: 0, brierRef: 0, skill: 0, ece: 0, accuracy: 0, meanConf: 0, tendency: "unrated", score: null, gap: 0, bins };
   }
+  const accuracy = staked.filter((r) => r.correct).length / n;
+  const meanConf = staked.reduce((s, r) => s + (r.confidence as number), 0) / n / 100;
   const brier = staked.reduce((s, r) => {
     const p = (r.confidence as number) / 100;
     const o = r.correct ? 1 : 0;
     return s + (p - o) * (p - o);
   }, 0) / n;
-  const accuracy = staked.filter((r) => r.correct).length / n;
-  const meanConf = staked.reduce((s, r) => s + (r.confidence as number), 0) / n / 100;
+  // Reference: always predict the base rate. Its Brier is accuracy*(1-accuracy).
+  const brierRef = accuracy * (1 - accuracy);
+  // Brier SKILL SCORE — proper: honest, sharp reporting maximises it; you cannot
+  // game it by hedging toward your base rate (that only matches the reference).
+  const skill = brierRef > 0 ? 1 - brier / brierRef : brier === 0 ? 1 : 0;
   const ece = bins.reduce((s, b) => s + (b.count / n) * Math.abs(b.meanConf - b.accuracy), 0);
   const gap = meanConf - accuracy;
   const tendency: Calibration["tendency"] =
-    n < 5 ? "unrated" : gap > 0.07 ? "overconfident" : gap < -0.07 ? "underconfident" : "sharp";
-  const score = n < 5 ? null : Math.max(0, Math.min(100, Math.round(100 * (1 - 2 * ece))));
-  return { n, brier, ece, accuracy, meanConf, tendency, score, gap, bins };
+    n < RATE_MIN_N ? "unrated" : gap > 0.07 ? "overconfident" : gap < -0.07 ? "underconfident" : "sharp";
+  const score = n < SCORE_MIN_N ? null : Math.max(0, Math.min(100, Math.round(100 * skill)));
+  return { n, brier, brierRef, skill, ece, accuracy, meanConf, tendency, score, gap, bins };
 }

@@ -86,12 +86,19 @@ type PostDto = {
 type Phase = "dashboard" | "run" | "recap";
 const TIER_LABEL = (d: number) => (d >= 3 ? "SUBTLE" : d === 2 ? "MID" : "FOUNDATION");
 
-// conviction word for a slider value
+// conviction word for a chip value
 function convictionWord(c: number): string {
   if (c >= 93) return "Locked in";
   if (c >= 80) return "Confident";
   if (c >= 65) return "Leaning";
-  return "A hunch";
+  if (c >= 45) return "A hunch";
+  return "A guess";
+}
+// discrete conviction chips from the item's chance floor up to 95% — no default,
+// so a rushed learner must make a real choice instead of rubber-stamping 75.
+function convictionChips(floor: number): number[] {
+  const ladder = [50, 70, 85, 95];
+  return Array.from(new Set([floor, ...ladder.filter((c) => c > floor)])).sort((a, b) => a - b);
 }
 
 export function TrackRoom({ trackId }: { trackId: TrackId }) {
@@ -112,11 +119,12 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
 
   const [runIndex, setRunIndex] = useState(0);
   const [runCorrect, setRunCorrect] = useState(0);
-  const [runStart, setRunStart] = useState<{ rating: number; levelN: number; badges: Set<string>; calScore: number | null }>({
+  const [runStart, setRunStart] = useState<{ rating: number; levelN: number; badges: Set<string>; calScore: number | null; firstEver: boolean }>({
     rating: 1200,
     levelN: 1,
     badges: new Set<string>(),
     calScore: null,
+    firstEver: true,
   });
   const [poolDry, setPoolDry] = useState(false);
 
@@ -186,6 +194,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
           levelN: standing?.level.level.n ?? 1,
           badges: new Set((standing?.badges ?? []).filter((b) => b.earnedAt).map((b) => b.code)),
           calScore: standing?.calibration.score ?? null,
+          firstEver: (standing?.count ?? 0) === 0,
         });
         setTopicFilter(topic);
         setRunIndex(0);
@@ -285,6 +294,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
           position={runIndex + 1}
           total={RUN_LENGTH}
           levelRoman={standing?.level.level.roman ?? "I"}
+          firstEver={runStart.firstEver}
           onSubmit={submit}
           onNext={next}
         />
@@ -329,6 +339,7 @@ function LevelMeter({ track, standing, rating }: { track: Track; standing: Stand
           Level {cur.roman} · {cur.title}
           <span className="ml-2 font-normal normal-case tracking-normal text-muted">· {standing.count} calls logged</span>
         </p>
+        <p className="mt-1 font-mono text-[0.6rem] text-muted/70">your rating — everyone starts at 1200; it moves like a chess ladder</p>
       </div>
       {nextLevel && toNext ? (
         <div className="mx-auto mt-4 max-w-sm">
@@ -337,7 +348,7 @@ function LevelMeter({ track, standing, rating }: { track: Track; standing: Stand
           </div>
           <p className="mt-2 font-mono text-[0.7rem] text-muted">Level {nextLevel.roman} · {nextLevel.title} — {nextLevel.gate}</p>
           <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 font-mono text-[0.65rem] text-muted/70">
-            <GateChip label="reading" have={toNext.rating} need={toNext.floor ?? 0} />
+            <GateChip label="rating" have={toNext.rating} need={toNext.floor ?? 0} />
             <GateChip label="calls" have={toNext.calls} need={toNext.minCalls} />
             <GateChip label="topics" have={toNext.topics} need={toNext.minTopics} />
             {toNext.minHard > 0 && <GateChip label="subtle" have={toNext.hard} need={toNext.minHard} />}
@@ -358,8 +369,9 @@ function GateChip({ label, have, need }: { label: string; have: number; need: nu
 // A reliability diagram: your stated confidence (x) vs. how often you were right
 // (y). The diagonal is perfect calibration; dots below it are overconfidence.
 function CalibrationCard({ cal }: { cal: CalibrationDto }) {
-  const W = 240, H = 160, pad = 26;
-  const x = (conf: number) => pad + (conf - 0.5) * ((W - 2 * pad) / 0.5); // 0.5..1.0 → pad..W-pad
+  const W = 260, H = 180, pad = 28;
+  const AXMIN = 0.25; // chance on a 4-option call is 25%
+  const x = (conf: number) => pad + (Math.max(AXMIN, conf) - AXMIN) * ((W - 2 * pad) / (1 - AXMIN));
   const y = (acc: number) => H - pad - acc * (H - 2 * pad); // 0..1 → bottom..top
   const active = cal.bins.filter((b) => b.count > 0);
   const tendencyCopy =
@@ -373,42 +385,35 @@ function CalibrationCard({ cal }: { cal: CalibrationDto }) {
   return (
     <div className="rounded-lg border border-card-border bg-card px-4 py-4">
       <div className="flex items-baseline justify-between">
-        <p className="kicker text-muted">Calibration</p>
-        {cal.score != null && (
-          <span className="font-mono text-xs tabular-nums text-accent">
-            {cal.score}<span className="text-muted">/100</span>
-          </span>
+        <p className="kicker text-muted">Calibration — is your confidence honest?</p>
+        {cal.score != null ? (
+          <span className="font-mono text-xs tabular-nums text-accent">{cal.score}<span className="text-muted">/100</span></span>
+        ) : (
+          <span className="font-mono text-[0.6rem] uppercase tracking-[0.1em] text-muted/70">{cal.n >= 1 ? `${cal.n}/30 to a score` : "no calls yet"}</span>
         )}
       </div>
       <div className="mt-3 flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[260px]" role="img" aria-label="Calibration reliability diagram">
-          {/* frame */}
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[300px]" role="img" aria-label="Calibration reliability diagram: your confidence versus your accuracy">
           <line x1={pad} y1={H - pad} x2={W - pad} y2={H - pad} className="stroke-card-border" strokeWidth={1} />
           <line x1={pad} y1={pad} x2={pad} y2={H - pad} className="stroke-card-border" strokeWidth={1} />
-          {/* perfect-calibration diagonal */}
-          <line x1={x(0.5)} y1={y(0.5)} x2={x(1)} y2={y(1)} className="stroke-rule-strong" strokeDasharray="3 3" strokeWidth={1} />
-          {/* connecting path of your bins */}
+          {/* perfect-calibration diagonal (from the chance floor to 100%) */}
+          <line x1={x(AXMIN)} y1={y(AXMIN)} x2={x(1)} y2={y(1)} className="stroke-rule-strong" strokeDasharray="3 3" strokeWidth={1} />
           {active.length > 1 && (
-            <polyline
-              points={active.map((b) => `${x(b.meanConf)},${y(b.accuracy)}`).join(" ")}
-              className="fill-none stroke-accent"
-              strokeWidth={1.5}
-            />
+            <polyline points={active.map((b) => `${x(b.meanConf)},${y(b.accuracy)}`).join(" ")} className="fill-none stroke-accent" strokeWidth={1.5} />
           )}
-          {/* dots, sized by count */}
           {active.map((b, i) => (
             <circle key={i} cx={x(b.meanConf)} cy={y(b.accuracy)} r={Math.min(7, 3 + b.count)} className="fill-accent" />
           ))}
-          <text x={pad} y={H - 8} className="fill-muted" style={{ fontSize: 8, fontFamily: "var(--font-mono)" }}>50%</text>
-          <text x={W - pad - 14} y={H - 8} className="fill-muted" style={{ fontSize: 8, fontFamily: "var(--font-mono)" }}>99%</text>
+          <text x={pad} y={H - 9} className="fill-muted" style={{ fontSize: 8, fontFamily: "var(--font-mono)" }}>25%</text>
+          <text x={W - pad - 14} y={H - 9} className="fill-muted" style={{ fontSize: 8, fontFamily: "var(--font-mono)" }}>99%</text>
           <text x={4} y={pad + 4} className="fill-muted" style={{ fontSize: 8, fontFamily: "var(--font-mono)" }}>100%</text>
+          <text x={W / 2} y={H - 1} textAnchor="middle" className="fill-muted/70" style={{ fontSize: 7, fontFamily: "var(--font-mono)" }}>how sure you said →</text>
         </svg>
         <div className="text-left">
           <p className="text-sm leading-relaxed text-foreground">{tendencyCopy}</p>
+          <p className="mt-2 text-xs leading-relaxed text-muted">On the dashed line, your confidence matched reality. Dots below it mean you were more sure than you should have been.</p>
           {cal.n > 0 && (
-            <p className="mt-2 font-mono text-[0.65rem] text-muted">
-              {cal.n} staked · accuracy {Math.round(cal.accuracy * 100)}% · avg conviction {Math.round(cal.meanConf * 100)}%
-            </p>
+            <p className="mt-2 font-mono text-[0.65rem] text-muted">{cal.n} staked · accuracy {Math.round(cal.accuracy * 100)}% · avg conviction {Math.round(cal.meanConf * 100)}%</p>
           )}
         </div>
       </div>
@@ -425,17 +430,19 @@ function Dashboard({ track, standing, rating, otherId, onStart }: {
   return (
     <div className="rise mt-6">
       <LevelMeter track={track} standing={standing} rating={rating} />
-      <p className="mx-auto mt-6 max-w-md text-center text-sm leading-relaxed text-muted">{track.blurb}</p>
 
+      {/* Start is the one button that matters — keep it above the fold. */}
       <button onClick={() => onStart()} className="mt-6 w-full rounded-lg bg-accent px-5 py-4 text-center font-mono text-sm font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
         Start a run — {RUN_LENGTH} calls →
       </button>
-      <p className="mt-2 text-center font-mono text-[0.7rem] text-muted/70">Every call, stake a conviction. Calibration tracks whether your sureness matches your accuracy.</p>
+      <p className="mt-2 text-center font-mono text-[0.7rem] text-muted/70">On each call you stake how sure you are; calibration checks whether your sureness matches your accuracy.</p>
 
       {/* calibration */}
       <div className="mt-8">
         <CalibrationCard cal={standing.calibration} />
       </div>
+
+      <p className="mx-auto mt-6 max-w-md text-center text-sm leading-relaxed text-muted">{track.blurb}</p>
 
       {/* topic map */}
       <div className="mt-8">
@@ -523,16 +530,30 @@ function BadgeLedger({ badges }: { badges: StandingDto["badges"] }) {
 }
 
 // ============================================================ Run
-function Run({ track, item, reveal, submitting, rating, position, total, levelRoman, onSubmit, onNext }: {
+function Run({ track, item, reveal, submitting, rating, position, total, levelRoman, firstEver, onSubmit, onNext }: {
   track: Track; item: ItemDto; reveal: PostDto | null; submitting: boolean; rating: number;
-  position: number; total: number; levelRoman: string;
+  position: number; total: number; levelRoman: string; firstEver: boolean;
   onSubmit: (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number }, confidence: number | null) => void;
   onNext: () => void;
 }) {
   const topic = topicOf(track, item.topic);
   const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : "CALL";
+  const [hintOpen, setHintOpen] = useState(true);
   return (
     <div className="mt-6">
+      {firstEver && hintOpen && position === 1 && (
+        <div className="rise mb-4 rounded-lg border border-accent/40 bg-accent/5 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm leading-relaxed text-foreground">
+              <span className="font-semibold text-ink-strong">New here?</span>{" "}
+              Answer, then stake how sure you are. Being right isn&apos;t the whole game — being{" "}
+              <em>calibrated</em> is. The calibration card shows whether your confidence matches how often
+              you&apos;re actually right.
+            </p>
+            <button onClick={() => setHintOpen(false)} aria-label="dismiss" className="shrink-0 font-mono text-xs text-muted hover:text-foreground">✕</button>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted">
         <span>{topic.short} · <span className="text-muted/70">{kindLabel} · {TIER_LABEL(item.difficulty)}</span></span>
         <span className="tabular-nums">Lv {levelRoman} · {rating} · {Math.min(position, total)}/{total}</span>
@@ -548,19 +569,28 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
   );
 }
 
-// ---- conviction bar (mcq + duel) -------------------------------------------
-function ConvictionBar({ conviction, setConviction, onCommit, submitting }: {
-  conviction: number; setConviction: (n: number) => void; onCommit: () => void; submitting: boolean;
+// ---- conviction chips (mcq + duel) -----------------------------------------
+function ConvictionBar({ floor, conviction, setConviction, onCommit, submitting }: {
+  floor: number; conviction: number | null; setConviction: (n: number) => void; onCommit: () => void; submitting: boolean;
 }) {
+  const chips = convictionChips(floor);
   return (
     <div className="mt-5 rounded-lg border border-accent/30 bg-accent/5 px-4 py-4">
       <div className="flex items-baseline justify-between">
         <p className="font-mono text-[0.7rem] uppercase tracking-[0.16em] text-muted">How sure are you?</p>
-        <span className="font-mono text-sm tabular-nums text-accent">{conviction}% · {convictionWord(conviction)}</span>
+        <span className="font-mono text-sm tabular-nums text-accent">{conviction != null ? `${conviction}% · ${convictionWord(conviction)}` : "pick one"}</span>
       </div>
-      <input type="range" min={50} max={99} value={conviction} onChange={(e) => setConviction(Number(e.target.value))} aria-label="Conviction" className="mt-3 w-full accent-[var(--accent)]" />
-      <p className="mt-1 font-mono text-[0.6rem] text-muted/70">A confident miss stings your calibration more than a hedged one. Report what you actually believe.</p>
-      <button onClick={onCommit} disabled={submitting} className="mt-3 w-full rounded-md bg-foreground px-4 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+      <div className="mt-3 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${chips.length}, minmax(0, 1fr))` }}>
+        {chips.map((c) => (
+          <button key={c} aria-pressed={conviction === c} onClick={() => setConviction(c)}
+            className={`rounded-md border px-1 py-2 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${conviction === c ? "border-accent bg-accent/15" : "border-card-border bg-card hover:border-rule-strong"}`}>
+            <span className="block font-mono text-sm font-semibold tabular-nums text-ink-strong">{c}%</span>
+            <span className="mt-0.5 block font-mono text-[0.55rem] uppercase tracking-[0.08em] text-muted">{convictionWord(c)}</span>
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 font-mono text-[0.6rem] text-muted/70">A confident miss stings your calibration more than a hedged one. Report what you actually believe — {floor}% is chance.</p>
+      <button onClick={onCommit} disabled={submitting || conviction == null} className="mt-3 w-full rounded-md bg-foreground px-4 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
         Lock it in →
       </button>
     </div>
@@ -590,7 +620,8 @@ function McqCall({ item, reveal, submitting, onSubmit, onNext, last }: {
   onSubmit: (a: { pickedIndex: number }, c: number | null) => void; onNext: () => void; last: boolean;
 }) {
   const [selected, setSelected] = useState<number | null>(null);
-  const [conviction, setConviction] = useState(75);
+  const [conviction, setConviction] = useState<number | null>(null);
+  const floor = Math.round(100 / Math.max(2, (item.choices ?? []).length));
   return (
     <>
       <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
@@ -622,7 +653,7 @@ function McqCall({ item, reveal, submitting, onSubmit, onNext, last }: {
         })}
       </ul>
       {!reveal && selected != null && (
-        <ConvictionBar conviction={conviction} setConviction={setConviction} submitting={submitting} onCommit={() => onSubmit({ pickedIndex: selected }, conviction)} />
+        <ConvictionBar floor={floor} conviction={conviction} setConviction={setConviction} submitting={submitting} onCommit={() => onSubmit({ pickedIndex: selected }, conviction)} />
       )}
       {reveal && (
         <div className="verdict-card-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
@@ -698,12 +729,27 @@ function EstimateCall({ item, reveal, submitting, onSubmit, onNext, last }: {
               {reveal.truth != null && <text x={toX(reveal.truth)} y={14} textAnchor="middle" className="fill-ink-strong" style={{ fontSize: 9, fontFamily: "var(--font-mono)" }}>{fmt(reveal.truth)}</text>}
             </>
           )}
-          {/* handles */}
+          {/* handles — big transparent hit targets (touch) + visible grips */}
           {!reveal && (
             <>
-              <g onPointerDown={() => setDrag("lo")} className="cursor-ew-resize"><rect x={toX(lo) - 4} y={34} width={8} height={20} className="fill-accent" rx={1} /></g>
-              <g onPointerDown={() => setDrag("hi")} className="cursor-ew-resize"><rect x={toX(hi) - 4} y={34} width={8} height={20} className="fill-accent" rx={1} /></g>
-              <g onPointerDown={() => setDrag("point")} className="cursor-grab"><path d={`M ${toX(point)} 40 l 6 6 l -6 6 l -6 -6 z`} className="fill-ink-strong" /></g>
+              <g onPointerDown={() => setDrag("lo")} className="cursor-ew-resize">
+                <rect x={toX(lo) - 14} y={26} width={28} height={36} className="fill-transparent" />
+                <rect x={toX(lo) - 5} y={30} width={10} height={28} className="fill-accent" rx={2} />
+              </g>
+              <g onPointerDown={() => setDrag("hi")} className="cursor-ew-resize">
+                <rect x={toX(hi) - 14} y={26} width={28} height={36} className="fill-transparent" />
+                <rect x={toX(hi) - 5} y={30} width={10} height={28} className="fill-accent" rx={2} />
+              </g>
+              <g onPointerDown={() => setDrag("point")} className="cursor-grab">
+                <rect x={toX(point) - 14} y={30} width={28} height={28} className="fill-transparent" />
+                <path d={`M ${toX(point)} 38 l 7 6 l -7 6 l -7 -6 z`} className="fill-ink-strong" />
+              </g>
+              {/* value label above the handle you're dragging (thumb won't cover it) */}
+              {drag && (
+                <text x={toX(drag === "lo" ? lo : drag === "hi" ? hi : point)} y={20} textAnchor="middle" className="fill-ink-strong" style={{ fontSize: 10, fontWeight: 600, fontFamily: "var(--font-mono)" }}>
+                  {fmt(drag === "lo" ? lo : drag === "hi" ? hi : point)}
+                </text>
+              )}
             </>
           )}
           <text x={pad} y={66} className="fill-muted" style={{ fontSize: 8, fontFamily: "var(--font-mono)" }}>{fmt(est.min)}</text>
@@ -787,7 +833,7 @@ function DuelCall({ item, reveal, submitting, onSubmit, onNext, last }: {
 }) {
   const d = item.duel!;
   const [selected, setSelected] = useState<number | null>(null);
-  const [conviction, setConviction] = useState(75);
+  const [conviction, setConviction] = useState<number | null>(null);
   return (
     <>
       <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-3">
@@ -802,7 +848,7 @@ function DuelCall({ item, reveal, submitting, onSubmit, onNext, last }: {
       </div>
 
       {!reveal && selected != null && (
-        <ConvictionBar conviction={conviction} setConviction={setConviction} submitting={submitting} onCommit={() => onSubmit({ pickedIndex: selected }, conviction)} />
+        <ConvictionBar floor={50} conviction={conviction} setConviction={setConviction} submitting={submitting} onCommit={() => onSubmit({ pickedIndex: selected }, conviction)} />
       )}
 
       {reveal && (
@@ -811,8 +857,12 @@ function DuelCall({ item, reveal, submitting, onSubmit, onNext, last }: {
           {/* three verdicts */}
           <dl className="mt-3 space-y-2">
             <VerdictRow label="You" value={`Design ${reveal.pickedIndex === 0 ? "A" : "B"}${reveal.confidence != null ? ` · ${reveal.confidence}% sure` : ""}`} tone={reveal.correct ? "accent" : "danger"} />
-            {reveal.room && reveal.room.total > 0 && (
-              <VerdictRow label="The Room" value={`${Math.round((reveal.room.a / reveal.room.total) * 100)}% A · ${Math.round((reveal.room.b / reveal.room.total) * 100)}% B (${reveal.room.total})`} tone="muted" />
+            {reveal.room && (
+              reveal.room.total >= 5 ? (
+                <VerdictRow label="The Room" value={`${Math.round((reveal.room.a / reveal.room.total) * 100)}% A · ${Math.round((reveal.room.b / reveal.room.total) * 100)}% B (${reveal.room.total})`} tone="muted" />
+              ) : (
+                <VerdictRow label="The Room" value={`still gathering — you're among the first ${reveal.room.total}`} tone="muted" />
+              )
             )}
             <VerdictRow label="The Desk" value={`Design ${reveal.better} — ${reveal.failureMode}`} tone="ink" />
           </dl>
