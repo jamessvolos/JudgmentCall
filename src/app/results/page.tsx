@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { computeAnalyticsCached, MIN_N, wilson, type ValuePairStat } from "@/lib/analytics";
 import { HOUSE_VIEW, stanceFor, type HouseStance } from "@/lib/house-view";
+import { deskVerdict, verdictChipLabel, verdictChipTone, type DeskVerdict } from "@/lib/desk-verdict";
 import { getAnalysisSnapshots } from "@/lib/repo";
 import { ATTRIBUTE_LABELS, VALUE_LABELS } from "@/lib/types";
 import { CountUp } from "@/components/CountUp";
@@ -18,17 +19,6 @@ function pct(x: number): string {
   return `${Math.round(x * 100)}%`;
 }
 
-// The room's live verdict on a desk stance — used by the §01 scoreboard.
-// "Concurs"/"overrules" only when the Wilson interval clears the 50% null.
-type DeskVerdict = "ROOM CONCURS" | "ROOM OVERRULES" | "TOO CLOSE TO CALL" | "JURY'S OUT";
-function deskVerdict(stat: ValuePairStat | undefined, stance: HouseStance): DeskVerdict {
-  if (!stat || stat.suppressed || stat.rateA === null || stat.interval === null) return "JURY'S OUT";
-  const clears = stat.interval.lo > 0.5 || stat.interval.hi < 0.5;
-  if (!clears) return "TOO CLOSE TO CALL";
-  const roomPick = stat.rateA > 0.5 ? stat.valueA : stat.valueB;
-  return roomPick === stance.pick ? "ROOM CONCURS" : "ROOM OVERRULES";
-}
-
 // §02 ordering: how firmly the room has SETTLED each call. Tier 0 = resolved
 // (interval clears the 50% null), tier 1 = sampled but straddling, tier 2 = the
 // suppressed block (one uniform, undifferentiated tier at the bottom).
@@ -36,20 +26,6 @@ function decisionRank(s: ValuePairStat): 0 | 1 | 2 {
   if (s.suppressed || s.interval === null) return 2;
   return s.interval.lo > 0.5 || s.interval.hi < 0.5 ? 0 : 1;
 }
-// §01 docket chips: short labels + tones. "Light physics": only the room's
-// verdict column carries accent/danger; open states stay muted graphite.
-function verdictChipLabel(v: DeskVerdict): string {
-  if (v === "ROOM CONCURS") return "CONCURS";
-  if (v === "ROOM OVERRULES") return "OVERRULES";
-  if (v === "TOO CLOSE TO CALL") return "TOO CLOSE";
-  return "JURY'S OUT";
-}
-function verdictChipTone(v: DeskVerdict): string {
-  if (v === "ROOM CONCURS") return "border-accent text-accent";
-  if (v === "ROOM OVERRULES") return "border-danger text-danger";
-  return "border-card-border text-muted";
-}
-
 function clearance(s: ValuePairStat): number {
   return s.interval ? Math.max(s.interval.lo - 0.5, 0.5 - s.interval.hi, 0) : 0;
 }
@@ -248,12 +224,13 @@ export default async function ResultsPage({
                     className="scroll-mt-6 border-b border-card-border py-3 last:border-b-0"
                   >
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                      <a
-                        href={`#r-${n}`}
+                      <Link
+                        href={`/calls/${n}`}
+                        title="This call's own page — cite it, share it"
                         className="kicker shrink-0 text-muted decoration-card-border underline-offset-2 hover:underline"
                       >
                         R·{n}
-                      </a>
+                      </Link>
                       <a
                         href={`#${anchor}`}
                         className="text-sm font-semibold text-ink-strong decoration-card-border underline-offset-2 hover:underline"
