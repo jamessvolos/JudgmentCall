@@ -60,3 +60,14 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIGEST_WEBHOOK_URL: ${{ secrets.DIGEST_WEBHOOK_URL }}
         run: npx tsx scripts/digest.ts
+
+      # STUDY-INTEGRITY.md risk #1's standing ops hook: the read-only sybil
+      # scan. Exit 2 (a session holding an outsized share of a published
+      # contrast) fails the job — the workflow-failure notification IS the
+      # alarm. A signal, never an automatic exclusion: investigate first;
+      # the ledger stays authoritative. Runs last so a flag never blocks the
+      # snapshot/digest steps above.
+      - name: Integrity scan (sybil signal)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx tsx scripts/integrity-scan.ts
