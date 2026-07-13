@@ -9,12 +9,21 @@
 // (seed + sync); it never ships to a client bundle.
 
 import { DRILL_POOL } from "./drills-pool";
+import { DRILL_COMPOSE } from "./drills-compose";
 
 export type DrillChoice = { text: string; correct: boolean; rationale: string };
 
+// COMPOSE mode — the learner BUILDS the lede one fragment at a time. Each slot
+// (in reading order) offers options tagged with a boldness `strength` (1..3) and
+// whether the phrasing `overreach`es the data. The strongest assembly that never
+// overreaches is the one answer. Authoring guarantees a UNIQUE strongest-safe
+// option per slot (locked in drill-content.test.ts).
+export type DrillComposeOption = { text: string; strength: number; overreach: boolean; rationale: string };
+export type DrillComposeSlot = { label: string; options: DrillComposeOption[] };
+
 export type DrillSeed = {
   title: string; // stable natural key — must be unique across the pool
-  mode: "spot" | "fix" | "calibrate" | "ledger";
+  mode: "spot" | "fix" | "calibrate" | "ledger" | "compose";
   skill: string;
   difficulty: number; // 1 (obvious) .. 3 (subtle)
   contextSnippet: string;
@@ -28,6 +37,8 @@ export type DrillSeed = {
   // fix / calibrate mode (exactly one correct) and ledger mode (each claim in
   // reading order; correct:true = the claim EXCEEDS the data; 0-2 flagged):
   choices?: DrillChoice[];
+  // compose mode: the slots the learner assembles, in reading order.
+  slots?: DrillComposeSlot[];
   // case files: sub-questions share a caseId and serve in caseSeq order;
   // omitted = ordinary item.
   caseId?: string;
@@ -137,7 +148,7 @@ const DRILL_BASE: DrillSeed[] = [
 // deep authored/reviewed pool (spot + fix + calibrate across all ten skills).
 import { CASE_SEEDS } from "./drills-cases";
 import { EDITION2 } from "./drills-edition2";
-export const DRILL_SEEDS: DrillSeed[] = [...DRILL_BASE, ...DRILL_POOL, ...CASE_SEEDS, ...EDITION2];
+export const DRILL_SEEDS: DrillSeed[] = [...DRILL_BASE, ...DRILL_POOL, ...CASE_SEEDS, ...EDITION2, ...DRILL_COMPOSE];
 
 // Idempotent content sync: upsert every seed by its stable title. Runs on every
 // build (see scripts/prod-init.ts) so the pool ships without a reseed — and the
@@ -159,7 +170,9 @@ export async function syncDrillItems(prisma: PrismaClient): Promise<number> {
       skill: d.skill,
       difficulty: d.difficulty,
       promptText: d.prompt ?? null,
-      choices: d.choices ? JSON.stringify(d.choices) : null,
+      // compose stores its slots in the same JSON column; every other mode
+      // stores its choices there. Only one is ever set per item.
+      choices: d.mode === "compose" ? JSON.stringify(d.slots ?? []) : d.choices ? JSON.stringify(d.choices) : null,
       caseId: d.caseId ?? "",
       caseSeq: d.caseSeq ?? 0,
     };

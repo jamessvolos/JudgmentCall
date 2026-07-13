@@ -8,6 +8,9 @@ import {
   parseChoices,
   isCorrectChoice,
   correctChoiceIndex,
+  parseComposeSlots,
+  composeSafeIndex,
+  isCorrectCompose,
 } from "@/lib/drill-grade";
 import { NextResponse } from "next/server";
 import {
@@ -34,6 +37,8 @@ import { SKILL_IDS } from "@/lib/teaching";
 //               so a learner who met the pair can't infer which text they got).
 //   ledger    — one telling broken into claims; stamp every claim HOLDS or
 //               EXCEEDS, then close the ledger. Exact-set grading.
+//   compose   — BUILD the lede: pick the boldest still-safe fragment for each
+//               slot. One overreach fails; one timid slot fails. Exact target.
 // Every GET also carries The Record (grade + credentials), derived fresh from
 // the attempt rows — nothing stored, nothing to desync.
 
@@ -42,6 +47,7 @@ function defaultPrompt(mode: string): string {
   if (mode === "calibrate") return "What is the strongest claim this data supports?";
   if (mode === "field") return "No pair to lean on — does this telling stay in bounds, or exceed the data?";
   if (mode === "ledger") return "Stamp every claim: does it hold, or does it exceed the data?";
+  if (mode === "compose") return "Build the lede: for each part, take the boldest wording the data still supports.";
   return "Which telling goes beyond what the data supports?";
 }
 
@@ -135,6 +141,15 @@ async function getHandler(request: Request) {
     // claims are prose in reading order — never shuffled; truth stays server-side.
     const claims = parseChoices(item.choices).map((c, i) => ({ i, text: c.text }));
     payload = { ...base, claims };
+  } else if (item.mode === "compose") {
+    // slots stay in reading order; each slot's options are shuffled with their
+    // original index riding along. strength/overreach/rationale stay server-side.
+    const slots = parseComposeSlots(item.choices).map((s, i) => ({
+      i,
+      label: s.label,
+      options: shuffled(s.options.map((o, j) => ({ j, text: o.text }))),
+    }));
+    payload = { ...base, slots };
   } else {
     // fix / calibrate — send shuffled { i, text }; never the answer.
     const choices = parseChoices(item.choices).map((c, i) => ({ i, text: c.text }));
@@ -156,7 +171,7 @@ async function getHandler(request: Request) {
 //         fieldCall?: "bounds"|"exceeds", stamps?: boolean[] }
 async function postHandler(request: Request) {
   const body = await request.json().catch(() => null);
-  const { sessionId, drillId, picked, pickedIndex, fieldCall, stamps, latencyMs, exam } = body ?? {};
+  const { sessionId, drillId, picked, pickedIndex, fieldCall, stamps, assembly, latencyMs, exam } = body ?? {};
   if (typeof sessionId !== "string" || typeof drillId !== "string") {
     return NextResponse.json({ error: "invalid drill payload" }, { status: 400 });
   }
@@ -223,6 +238,33 @@ async function postHandler(request: Request) {
         exceeds: c.correct,
         stamped: stamps[i],
         rationale: c.rationale,
+      })),
+      device: item.device,
+      explanation: item.explanation,
+    };
+  } else if (item.mode === "compose") {
+    const slots = parseComposeSlots(item.choices);
+    if (
+      !Array.isArray(assembly) ||
+      assembly.length !== slots.length ||
+      assembly.some((j, i) => typeof j !== "number" || j < 0 || j >= slots[i].options.length)
+    ) {
+      return NextResponse.json({ error: "invalid assembly" }, { status: 400 });
+    }
+    correct = isCorrectCompose(slots, assembly as number[]);
+    reveal = {
+      // full slots (with the strength/overreach truth) are safe now the lede is set
+      slots: slots.map((s, i) => ({
+        label: s.label,
+        picked: assembly[i] as number,
+        bestIndex: composeSafeIndex(s),
+        options: s.options.map((o, j) => ({
+          j,
+          text: o.text,
+          strength: o.strength,
+          overreach: o.overreach,
+          rationale: o.rationale,
+        })),
       })),
       device: item.device,
       explanation: item.explanation,

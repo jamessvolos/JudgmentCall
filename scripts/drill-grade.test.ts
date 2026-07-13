@@ -11,7 +11,12 @@ import {
   fieldServesFaithful,
   isCorrectFieldCall,
   isCorrectLedger,
+  parseComposeSlots,
+  composeMaxSafe,
+  composeSafeIndex,
+  isCorrectCompose,
   type StoredChoice,
+  type ComposeSlot,
 } from "../src/lib/drill-grade";
 
 let failures = 0;
@@ -94,6 +99,44 @@ const CLEAN: StoredChoice[] = [
 eq("ledger: clean filing, all HOLDS is CORRECT", isCorrectLedger(CLEAN, [false, false, false]), true);
 eq("ledger: clean filing, any EXCEEDS fails", isCorrectLedger(CLEAN, [false, true, false]), false);
 eq("ledger: empty choices never grade correct", isCorrectLedger([], []), false);
+
+// COMPOSE — max-safe assembly; timidity and overreach both fail. Slot A's safe
+// max is the strength-2 chip (index 1); slot B's is the strength-3 chip (index
+// 2) — a strength-2 OVERREACH sits between, so "pick the boldest" is a trap.
+const CS: ComposeSlot[] = [
+  {
+    label: "A",
+    options: [
+      { text: "timid", strength: 1, overreach: false, rationale: "" },
+      { text: "strong", strength: 2, overreach: false, rationale: "" },
+      { text: "over", strength: 3, overreach: true, rationale: "" },
+    ],
+  },
+  {
+    label: "B",
+    options: [
+      { text: "timid", strength: 1, overreach: false, rationale: "" },
+      { text: "over", strength: 2, overreach: true, rationale: "" },
+      { text: "strong", strength: 3, overreach: false, rationale: "" },
+    ],
+  },
+];
+eq("compose: safe index of A is the strength-2 chip", composeSafeIndex(CS[0]), 1);
+eq("compose: safe index of B is the strength-3 chip", composeSafeIndex(CS[1]), 2);
+eq("compose: max-safe total is 2+3", composeMaxSafe(CS), 5);
+eq("compose: the max-safe assembly is CORRECT", isCorrectCompose(CS, [1, 2]), true);
+eq("compose: a timid slot fails (went soft)", isCorrectCompose(CS, [0, 2]), false);
+eq("compose: an overreaching fragment fails", isCorrectCompose(CS, [2, 2]), false);
+eq("compose: overreach in B fails even with A perfect", isCorrectCompose(CS, [1, 1]), false);
+eq("compose: length mismatch fails", isCorrectCompose(CS, [1]), false);
+eq("compose: out-of-range index fails", isCorrectCompose(CS, [9, 2]), false);
+eq("compose: parseComposeSlots tolerates junk", parseComposeSlots("not json").length, 0);
+eq("compose: parseComposeSlots tolerates null", parseComposeSlots(null).length, 0);
+eq(
+  "compose: parseComposeSlots round-trips valid JSON",
+  parseComposeSlots(JSON.stringify(CS)).length,
+  2
+);
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);

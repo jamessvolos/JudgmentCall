@@ -49,7 +49,7 @@ const SURFACES: {
     label: "Train",
     href: "/train",
     benefit: "Sharpen your eye.",
-    mode: "Three rooms · overreach, statistics, architecture · levels & badges",
+    mode: "Four rooms · statistics, economics, architecture, data storytelling · levels & badges",
   },
   {
     n: "04",

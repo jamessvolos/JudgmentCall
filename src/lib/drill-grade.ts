@@ -106,3 +106,85 @@ export function isCorrectLedger(choices: StoredChoice[], stamps: boolean[]): boo
 export function correctChoiceIndex(choices: StoredChoice[]): number {
   return choices.findIndex((c) => c.correct);
 }
+
+// ---------------------------------------------------------------------------
+// COMPOSE — the generative mode. The learner BUILDS the lede: each slot (in
+// reading order — THE MOVE · THE LINK · THE SCOPE) offers fragment options, and
+// the strongest assembly that never overreaches is the ONE correct answer.
+// Timidity is graded as hard as overreach: a lede that stays fully in-bounds
+// but went soft in any slot is wrong. Rides the same `choices` JSON column,
+// serialized as an array of slots. Authoring guarantees a UNIQUE strongest-safe
+// option per slot (asserted in drill-content.test.ts), so the target is a
+// single exactly-computable value.
+
+export type ComposeOption = { text: string; strength: number; overreach: boolean; rationale: string };
+export type ComposeSlot = { label: string; options: ComposeOption[] };
+
+/** Parse compose slots JSON; never throws (returns [] on bad data). */
+export function parseComposeSlots(json: string | null | undefined): ComposeSlot[] {
+  if (!json) return [];
+  try {
+    const v = JSON.parse(json);
+    if (!Array.isArray(v)) return [];
+    const okOption = (o: unknown): o is ComposeOption => {
+      const r = o as Record<string, unknown>;
+      return (
+        !!r &&
+        typeof r.text === "string" &&
+        typeof r.strength === "number" &&
+        typeof r.overreach === "boolean" &&
+        typeof r.rationale === "string"
+      );
+    };
+    return v.filter(
+      (s) =>
+        s &&
+        typeof s.label === "string" &&
+        Array.isArray(s.options) &&
+        s.options.length >= 2 &&
+        s.options.every(okOption)
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The strongest safe option index in a slot: the highest-strength option that
+ * does not overreach. -1 if the slot has no safe option. With the uniqueness
+ * invariant there are never ties; a tie would resolve to the first.
+ */
+export function composeSafeIndex(slot: ComposeSlot): number {
+  let best = -1;
+  let bestStrength = -Infinity;
+  slot.options.forEach((o, i) => {
+    if (!o.overreach && o.strength > bestStrength) {
+      bestStrength = o.strength;
+      best = i;
+    }
+  });
+  return best;
+}
+
+/** The max-safe total: the strongest safe strength summed across every slot. */
+export function composeMaxSafe(slots: ComposeSlot[]): number {
+  return slots.reduce((sum, s) => {
+    const i = composeSafeIndex(s);
+    return sum + (i >= 0 ? s.options[i].strength : 0);
+  }, 0);
+}
+
+/**
+ * A composed lede is correct iff EVERY fragment stays in bounds AND every slot
+ * is pushed to its strongest safe strength (assembly total == max-safe total).
+ * assembly[i] is the picked option index for slot i. One overreaching fragment
+ * fails the whole lede; so does one timid slot.
+ */
+export function isCorrectCompose(slots: ComposeSlot[], assembly: number[]): boolean {
+  if (slots.length === 0 || assembly.length !== slots.length) return false;
+  const picked = assembly.map((j, i) => slots[i]?.options[j]);
+  if (picked.some((o) => !o)) return false;
+  if (picked.some((o) => o!.overreach)) return false;
+  const total = picked.reduce((s, o) => s + o!.strength, 0);
+  return total === composeMaxSafe(slots);
+}

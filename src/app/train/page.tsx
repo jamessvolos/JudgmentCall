@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 export const metadata: Metadata = {
   title: "Training Rooms · Judgment Call",
   description:
-    "How well-calibrated are you? Answer, stake how sure you are, and see whether your confidence matches your accuracy — across statistics, economics, data architecture, and spotting the overreach. ~2 min.",
+    "How well-calibrated are you? Answer, stake how sure you are, and see whether your confidence matches your accuracy — across statistics, economics, data architecture, and data storytelling. ~2 min.",
 };
 
 // The Training Rooms hub — the doorway to all three skills studios. Each room is
@@ -48,8 +48,8 @@ export default function TrainHub() {
           <RoomCard
             href="/drill"
             kicker="THE ORIGINAL ROOM"
-            title="Spot the overreach"
-            blurb="Catch the telling that outruns its data — the five overclaim moves and five craft flaws. Five modes, case files, a checkpoint exam."
+            title="Data Storytelling"
+            blurb="Tell the data straight — and catch the telling that outruns it. The five overclaim moves and five craft flaws, across five modes, case files, and a checkpoint exam."
           />
         </div>
 

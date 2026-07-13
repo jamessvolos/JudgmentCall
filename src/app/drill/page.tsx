@@ -23,9 +23,10 @@ import { GRADE_META, CREDENTIAL_DEFS, CASE_META, EXAM_META } from "@/lib/drill-c
 // stored, nothing that can inflate.
 
 type ServedChoice = { i: number; text: string };
+type ServedComposeSlot = { i: number; label: string; options: { j: number; text: string }[] };
 type Item = {
   id: string;
-  mode: "spot" | "fix" | "calibrate" | "field" | "ledger";
+  mode: "spot" | "fix" | "calibrate" | "field" | "ledger" | "compose";
   skill: string;
   difficulty: number;
   title: string;
@@ -37,6 +38,7 @@ type Item = {
   t?: string; // field: the one telling
   claims?: ServedChoice[]; // ledger: claims in reading order
   choices?: ServedChoice[];
+  slots?: ServedComposeSlot[]; // compose: the fragment slots in reading order
 };
 type GradeDto = { n: number; roman: string; title: string; earnedAt: string | null };
 type ConferralDto = { code: string; earnedAt: string | null };
@@ -70,6 +72,8 @@ type DrillGet = {
 };
 type RevealClaim = { i: number; text: string; exceeds: boolean; stamped: boolean; rationale: string };
 type RevealChoice = { i: number; text: string; correct: boolean; rationale: string };
+type RevealComposeOption = { j: number; text: string; strength: number; overreach: boolean; rationale: string };
+type RevealComposeSlot = { label: string; picked: number; bestIndex: number; options: RevealComposeOption[] };
 type Verdict = {
   correct: boolean;
   mode: string;
@@ -77,6 +81,7 @@ type Verdict = {
   faithfulSide?: "a" | "b";
   servedFaithful?: boolean; // field: the truth of the one telling on screen
   claims?: RevealClaim[]; // ledger: per-claim truth + the learner's stamps
+  slots?: RevealComposeSlot[]; // compose: per-slot options + the learner's assembly
   device?: string;
   explanation: string;
   choices?: RevealChoice[];
@@ -95,6 +100,7 @@ const MODES: { id: string; label: string; blurb: string }[] = [
   { id: "calibrate", label: "Calibrate", blurb: "Strongest safe claim" },
   { id: "field", label: "Field", blurb: "Call it cold — no pair" },
   { id: "ledger", label: "Ledger", blurb: "Audit every claim" },
+  { id: "compose", label: "Compose", blurb: "Build the lede" },
 ];
 const RUN_LENGTH = 8; // the full sitting
 const DOCKET_LENGTH = 3; // the daily docket — a true 3-minute session
@@ -418,7 +424,7 @@ export default function TrainingRoom() {
   if (phase === "loading") {
     return (
       <main className="mx-auto flex min-h-dvh max-w-2xl items-center justify-center px-5">
-        <p className="font-mono text-sm text-muted">Opening the Training Room…</p>
+        <p className="font-mono text-sm text-muted">Opening the Data Storytelling room…</p>
       </main>
     );
   }
@@ -428,7 +434,7 @@ export default function TrainingRoom() {
       {/* masthead */}
       <div className="flex items-center gap-3">
         <span className="h-px flex-1 bg-rule-strong/40" aria-hidden />
-        <p className="masthead text-ink-strong">The Training Room</p>
+        <p className="masthead text-ink-strong">Data Storytelling</p>
         <span className="h-px flex-1 bg-rule-strong/40" aria-hidden />
       </div>
       <div className="double-rule mt-3" aria-hidden />
@@ -970,6 +976,8 @@ function Run({
         <FieldCall item={item} verdict={verdict} submitting={submitting} onSubmit={onSubmit} />
       ) : item.mode === "ledger" ? (
         <LedgerAudit key={item.id} item={item} verdict={verdict} submitting={submitting} onSubmit={onSubmit} />
+      ) : item.mode === "compose" ? (
+        <ComposeLede key={item.id} item={item} verdict={verdict} submitting={submitting} onSubmit={onSubmit} />
       ) : item.mode === "spot" ? (
         <SpotChoices item={item} verdict={verdict} submitting={submitting} onSubmit={onSubmit} />
       ) : (
@@ -1294,6 +1302,142 @@ function LedgerAudit({
           {allStamped ? "Close the ledger →" : "Stamp every claim to close the ledger"}
         </button>
       )}
+    </div>
+  );
+}
+
+// COMPOSE — the generative mode. The learner builds the lede one fragment at a
+// time: a single-select row per slot (in reading order), with a live serif line
+// assembling their choices above. On reveal, each chosen fragment is stamped
+// held·strong / went soft / overreach — so the learner sees WHY a fully
+// in-bounds lede can still fail for going timid — and the strongest safe lede is
+// assembled whole beneath.
+function ComposeLede({
+  item,
+  verdict,
+  submitting,
+  onSubmit,
+}: {
+  item: Item;
+  verdict: Verdict | null;
+  submitting: boolean;
+  onSubmit: (body: Record<string, unknown>) => void;
+}) {
+  const slots = item.slots ?? [];
+  const [picks, setPicks] = useState<(number | null)[]>(() => slots.map(() => null));
+  const allPicked = picks.every((p) => p !== null);
+  const assembled = slots
+    .map((s, i) => (picks[i] === null ? null : s.options.find((o) => o.j === picks[i])?.text))
+    .filter((t): t is string => !!t)
+    .join(" ");
+
+  // ---- post-verdict reveal: stamp each chosen fragment, assemble the ideal ----
+  if (verdict?.slots) {
+    const stampOf = (s: RevealComposeSlot) => {
+      const chosen = s.options.find((o) => o.j === s.picked);
+      if (!chosen) return { label: "—", tone: "muted" as const };
+      if (chosen.overreach) return { label: "overreach", tone: "danger" as const };
+      if (s.picked !== s.bestIndex) return { label: "went soft", tone: "muted" as const };
+      return { label: "held · strong", tone: "accent" as const };
+    };
+    const idealLede = verdict.slots
+      .map((s) => s.options.find((o) => o.j === s.bestIndex)?.text)
+      .filter(Boolean)
+      .join(" ");
+    return (
+      <div className="mt-4">
+        <div className="space-y-3">
+          {verdict.slots.map((s, i) => {
+            const chosen = s.options.find((o) => o.j === s.picked);
+            const best = s.options.find((o) => o.j === s.bestIndex);
+            const stamp = stampOf(s);
+            const held = stamp.tone === "accent";
+            return (
+              <div
+                key={i}
+                className={`rounded-card border bg-card p-3.5 ${held ? "border-card-border" : "border-danger"}`}
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">{s.label}</span>
+                  <span
+                    className={`shrink-0 font-mono text-[0.625rem] font-semibold uppercase tracking-[0.12em] ${
+                      stamp.tone === "accent" ? "text-accent" : stamp.tone === "danger" ? "text-danger" : "text-muted"
+                    }`}
+                  >
+                    {stamp.label}
+                  </span>
+                </div>
+                <p className="mt-1.5 font-serif text-[1rem] leading-[1.5] text-ink-strong text-pretty">
+                  {chosen?.text}
+                </p>
+                {chosen && <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted text-pretty">{chosen.rationale}</p>}
+                {!held && best && s.bestIndex !== s.picked && (
+                  <p className="mt-2 border-t border-card-border/70 pt-2 text-[0.8125rem] leading-relaxed text-pretty">
+                    <span className="font-mono text-[0.625rem] uppercase tracking-[0.12em] text-accent">strongest safe · </span>
+                    <span className="text-ink-strong">{best.text}</span>
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-3 rounded-card border-l-[3px] border-accent bg-wash px-4 py-3">
+          <p className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">The strongest safe lede</p>
+          <p className="mt-1.5 font-serif text-[1.0625rem] leading-[1.6] text-ink-strong text-pretty">{idealLede}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- pre-verdict: build it ----
+  return (
+    <div className="mt-4">
+      <div className="well rounded-card bg-wash px-4 py-3">
+        <p className="kicker text-muted mb-1.5">Your lede</p>
+        <p className="font-serif text-[1.0625rem] leading-[1.6] text-pretty">
+          {assembled ? (
+            <span className="text-ink-strong">{assembled}</span>
+          ) : (
+            <span className="text-muted">Pick a fragment for each part below — the lede assembles here.</span>
+          )}
+        </p>
+      </div>
+
+      <div className="mt-4 space-y-4">
+        {slots.map((slot, i) => (
+          <div key={slot.i}>
+            <p className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">{slot.label}</p>
+            <div className="mt-1.5 space-y-2">
+              {slot.options.map((opt) => {
+                const selected = picks[i] === opt.j;
+                return (
+                  <button
+                    key={opt.j}
+                    disabled={submitting}
+                    aria-pressed={selected}
+                    onClick={() => setPicks((prev) => prev.map((p, k) => (k === i ? opt.j : p)))}
+                    className={`block w-full rounded-card border px-3.5 py-2.5 text-left transition disabled:cursor-default ${
+                      selected
+                        ? "border-rule-strong bg-card shadow-[var(--shadow-card)]"
+                        : "border-card-border bg-card/40 hover:border-rule-strong"
+                    }`}
+                  >
+                    <span className="font-serif text-[0.9375rem] leading-[1.45] text-ink-strong text-pretty">{opt.text}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        disabled={!allPicked || submitting}
+        onClick={() => onSubmit({ assembly: picks })}
+        className="cta-glow mt-4 w-full rounded-card bg-accent px-4 py-3 font-semibold text-on-accent active:scale-[0.99] disabled:opacity-50"
+      >
+        {allPicked ? "Set the lede →" : "Pick a fragment for every part"}
+      </button>
     </div>
   );
 }

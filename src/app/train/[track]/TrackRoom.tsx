@@ -661,8 +661,8 @@ function Dashboard({ track, standing, rating, otherId, onStart }: {
             <span className="mt-0.5 block font-mono text-[0.65rem] text-muted">{otherTrack.tagline}</span>
           </Link>
           <Link href="/drill" className="rounded-md border border-card-border px-3 py-2 text-sm text-ink-strong transition-colors hover:border-rule-strong">
-            <span className="font-semibold">Spot the overreach</span>
-            <span className="mt-0.5 block font-mono text-[0.65rem] text-muted">The original room — catch a telling that outruns its data</span>
+            <span className="font-semibold">Data Storytelling</span>
+            <span className="mt-0.5 block font-mono text-[0.65rem] text-muted">The original room — tell the data straight, and catch the telling that outruns it</span>
           </Link>
         </div>
       </div>

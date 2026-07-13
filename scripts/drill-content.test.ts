@@ -72,6 +72,33 @@ for (const d of DRILL_SEEDS) {
       ["cause", "single_cause", "extrapolation", "certainty", "base_rate"].includes(d.skill),
       d.skill
     );
+  } else if (d.mode === "compose") {
+    // Compose contract: >=2 slots, each a labelled single-select of 2-4 options
+    // with well-formed strength/overreach, a UNIQUE strongest-safe option per
+    // slot (so the target lede is exactly one assembly), and at least one
+    // overreach fragment somewhere (a real trap).
+    const slots = d.slots ?? [];
+    ok(`compose has 3 slots: ${d.title}`, slots.length >= 2 && slots.length <= 4, `${slots.length}`);
+    let anyOverreach = false;
+    slots.forEach((s, si) => {
+      ok(`compose slot ${si} labelled: ${d.title}`, !!s.label.trim());
+      ok(`compose slot ${si} has 2-4 options: ${d.title}`, s.options.length >= 2 && s.options.length <= 4, `${s.options.length}`);
+      ok(
+        `compose slot ${si} options well-formed: ${d.title}`,
+        s.options.every(
+          (o) => o.text.trim().length > 0 && o.rationale.trim().length > 0 && o.strength >= 1 && o.strength <= 3 && typeof o.overreach === "boolean"
+        )
+      );
+      const safe = s.options.filter((o) => !o.overreach);
+      ok(`compose slot ${si} has a safe option: ${d.title}`, safe.length >= 1, `${safe.length} safe`);
+      if (safe.length) {
+        const maxS = Math.max(...safe.map((o) => o.strength));
+        const topCount = safe.filter((o) => o.strength === maxS).length;
+        ok(`compose slot ${si} unique strongest-safe: ${d.title}`, topCount === 1, `${topCount} tied at strength ${maxS}`);
+      }
+      if (s.options.some((o) => o.overreach)) anyOverreach = true;
+    });
+    ok(`compose has an overreach trap: ${d.title}`, anyOverreach);
   } else {
     const n = (d.choices ?? []).filter((c) => c.correct).length;
     ok(`${d.mode} has exactly one correct: ${d.title}`, n === 1, `${n} correct`);
