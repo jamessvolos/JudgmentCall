@@ -53,6 +53,12 @@ type DuelPayload = {
 type BakeKey = { id: string; label: string; shards: number[]; note: string };
 type BakeoffPayload = { keys: BakeKey[]; best: string; explanation: string };
 type FloodPayload = { sensitivity: number; specificity: number; min: number; max: number; truth: number };
+type MarketPayload = {
+  unit: string; min: number; max: number;
+  lever: "none" | "tax" | "ceiling"; target: "price" | "quantity"; policy: number;
+  demand: { a: number; b: number }; supply: { c: number; d: number };
+  truth: number; naive: number; tol: number;
+};
 
 // GET /api/train?sessionId=...&track=...&topic=... — next item + The Record.
 async function getHandler(request: Request) {
@@ -104,6 +110,12 @@ async function getHandler(request: Request) {
     const p = JSON.parse(it.payload ?? "{}") as FloodPayload;
     // send the test's accuracy + slider frame — never the target prevalence
     item = { ...base, flood: { sensitivity: p.sensitivity, specificity: p.specificity, min: p.min, max: p.max } };
+  } else if (it.kind === "market") {
+    const p = JSON.parse(it.payload ?? "{}") as MarketPayload;
+    // send only the number-line frame + what to predict — never the demand/supply
+    // curves, the naive value, or the truth. The learner commits from intuition;
+    // the market chart is a REVEAL, so the answer can't be back-computed.
+    item = { ...base, market: { unit: p.unit, min: p.min, max: p.max, lever: p.lever, target: p.target } };
   } else {
     const choices = parseChoices(it.choices).map((c, i) => ({ i, text: c.text }));
     item = { ...base, choices: shuffled(choices) };
@@ -204,6 +216,22 @@ async function postHandler(request: Request) {
     const tol = Math.max(2.5, 0.2 * p.truth);
     correct = Math.abs(prevalence - p.truth) <= tol;
     reveal = { truth: p.truth, yourPrev: prevalence, sensitivity: p.sensitivity, specificity: p.specificity, explanation: item.explanation };
+  } else if (item.kind === "market") {
+    const p = JSON.parse(item.payload ?? "{}") as MarketPayload;
+    const value = Number(body?.value);
+    if (!Number.isFinite(value)) return NextResponse.json({ error: "invalid value" }, { status: 400 });
+    correct = Math.abs(value - p.truth) <= p.tol;
+    // naive_trap: landed on the seductive first-order value while missing the truth
+    const naiveTrap = !correct && Math.abs(value - p.naive) <= p.tol;
+    // free-market equilibrium for the reveal chart (server-derived, safe now the pick is in)
+    const eqPrice = (p.demand.a - p.supply.c) / (p.demand.b + p.supply.d);
+    const eqQty = p.demand.a - p.demand.b * eqPrice;
+    reveal = {
+      truth: p.truth, naive: p.naive, yourValue: value, naiveTrap,
+      unit: p.unit, target: p.target, lever: p.lever, policy: p.policy, tol: p.tol,
+      demand: p.demand, supply: p.supply, eqPrice, eqQty,
+      explanation: item.explanation,
+    };
   } else {
     const choices = parseChoices(item.choices);
     const pickedIndex = Number(body?.pickedIndex);

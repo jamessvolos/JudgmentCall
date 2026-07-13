@@ -1,0 +1,202 @@
+[
+ {
+  "title": "econ-mkt-01",
+  "topic": "tax_incidence",
+  "difficulty": 2,
+  "scenario": "A regional market for a boxed good. Demand is Qd = 100 − 2P; supply is Qs = −20 + 3P (P in dollars). A $10-per-unit tax is now collected from sellers.",
+  "prompt": "Predict the price consumers will pay after the $10 seller-side tax.",
+  "unit": "$",
+  "min": 15,
+  "max": 40,
+  "lever": "tax",
+  "target": "price",
+  "policy": 10,
+  "demand": {
+   "a": 100,
+   "b": 2
+  },
+  "supply": {
+   "c": -20,
+   "d": 3
+  },
+  "truth": 30,
+  "naive": 24,
+  "tol": 1.5,
+  "explanation": "Pre-tax the market cleared at P=24. A seller-side tax shifts effective supply up; the new consumer price solves 100−2P = −20+3(P−10), giving Pc=30. Consumers pay $6 of the $10 — most of it — even though sellers remit the tax, because demand here is less elastic than supply. The naive answer ($24, 'sellers just eat it') ignores that."
+ },
+ {
+  "title": "econ-mkt-02",
+  "topic": "tax_incidence",
+  "difficulty": 2,
+  "scenario": "Demand is Qd = 120 − 3P; supply is Qs = 5P (a supplier who ramps up easily). An $8-per-unit tax is collected from sellers.",
+  "prompt": "Predict the price consumers will pay after the $8 seller-side tax.",
+  "unit": "$",
+  "min": 10,
+  "max": 30,
+  "lever": "tax",
+  "target": "price",
+  "policy": 8,
+  "demand": {
+   "a": 120,
+   "b": 3
+  },
+  "supply": {
+   "c": 0,
+   "d": 5
+  },
+  "truth": 20,
+  "naive": 15,
+  "tol": 1.5,
+  "explanation": "Pre-tax P=15. With elastic supply and less-elastic demand, buyers bear more: 120−3P = 5(P−8) gives Pc=20, so consumers absorb $5 of the $8. The more elastic (escapable) side — here supply — shifts the burden onto the inelastic buyers. Naive '$15, unchanged' misses the incidence."
+ },
+ {
+  "title": "econ-mkt-03",
+  "topic": "tax_incidence",
+  "difficulty": 3,
+  "scenario": "Demand is Qd = 90 − P and supply is Qs = −10 + P — equal and opposite slopes, so demand and supply are equally elastic at the equilibrium. A $20 tax is collected from sellers.",
+  "prompt": "Predict the price consumers will pay after the $20 seller-side tax.",
+  "unit": "$",
+  "min": 40,
+  "max": 75,
+  "lever": "tax",
+  "target": "price",
+  "policy": 20,
+  "demand": {
+   "a": 90,
+   "b": 1
+  },
+  "supply": {
+   "c": -10,
+   "d": 1
+  },
+  "truth": 60,
+  "naive": 50,
+  "tol": 2,
+  "explanation": "Pre-tax P=50. With equal elasticities the tax splits exactly in half: the consumer price rises by $10 (half of $20) to $60, and sellers net $40. Equal elasticity is the one case where the 50/50 statutory feel is also the true split — a useful anchor for seeing why unequal elasticities tilt it."
+ },
+ {
+  "title": "econ-mkt-04",
+  "topic": "tax_incidence",
+  "difficulty": 1,
+  "scenario": "A large commodity market: Demand Qd = 200 − 4P, Supply Qs = −40 + 6P. A $5-per-unit tax is collected from sellers.",
+  "prompt": "Predict the price consumers will pay after the $5 seller-side tax.",
+  "unit": "$",
+  "min": 18,
+  "max": 36,
+  "lever": "tax",
+  "target": "price",
+  "policy": 5,
+  "demand": {
+   "a": 200,
+   "b": 4
+  },
+  "supply": {
+   "c": -40,
+   "d": 6
+  },
+  "truth": 27,
+  "naive": 24,
+  "tol": 1,
+  "explanation": "Pre-tax P=24. Supply is more elastic than demand (slope 6 vs 4), so buyers bear the larger share: the consumer price rises $3 of the $5 to $27. Who remits the tax (sellers) again tells you nothing about who pays it."
+ },
+ {
+  "title": "econ-mkt-05",
+  "topic": "secondary_effects",
+  "difficulty": 2,
+  "scenario": "An apartment market clears with Demand Qd = 100 − 2P and Supply Qs = −20 + 3P (P in $100s/month). The city imposes a binding rent ceiling at P = 15.",
+  "prompt": "Predict the number of apartments actually rented under the ceiling.",
+  "unit": " units",
+  "min": 10,
+  "max": 80,
+  "lever": "ceiling",
+  "target": "quantity",
+  "policy": 15,
+  "demand": {
+   "a": 100,
+   "b": 2
+  },
+  "supply": {
+   "c": -20,
+   "d": 3
+  },
+  "truth": 25,
+  "naive": 70,
+  "tol": 4,
+  "explanation": "The free market cleared at P=24, Q=52. At the $15 ceiling, quantity demanded jumps to 70 but quantity supplied falls to 25 — and the short side rules, so only 25 units are actually rented. The naive answer (70, 'everyone who wants one at $15 gets one') forgets that supply contracts; the ceiling creates a 45-unit shortage and houses fewer people than before."
+ },
+ {
+  "title": "econ-mkt-06",
+  "topic": "secondary_effects",
+  "difficulty": 3,
+  "scenario": "A market clears with Demand Qd = 120 − 3P and Supply Qs = 5P. A regulator sets a binding price ceiling at P = 10.",
+  "prompt": "Predict the quantity actually transacted under the ceiling.",
+  "unit": " units",
+  "min": 20,
+  "max": 100,
+  "lever": "ceiling",
+  "target": "quantity",
+  "policy": 10,
+  "demand": {
+   "a": 120,
+   "b": 3
+  },
+  "supply": {
+   "c": 0,
+   "d": 5
+  },
+  "truth": 50,
+  "naive": 90,
+  "tol": 5,
+  "explanation": "Free equilibrium is P=15, Q=75. At the $10 ceiling, demand rises to 90 but supply falls to 50; the short side (supply) determines that just 50 trade. The gap of 40 is the shortage — the unseen cost of the 'affordable' price. Naive 90 counts wishful demand, not what suppliers will actually provide."
+ },
+ {
+  "title": "econ-mkt-07",
+  "topic": "secondary_effects",
+  "difficulty": 1,
+  "scenario": "A small market clears with Demand Qd = 80 − P and Supply Qs = −20 + P. A binding price ceiling is set at P = 40.",
+  "prompt": "Predict the quantity actually transacted under the ceiling.",
+  "unit": " units",
+  "min": 10,
+  "max": 60,
+  "lever": "ceiling",
+  "target": "quantity",
+  "policy": 40,
+  "demand": {
+   "a": 80,
+   "b": 1
+  },
+  "supply": {
+   "c": -20,
+   "d": 1
+  },
+  "truth": 20,
+  "naive": 40,
+  "tol": 3,
+  "explanation": "The market would clear at P=50, Q=30. Hold price down to 40 and supply falls to 20 while demand rises to 40 — the short side means only 20 change hands, fewer than the free-market 30. A ceiling meant to help buyers shrinks the number who actually get the good."
+ },
+ {
+  "title": "econ-mkt-08",
+  "topic": "secondary_effects",
+  "difficulty": 2,
+  "scenario": "A market clears with Demand Qd = 150 − 5P and Supply Qs = 10P. A binding price ceiling is imposed at P = 6.",
+  "prompt": "Predict the quantity actually transacted under the ceiling.",
+  "unit": " units",
+  "min": 20,
+  "max": 140,
+  "lever": "ceiling",
+  "target": "quantity",
+  "policy": 6,
+  "demand": {
+   "a": 150,
+   "b": 5
+  },
+  "supply": {
+   "c": 0,
+   "d": 10
+  },
+  "truth": 60,
+  "naive": 120,
+  "tol": 6,
+  "explanation": "Free equilibrium is P=10, Q=100. At the $6 ceiling, demand climbs to 120 but supply drops to 60; only 60 trade. The ceiling cuts quantity below the free-market level and rations a 60-unit shortage — the opposite of what its supporters intend."
+ }
+]

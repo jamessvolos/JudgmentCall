@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 export const metadata: Metadata = {
   title: "Training Rooms · Judgment Call",
   description:
-    "How well-calibrated are you? Answer, stake how sure you are, and see whether your confidence matches your accuracy — across statistics, data architecture, and spotting the overreach. ~2 min.",
+    "How well-calibrated are you? Answer, stake how sure you are, and see whether your confidence matches your accuracy — across statistics, economics, data architecture, and spotting the overreach. ~2 min.",
 };
 
 // The Training Rooms hub — the doorway to all three skills studios. Each room is

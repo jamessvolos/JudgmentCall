@@ -15,7 +15,7 @@
 // This module is pure (no crypto, no Prisma), so it is safe to import from both
 // the server (repo, API) and the client (the /train page).
 
-export type TrackId = "statistics" | "architecture";
+export type TrackId = "statistics" | "architecture" | "economics";
 
 export type Topic = {
   id: string;
@@ -209,6 +209,77 @@ const ARCH_BADGES: Badge[] = [
   ...CALIBRATION_BADGES,
 ];
 
+// ---------------------------------------------------------------------------
+// ECONOMICS — the winner of the four-firm design competition (Misconception
+// Lab's "The Lever", synthesized with Atelier Marginal's rigorous linear market
+// model + iconic reveal, the naive-intuition ghost marker, and distance-graded
+// feedback). The room overwrites seductive first-order fallacies by making the
+// learner commit a number, stake conviction, then watch the second-order
+// consequence overrun their intuition. See docs/ECON-ROOM.md.
+
+const ECON_TOPICS: Topic[] = [
+  {
+    id: "opportunity_cost",
+    name: "Opportunity Cost",
+    short: "Opp. Cost",
+    concept:
+      "The true cost of any choice is the best alternative you gave up, not the cash you spent. Comparative advantage — and every real tradeoff — follows from it.",
+  },
+  {
+    id: "sunk_cost",
+    name: "Sunk Costs",
+    short: "Sunk Cost",
+    concept:
+      "Money already spent and unrecoverable is irrelevant to the next decision. Only future costs and benefits count — 'we've come too far to quit' is the fallacy talking.",
+  },
+  {
+    id: "nominal_vs_real",
+    name: "Nominal vs Real",
+    short: "Real Terms",
+    concept:
+      "Only inflation-adjusted (real) quantities carry welfare. A raise below inflation is a pay cut; the bigger nominal number is the money illusion at work.",
+  },
+  {
+    id: "secondary_effects",
+    name: "The Unseen",
+    short: "The Unseen",
+    concept:
+      "Every intervention ripples past its visible first-order target. A price ceiling doesn't just lower price — it contracts supply and rations the shortage it created.",
+  },
+  {
+    id: "tax_incidence",
+    name: "Who Really Pays",
+    short: "Incidence",
+    concept:
+      "A tax's burden splits by relative elasticity, not by who legally writes the check. The market drags the price to the split the elasticities dictate.",
+  },
+  {
+    id: "comparative_advantage",
+    name: "Gains from Trade",
+    short: "Trade",
+    concept:
+      "Voluntary trade creates surplus; the pie isn't fixed. Advantage that matters is comparative, not absolute — a trade deficit is not a scoreboard you're losing.",
+  },
+];
+
+const ECON_LEVELS: Level[] = [
+  { n: 1, roman: "I", title: "Folk Economist", floor: null, minCalls: 0, minTopics: 0, minHard: 0, gate: "Walk in. Everyone holds it." },
+  { n: 2, roman: "II", title: "Price-Taker", floor: 1260, minCalls: 8, minTopics: 3, minHard: 0, gate: "Reading at 1260 · 8 calls · three topics faced" },
+  { n: 3, roman: "III", title: "Marginalist", floor: 1350, minCalls: 20, minTopics: 6, minHard: 3, gate: "Reading at 1350 · 20 calls · all six topics faced · 3 subtle-tier calls landed" },
+  { n: 4, roman: "IV", title: "Equilibrium Thinker", floor: 1440, minCalls: 35, minTopics: 6, minHard: 6, gate: "Reading at 1440 · 35 calls · 6 subtle-tier landed · a call in every topic" },
+  { n: 5, roman: "V", title: "The Invisible Hand", floor: 1520, minCalls: 50, minTopics: 6, minHard: 10, gate: "Reading at 1520 · 50 calls · subtle-tier landed across four or more topics" },
+];
+
+const ECON_BADGES: Badge[] = [
+  { code: "sweep", name: "CLEAN SWEEP", tier: "competence", criterion: "Eight consecutive calls, all correct." },
+  { code: "fine_print", name: "SECOND-ORDER SIGHT", tier: "competence", criterion: "Six subtle-tier calls landed, across three or more topics." },
+  { code: "specialist", name: "SPECIALIST", tier: "competence", criterion: "Five correct in a single topic, at least one above the easy tier." },
+  { code: "correction", name: "KILLED A DARLING", tier: "competence", criterion: "A topic that was beating you, beaten: behind in it, then three straight." },
+  { code: "full_map", name: "THE FULL MAP", tier: "exploration", criterion: "Faced all six topics." },
+  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a subtle-tier call in four or more topics — landing it not required." },
+  ...CALIBRATION_BADGES,
+];
+
 export const TRACKS: Record<TrackId, Track> = {
   statistics: {
     id: "statistics",
@@ -234,12 +305,24 @@ export const TRACKS: Record<TrackId, Track> = {
     levels: ARCH_LEVELS,
     badges: ARCH_BADGES,
   },
+  economics: {
+    id: "economics",
+    name: "Economics",
+    room: "THE MARKET ROOM",
+    tagline: "Catch the fallacy before it catches you.",
+    blurb:
+      "Economics is a minefield of seductive first answers — the seller pays the tax, the price cap helps everyone, a raise is a raise, sunk money must be recouped. Each call makes you commit a number and stake how sure you are; then the second-order consequence overruns your intuition, in motion, beside where you guessed.",
+    accentNote: "Rating moves like a chess ladder — the harder the call, the more it swings.",
+    topics: ECON_TOPICS,
+    levels: ECON_LEVELS,
+    badges: ECON_BADGES,
+  },
 };
 
-export const TRACK_IDS: TrackId[] = ["statistics", "architecture"];
+export const TRACK_IDS: TrackId[] = ["statistics", "architecture", "economics"];
 
 export function isTrackId(x: string): x is TrackId {
-  return x === "statistics" || x === "architecture";
+  return x === "statistics" || x === "architecture" || x === "economics";
 }
 
 export function getTrack(id: string): Track | null {

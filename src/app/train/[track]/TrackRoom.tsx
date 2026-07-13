@@ -29,7 +29,7 @@ type ItemDto = {
   id: string;
   track: string;
   topic: string;
-  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market";
   difficulty: number;
   scenario: string;
   prompt: string;
@@ -38,6 +38,7 @@ type ItemDto = {
   duel?: { constraint: string; designA: DuelDesign; designB: DuelDesign };
   bakeoff?: { keys: BakeKeyLite[] };
   flood?: { sensitivity: number; specificity: number; min: number; max: number };
+  market?: { unit: string; min: number; max: number; lever: "none" | "tax" | "ceiling"; target: "price" | "quantity" };
 };
 type LevelDto = { n: number; roman: string; title: string; floor: number | null; gate: string };
 type CalBinDto = { lo: number; hi: number; meanConf: number; accuracy: number; count: number };
@@ -73,7 +74,7 @@ type GetDto = { item: ItemDto | null; remaining: number; liveRating: number; cou
 type RevealChoice = { i: number; text: string; correct: boolean; rationale: string };
 type PostDto = {
   correct: boolean;
-  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market";
   topic: string;
   confidence: number | null;
   // mcq
@@ -102,6 +103,18 @@ type PostDto = {
   yourPrev?: number;
   sensitivity?: number;
   specificity?: number;
+  // market
+  naive?: number;
+  yourValue?: number;
+  naiveTrap?: boolean;
+  target?: "price" | "quantity";
+  lever?: "none" | "tax" | "ceiling";
+  policy?: number;
+  demand?: { a: number; b: number };
+  supply?: { c: number; d: number };
+  eqPrice?: number;
+  eqQty?: number;
+  tol?: number;
   liveRating: number;
   ratingDelta: number;
   count: number;
@@ -243,7 +256,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
   );
 
   const submit = useCallback(
-    async (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string; prevalence?: number }, confidence: number | null) => {
+    async (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string; prevalence?: number; value?: number }, confidence: number | null) => {
       if (!item || submitting || reveal) return;
       setSubmitting(true);
       try {
@@ -683,11 +696,11 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
   track: Track; item: ItemDto; reveal: PostDto | null; submitting: boolean; rating: number;
   position: number; total: number; levelRoman: string; firstEver: boolean;
   runMode: RunMode; pot: number;
-  onSubmit: (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string; prevalence?: number }, confidence: number | null) => void;
+  onSubmit: (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string; prevalence?: number; value?: number }, confidence: number | null) => void;
   onNext: () => void; onBank: () => void;
 }) {
   const topic = topicOf(track, item.topic);
-  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : item.kind === "flood" ? "BASE-RATE" : "CALL";
+  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : item.kind === "flood" ? "BASE-RATE" : item.kind === "market" ? "MARKET" : "CALL";
   const [hintOpen, setHintOpen] = useState(true);
   const descent = runMode === "descent";
   // the post-reveal control: descent shows Bank/Deeper (or Surface on a bust);
@@ -738,6 +751,7 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
       {item.kind === "duel" && <DuelCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
       {item.kind === "bakeoff" && <BakeoffCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
       {item.kind === "flood" && <FloodCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
+      {item.kind === "market" && <MarketCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
     </div>
   );
 }
@@ -1241,6 +1255,140 @@ function FloodCall({ item, reveal, submitting, onSubmit, postReveal }: {
           <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted">
             You said {reveal.yourPrev}% · PPV hits 50% at {reveal.truth}% prevalence
           </p>
+          <p className="mt-2 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
+          {postReveal}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ---- MARKET (economics signature: predict one number, then the second-order
+// consequence overruns your intuition beside where you guessed) ---------------
+// The supply/demand chart is a REVEAL only — pre-commit the learner predicts
+// from the written scenario, so the answer can't be back-computed and the task
+// stays a calibration of intuition, not an algebra drill.
+function MarketChart({ reveal }: { reveal: PostDto }) {
+  const d = reveal.demand, s = reveal.supply;
+  if (!d || !s || reveal.eqPrice == null || reveal.eqQty == null) return null;
+  const W = 300, H = 190, pad = 26;
+  const yMax = Math.max(d.a / d.b, (reveal.truth ?? 0) + (reveal.policy ?? 0)) * 1.08;
+  const xMax = Math.max(d.a, reveal.eqQty * 1.3) * 1.02;
+  const sx = (q: number) => pad + Math.max(0, Math.min(1, q / xMax)) * (W - 2 * pad);
+  const sy = (p: number) => H - pad - Math.max(0, Math.min(1, p / yMax)) * (H - 2 * pad);
+  // demand: P=a/b at Q=0 → P=0 at Q=a ; supply: Qs=c+dP over [pLow, yMax]
+  const pLow = Math.max(0, -s.c / s.d);
+  const isTax = reveal.lever === "tax";
+  const isCeil = reveal.lever === "ceiling";
+  const pc = reveal.truth ?? 0; // tax: consumer price
+  const ps = isTax ? pc - (reveal.policy ?? 0) : 0;
+  const ceilP = reveal.policy ?? 0;
+  const qCeil = reveal.truth ?? 0; // ceiling: transacted (short side)
+  const qCeilD = reveal.naive ?? 0; // ceiling: demanded (naive)
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full max-w-[340px]" role="img" aria-label="Supply and demand chart with the policy outcome">
+      <line x1={pad} y1={H - pad} x2={W - pad} y2={H - pad} className="stroke-card-border" strokeWidth={1} />
+      <line x1={pad} y1={pad} x2={pad} y2={H - pad} className="stroke-card-border" strokeWidth={1} />
+      {/* demand + supply */}
+      <line x1={sx(0)} y1={sy(d.a / d.b)} x2={sx(d.a)} y2={sy(0)} className="stroke-accent" strokeWidth={1.5} />
+      <line x1={sx(s.c + s.d * pLow)} y1={sy(pLow)} x2={sx(s.c + s.d * yMax)} y2={sy(yMax)} className="stroke-foreground" strokeWidth={1.5} />
+      {/* free equilibrium */}
+      <circle cx={sx(reveal.eqQty)} cy={sy(reveal.eqPrice)} r={3} className="fill-muted" />
+      <text x={sx(reveal.eqQty) + 4} y={sy(reveal.eqPrice) - 4} className="fill-muted" style={{ fontSize: 7, fontFamily: "var(--font-mono)" }}>eq</text>
+      {isTax && (
+        <>
+          <line x1={pad} y1={sy(pc)} x2={sx(d.a - d.b * pc)} y2={sy(pc)} className="stroke-danger" strokeDasharray="3 2" strokeWidth={1} />
+          <line x1={pad} y1={sy(ps)} x2={sx(d.a - d.b * pc)} y2={sy(ps)} className="stroke-rule-strong" strokeDasharray="3 2" strokeWidth={1} />
+          <text x={pad + 2} y={sy(pc) - 3} className="fill-danger" style={{ fontSize: 7, fontFamily: "var(--font-mono)" }}>buyers pay</text>
+          <text x={pad + 2} y={sy(ps) + 9} className="fill-muted" style={{ fontSize: 7, fontFamily: "var(--font-mono)" }}>sellers get</text>
+        </>
+      )}
+      {isCeil && (
+        <>
+          <line x1={pad} y1={sy(ceilP)} x2={W - pad} y2={sy(ceilP)} className="stroke-danger" strokeDasharray="3 2" strokeWidth={1} />
+          <line x1={sx(qCeil)} y1={sy(ceilP)} x2={sx(qCeilD)} y2={sy(ceilP)} className="stroke-danger" strokeWidth={3} />
+          <text x={pad + 2} y={sy(ceilP) - 3} className="fill-danger" style={{ fontSize: 7, fontFamily: "var(--font-mono)" }}>ceiling · shortage</text>
+        </>
+      )}
+      <text x={W - pad} y={H - pad + 9} textAnchor="end" className="fill-muted/70" style={{ fontSize: 7, fontFamily: "var(--font-mono)" }}>quantity →</text>
+      <text x={pad - 4} y={pad} textAnchor="end" className="fill-muted/70" style={{ fontSize: 7, fontFamily: "var(--font-mono)" }}>price</text>
+    </svg>
+  );
+}
+function MarketCall({ item, reveal, submitting, onSubmit, postReveal }: {
+  item: ItemDto; reveal: PostDto | null; submitting: boolean;
+  onSubmit: (a: { value: number }, c: number | null) => void; postReveal: ReactNode;
+}) {
+  const m = item.market!;
+  const span = m.max - m.min;
+  const [value, setValue] = useState(Math.round((m.min + span / 2) * 10) / 10);
+  const [conviction, setConviction] = useState<number | null>(null);
+  const step = Math.max(0.1, Math.round((span / 100) * 10) / 10);
+  const unit = m.unit;
+  const fmt = (v: number) => `${Math.round(v * 10) / 10}${unit}`;
+  // reveal caliper strip: your guess, the naive ghost, the truth, distance-shaded
+  const cx = (v: number) => `${Math.max(0, Math.min(100, ((v - m.min) / span) * 100))}%`;
+  const off = reveal ? Math.abs((reveal.yourValue ?? 0) - (reveal.truth ?? 0)) : 0;
+  const within = reveal ? off <= (reveal.tol ?? 0) : false;
+  return (
+    <>
+      <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The market</p>
+        <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
+      </div>
+      <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
+      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">Predict from the setup — the supply &amp; demand curves are revealed after you commit.</p>
+
+      {!reveal ? (
+        <>
+          <div className="mt-4 rounded-lg border border-card-border bg-card px-4 py-4">
+            <div className="flex items-baseline justify-between font-mono text-[0.7rem] text-muted">
+              <span>your {m.target}</span>
+              <span className="tabular-nums text-ink-strong text-sm">{fmt(value)}</span>
+            </div>
+            <input type="range" min={m.min} max={m.max} step={step} value={value} onChange={(e) => setValue(Number(e.target.value))} aria-label={`predicted ${m.target}`} className="mt-2 w-full accent-[var(--accent)]" />
+            <div className="mt-1 flex justify-between font-mono text-[0.55rem] text-muted/70"><span>{fmt(m.min)}</span><span>{fmt(m.max)}</span></div>
+            <div className="mt-3 flex items-center justify-center gap-2 font-mono text-[0.65rem]">
+              <button onClick={() => setValue((v) => Math.max(m.min, Math.round((v - step) * 10) / 10))} className="rounded border border-card-border px-2 py-0.5 text-accent" aria-label="decrease">−</button>
+              <span className="tabular-nums text-foreground">{fmt(value)}</span>
+              <button onClick={() => setValue((v) => Math.min(m.max, Math.round((v + step) * 10) / 10))} className="rounded border border-card-border px-2 py-0.5 text-accent" aria-label="increase">+</button>
+            </div>
+          </div>
+          <ConvictionBar floor={50} conviction={conviction} setConviction={setConviction} submitting={submitting} onCommit={() => onSubmit({ value }, conviction)} />
+        </>
+      ) : (
+        <div className="verdict-card-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+          <RevealHeader correct={reveal.correct} delta={reveal.ratingDelta} rating={reveal.liveRating} />
+          {reveal.confidence != null && <ConvictionEcho confidence={reveal.confidence} correct={reveal.correct} />}
+          <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted">
+            You said {fmt(reveal.yourValue ?? 0)} · the market settles at {fmt(reveal.truth ?? 0)}
+            {!within && <span className="text-muted/70"> · off by {fmt(off)}</span>}
+          </p>
+          {reveal.naiveTrap && (
+            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">You landed on the intuition — the seductive first-order answer.</p>
+          )}
+          {/* caliper strip: your guess · the intuition · the truth, distance-shaded */}
+          <div className="relative mt-4 h-9">
+            <div className="absolute left-0 right-0 top-4 h-px bg-card-border" />
+            {/* distance bar from guess to truth */}
+            <div className={`absolute top-4 h-1 -translate-y-1/2 rounded ${within ? "bg-accent/40" : "bg-danger/40"}`}
+              style={{ left: cx(Math.min(reveal.yourValue ?? 0, reveal.truth ?? 0)), width: `calc(${cx(Math.max(reveal.yourValue ?? 0, reveal.truth ?? 0))} - ${cx(Math.min(reveal.yourValue ?? 0, reveal.truth ?? 0))})` }} />
+            {reveal.naive != null && Math.abs((reveal.naive ?? 0) - (reveal.truth ?? 0)) > 0.01 && (
+              <div className="absolute top-4 -translate-x-1/2 -translate-y-1/2" style={{ left: cx(reveal.naive) }}>
+                <span className="block h-2.5 w-px bg-muted/60" />
+                <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem] text-muted/70">intuition</span>
+              </div>
+            )}
+            <div className={`absolute top-4 -translate-x-1/2 -translate-y-1/2 ${within ? "text-accent" : "text-danger"}`} style={{ left: cx(reveal.yourValue ?? 0) }}>
+              <span className="block h-3 w-0.5 bg-current" />
+              <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">you</span>
+            </div>
+            <div className="absolute top-4 -translate-x-1/2 -translate-y-1/2 text-ink-strong" style={{ left: cx(reveal.truth ?? 0) }}>
+              <span className="block h-3 w-0.5 bg-current" />
+              <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">market</span>
+            </div>
+          </div>
+          <div className="mt-3 flex justify-center"><MarketChart reveal={reveal} /></div>
           <p className="mt-2 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
           {postReveal}
         </div>

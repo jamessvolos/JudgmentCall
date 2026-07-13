@@ -7,9 +7,9 @@
 import type { PrismaClient } from "@prisma/client";
 
 export type QuizChoice = { text: string; correct: boolean; rationale: string };
-export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood";
+export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market";
 export type QuizSeed = {
-  track: "statistics" | "architecture";
+  track: "statistics" | "architecture" | "economics";
   title: string; // stable natural key for idempotent sync
   topic: string;
   kind: QuizKind;
@@ -1650,6 +1650,600 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     ],
     "payload": null,
     "explanation": "EAV buys flexibility you don't need when the schema is known, and charges for it with self-joins, no type checking, and no per-field indexes or constraints. Model known fields as columns; reserve EAV for truly sparse, open-ended attributes."
+  },
+  {
+    "track": "economics",
+    "title": "econ-opp-01",
+    "topic": "opportunity_cost",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "You have a free ticket to Concert A, which you'd value at $50. The same night, Concert B costs $40 and you'd value it at $70. You can only attend one.",
+    "prompt": "What is the opportunity cost of going to Concert A?",
+    "choices": [
+      {
+        "text": "$30 — the net benefit of B you gave up ($70 value − $40 price).",
+        "correct": true,
+        "rationale": "Opportunity cost is the value of the best forgone alternative, net of its own cost."
+      },
+      {
+        "text": "$0 — your ticket to A was free.",
+        "correct": false,
+        "rationale": "'Free' ignores the forgone alternative; the cost of A is what you didn't get from B."
+      },
+      {
+        "text": "$40 — the price of the ticket to B.",
+        "correct": false,
+        "rationale": "The cost isn't B's price alone; it's B's net benefit ($70−$40) that you forgo."
+      },
+      {
+        "text": "$70 — the full value of B.",
+        "correct": false,
+        "rationale": "You'd have paid $40 for B, so the forgone net benefit is $30, not $70."
+      }
+    ],
+    "payload": null,
+    "explanation": "Opportunity cost = the best alternative forgone, valued net of its own cost. Concert A isn't free: choosing it costs you B's net benefit of $30."
+  },
+  {
+    "track": "economics",
+    "title": "econ-opp-02",
+    "topic": "opportunity_cost",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "A lawyer bills $500/hour and can type her own legal briefs twice as fast as her assistant, who is paid $20/hour.",
+    "prompt": "Should the lawyer type her own briefs?",
+    "choices": [
+      {
+        "text": "No — her hour is far more valuable spent billing; the assistant has the comparative advantage in typing.",
+        "correct": true,
+        "rationale": "Comparative advantage depends on opportunity cost, not raw speed: the lawyer's typing hour costs $500 of billing."
+      },
+      {
+        "text": "Yes — she's literally faster at typing, so it's more efficient for her to do it.",
+        "correct": false,
+        "rationale": "Absolute advantage in typing is irrelevant; her opportunity cost of typing is enormous."
+      },
+      {
+        "text": "Yes — paying the assistant is an extra expense she can avoid.",
+        "correct": false,
+        "rationale": "Avoiding $20 of wage to lose $500 of billing is a bad trade."
+      },
+      {
+        "text": "It doesn't matter — the briefs get done either way.",
+        "correct": false,
+        "rationale": "It matters a lot: the allocation of her scarce hour determines total value produced."
+      }
+    ],
+    "payload": null,
+    "explanation": "Even with an absolute advantage at both tasks, you specialize where your opportunity cost is lowest. The lawyer's comparative advantage is lawyering; typing is the assistant's."
+  },
+  {
+    "track": "economics",
+    "title": "econ-opp-03",
+    "topic": "opportunity_cost",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "A city owns 10 acres downtown. Used as a park it yields $2M of civic value; the identical land developed as housing would yield $9M.",
+    "prompt": "What is the economic cost of choosing the park?",
+    "choices": [
+      {
+        "text": "$9M — the housing value forgone.",
+        "correct": true,
+        "rationale": "The cost of the park is the best alternative use given up, which is the $9M of housing value."
+      },
+      {
+        "text": "$0 — the city already owns the land.",
+        "correct": false,
+        "rationale": "Owning it doesn't make it free; the forgone $9M is a real cost."
+      },
+      {
+        "text": "$2M — the value the park produces.",
+        "correct": false,
+        "rationale": "That's the park's benefit, not its cost."
+      },
+      {
+        "text": "$7M — the difference between the two.",
+        "correct": false,
+        "rationale": "The net loss is $7M, but the opportunity *cost* of the park is the full $9M forgone."
+      }
+    ],
+    "payload": null,
+    "explanation": "Opportunity cost applies even to owned resources: the cost of any use is the most valuable alternative sacrificed — here, $9M of housing."
+  },
+  {
+    "track": "economics",
+    "title": "econ-sunk-01",
+    "topic": "sunk_cost",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "You prepaid $15 for a movie. Forty minutes in, it's dull. Staying costs you 80 more minutes you'd enjoy more elsewhere; the $15 is non-refundable.",
+    "prompt": "How should the $15 weigh in your decision to stay or leave?",
+    "choices": [
+      {
+        "text": "Not at all — it's spent either way, so only the next 80 minutes matter.",
+        "correct": true,
+        "rationale": "Sunk costs are irrelevant to forward-looking decisions; the ticket price is gone regardless of your choice."
+      },
+      {
+        "text": "It's a strong reason to stay — you paid for it.",
+        "correct": false,
+        "rationale": "Staying doesn't recover the $15; it only spends 80 more minutes badly."
+      },
+      {
+        "text": "Stay for at least half to 'get your money's worth.'",
+        "correct": false,
+        "rationale": "There's no money to get back; 'money's worth' is the sunk-cost fallacy."
+      },
+      {
+        "text": "Leave only if you can get a refund.",
+        "correct": false,
+        "rationale": "The refund is off the table; the decision turns purely on the value of your next 80 minutes."
+      }
+    ],
+    "payload": null,
+    "explanation": "A sunk cost can't be recovered by any future action, so it should carry zero weight. Compare only future costs and benefits: 80 minutes here vs. elsewhere."
+  },
+  {
+    "track": "economics",
+    "title": "econ-sunk-02",
+    "topic": "sunk_cost",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "A startup has spent $2M and 18 months building Feature X. A fresh analysis shows finishing it will cost another $500k, and the finished feature will generate about $300k in value.",
+    "prompt": "What's the right call?",
+    "choices": [
+      {
+        "text": "Stop — the forward cost ($500k) exceeds the forward benefit ($300k); the $2M is gone regardless.",
+        "correct": true,
+        "rationale": "Only future cash flows matter: spending $500k to earn $300k destroys $200k more."
+      },
+      {
+        "text": "Finish it — abandoning $2M of work would waste the investment.",
+        "correct": false,
+        "rationale": "The $2M is already spent; 'wasting' it is the sunk-cost fallacy driving good money after bad."
+      },
+      {
+        "text": "Finish it — you're 80% done.",
+        "correct": false,
+        "rationale": "Percent-complete is about sunk effort, not the forward $500k-for-$300k comparison."
+      },
+      {
+        "text": "Finish it if morale would suffer otherwise.",
+        "correct": false,
+        "rationale": "Morale is a real but separate factor; on the economics alone, finishing loses another $200k."
+      }
+    ],
+    "payload": null,
+    "explanation": "Ignore the $2M — it's sunk. The decision is $500k of future cost for $300k of future benefit, which is a net loss. Kill it."
+  },
+  {
+    "track": "economics",
+    "title": "econ-sunk-03",
+    "topic": "sunk_cost",
+    "kind": "mcq",
+    "difficulty": 3,
+    "scenario": "An airline has spent $100M developing a new route's brand and gates. New data shows operating it will lose $5M/year indefinitely, and there's no resale value in the sunk assets.",
+    "prompt": "The $100M already spent should change the shutdown decision by how much?",
+    "choices": [
+      {
+        "text": "Not at all — with no salvage value, the $100M is pure sunk cost; a route losing $5M/year forever should close.",
+        "correct": true,
+        "rationale": "Irreversible, non-recoverable costs are irrelevant; the forward-looking loss decides it."
+      },
+      {
+        "text": "It justifies keeping the route to avoid writing off $100M.",
+        "correct": false,
+        "rationale": "The write-off happens regardless of whether you keep flying at a loss."
+      },
+      {
+        "text": "It should be amortized against the yearly loss to see if it 'pays back.'",
+        "correct": false,
+        "rationale": "There's nothing to pay back; the $100M is gone whether you operate or not."
+      },
+      {
+        "text": "It means you should raise prices until the $100M is recouped.",
+        "correct": false,
+        "rationale": "If demand supported profitable prices you wouldn't be losing $5M/year; the sunk cost can't be recouped by wishful pricing."
+      }
+    ],
+    "payload": null,
+    "explanation": "Sunk and unsalvageable means weight zero. A route that loses money every year with no path to profit should close, no matter how much was spent to build it."
+  },
+  {
+    "track": "economics",
+    "title": "econ-real-01",
+    "topic": "nominal_vs_real",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "Your salary rose 3% this year. Over the same year, consumer prices rose 4%.",
+    "prompt": "Are you better off in what your pay can buy?",
+    "choices": [
+      {
+        "text": "No — your real wage fell about 1%; prices outran your raise.",
+        "correct": true,
+        "rationale": "Real change ≈ nominal change − inflation = 3% − 4% = −1%."
+      },
+      {
+        "text": "Yes — a 3% raise is more money than before.",
+        "correct": false,
+        "rationale": "More nominal dollars that buy less is the money illusion; purchasing power fell."
+      },
+      {
+        "text": "It's unchanged — a raise cancels inflation.",
+        "correct": false,
+        "rationale": "Only if the raise matched inflation; 3% < 4%, so you lost ground."
+      },
+      {
+        "text": "Can't tell without knowing the dollar amounts.",
+        "correct": false,
+        "rationale": "Percentages suffice: real ≈ 3% − 4% = −1% regardless of the base."
+      }
+    ],
+    "payload": null,
+    "explanation": "Welfare depends on real, not nominal, quantities. A 3% raise against 4% inflation is roughly a 1% pay cut in purchasing power."
+  },
+  {
+    "track": "economics",
+    "title": "econ-real-02",
+    "topic": "nominal_vs_real",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "A savings account pays 5% nominal interest this year. Inflation runs 6%.",
+    "prompt": "What happens to the purchasing power of the money you keep in it?",
+    "choices": [
+      {
+        "text": "It falls about 1% — the real interest rate is negative (5% − 6%).",
+        "correct": true,
+        "rationale": "Real return ≈ nominal rate − inflation; here that's −1%."
+      },
+      {
+        "text": "It rises 5% — you earned interest.",
+        "correct": false,
+        "rationale": "The 5% is nominal; prices rose faster, so real purchasing power fell."
+      },
+      {
+        "text": "It's unchanged — interest offsets inflation.",
+        "correct": false,
+        "rationale": "Only if the rate matched inflation; 5% < 6% leaves a real loss."
+      },
+      {
+        "text": "It rises 11% — interest plus inflation.",
+        "correct": false,
+        "rationale": "You don't add inflation to interest; you subtract it to get the real return."
+      }
+    ],
+    "payload": null,
+    "explanation": "A positive nominal interest rate can still be a real loss. At 5% nominal and 6% inflation, savers lose about 1% of purchasing power."
+  },
+  {
+    "track": "economics",
+    "title": "econ-real-03",
+    "topic": "nominal_vs_real",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "Over 20 years a house's price 'doubled.' Over the same period, the general price level also doubled.",
+    "prompt": "In real (inflation-adjusted) terms, what happened to the house's value?",
+    "choices": [
+      {
+        "text": "It roughly held its value — the doubling just tracked overall inflation.",
+        "correct": true,
+        "rationale": "If the price and the price level both double, the real (relative) price is about unchanged."
+      },
+      {
+        "text": "It doubled in real terms — the price went up 100%.",
+        "correct": false,
+        "rationale": "That's the nominal gain; adjusting for the same-size inflation leaves ~0 real gain."
+      },
+      {
+        "text": "It quadrupled — price growth compounds with inflation.",
+        "correct": false,
+        "rationale": "You divide by the price level, not multiply; the real change is ~0."
+      },
+      {
+        "text": "It lost half its value.",
+        "correct": false,
+        "rationale": "It kept pace with inflation, so it neither gained nor lost much in real terms."
+      }
+    ],
+    "payload": null,
+    "explanation": "A nominal doubling that merely matches a doubling of the price level is no real gain. Always deflate nominal growth by inflation before calling it a return."
+  },
+  {
+    "track": "economics",
+    "title": "econ-unseen-01",
+    "topic": "secondary_effects",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "A city imposes a rent ceiling well below the market rent and it binds.",
+    "prompt": "What is the most predictable secondary effect, beyond the lower price?",
+    "choices": [
+      {
+        "text": "A housing shortage — quantity demanded rises while quantity supplied falls.",
+        "correct": true,
+        "rationale": "Below-equilibrium price raises demand and cuts supply; the gap is a shortage."
+      },
+      {
+        "text": "Everyone who wants an apartment at the capped price now gets one.",
+        "correct": false,
+        "rationale": "That ignores the supply contraction; fewer units are offered, not more."
+      },
+      {
+        "text": "Landlords simply accept lower profits with no other change.",
+        "correct": false,
+        "rationale": "Many convert, defer maintenance, or exit — supply falls, the first-order view misses this."
+      },
+      {
+        "text": "Housing quality improves as landlords compete.",
+        "correct": false,
+        "rationale": "With excess demand, landlords have less incentive to maintain quality, not more."
+      }
+    ],
+    "payload": null,
+    "explanation": "A binding price ceiling doesn't just lower price — it contracts supply and creates a shortage, then rations it (queues, connections). The unseen effect dominates."
+  },
+  {
+    "track": "economics",
+    "title": "econ-unseen-02",
+    "topic": "secondary_effects",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "To make insulin 'affordable,' a government caps its price far below production cost and it binds.",
+    "prompt": "What's the most likely secondary effect?",
+    "choices": [
+      {
+        "text": "Shortages and supplier exit — producing below cost isn't sustainable, so quantity supplied drops.",
+        "correct": true,
+        "rationale": "A price below cost drives suppliers out; the visible low price hides an invisible shortage."
+      },
+      {
+        "text": "Manufacturers absorb the loss and output is unchanged.",
+        "correct": false,
+        "rationale": "Firms don't produce indefinitely below cost; supply contracts."
+      },
+      {
+        "text": "Demand falls because the low price signals low quality.",
+        "correct": false,
+        "rationale": "The binding constraint is collapsing supply, not a demand-side quality signal."
+      },
+      {
+        "text": "Everyone who needs insulin now reliably gets it.",
+        "correct": false,
+        "rationale": "A shortage means the opposite: rationing, gray markets, and unmet need."
+      }
+    ],
+    "payload": null,
+    "explanation": "Capping price below cost targets the visible price but triggers the unseen effect: supply dries up. Affordability on paper becomes unavailability in practice."
+  },
+  {
+    "track": "economics",
+    "title": "econ-unseen-03",
+    "topic": "secondary_effects",
+    "kind": "mcq",
+    "difficulty": 3,
+    "scenario": "After a hurricane, a state enforces anti-'price-gouging' rules freezing prices at pre-storm levels for water and fuel.",
+    "prompt": "What's the most likely effect on getting scarce supplies to those who need them?",
+    "choices": [
+      {
+        "text": "It gets worse — frozen prices kill the incentive to rush supply in and to ration use, so shortages persist.",
+        "correct": true,
+        "rationale": "Prices coordinate supply and rationing; freezing them removes both signals when they're needed most."
+      },
+      {
+        "text": "It gets better — low prices guarantee fair access for everyone.",
+        "correct": false,
+        "rationale": "Low prices with fixed supply produce shortages and queues, not access."
+      },
+      {
+        "text": "No effect — supply after a disaster is fixed regardless of price.",
+        "correct": false,
+        "rationale": "Higher prices draw in outside supply and curb hoarding; freezing them prevents both."
+      },
+      {
+        "text": "Prices are irrelevant in emergencies.",
+        "correct": false,
+        "rationale": "Prices matter most under scarcity — they're the mechanism that moves goods to where they're most valued."
+      }
+    ],
+    "payload": null,
+    "explanation": "The seen effect is a 'fair' low price; the unseen effect is that no one rushes water in and buyers hoard, deepening the shortage. Prices are a coordination signal, not just a number."
+  },
+  {
+    "track": "economics",
+    "title": "econ-tax-01",
+    "topic": "tax_incidence",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "A $2/unit tax is legally collected from sellers of a good. Demand is nearly vertical (very inelastic); supply is elastic.",
+    "prompt": "Who bears most of the $2 tax?",
+    "choices": [
+      {
+        "text": "Consumers — the inelastic side can't escape, so it eats most of the burden.",
+        "correct": true,
+        "rationale": "Burden falls on the less elastic side, regardless of who remits the tax."
+      },
+      {
+        "text": "Sellers — the tax is collected from them.",
+        "correct": false,
+        "rationale": "Statutory incidence (who remits) is not economic incidence (who bears)."
+      },
+      {
+        "text": "Split evenly, $1 each.",
+        "correct": false,
+        "rationale": "Even splits happen only with equal elasticities; here demand is far less elastic."
+      },
+      {
+        "text": "The government, since it designed the tax.",
+        "correct": false,
+        "rationale": "The tax revenue comes out of buyers' and sellers' surplus, split by elasticity."
+      }
+    ],
+    "payload": null,
+    "explanation": "Incidence follows elasticity, not the legal collection point. With inelastic demand and elastic supply, consumers bear most of the tax even though sellers write the check."
+  },
+  {
+    "track": "economics",
+    "title": "econ-tax-02",
+    "topic": "tax_incidence",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "A payroll tax is legally split 50/50 between employer and employee. Labor supply is much less elastic than labor demand (workers can't easily stop working; firms can more easily cut jobs).",
+    "prompt": "Who really bears most of the payroll tax?",
+    "choices": [
+      {
+        "text": "Workers — the inelastic side bears more, regardless of the 50/50 legal split.",
+        "correct": true,
+        "rationale": "Economic incidence is set by relative elasticity; inelastic labor supply means workers absorb most of it via lower wages."
+      },
+      {
+        "text": "Employers — they're legally responsible for half and set wages.",
+        "correct": false,
+        "rationale": "Legal responsibility isn't economic burden; wages adjust so workers bear more."
+      },
+      {
+        "text": "Exactly 50/50, matching the statutory split.",
+        "correct": false,
+        "rationale": "The statutory split rarely equals the economic split; elasticities decide."
+      },
+      {
+        "text": "Neither — the tax is passed entirely to consumers of the firm's product.",
+        "correct": false,
+        "rationale": "Some may reach consumers, but between the two labor-market sides, the inelastic workers bear most."
+      }
+    ],
+    "payload": null,
+    "explanation": "A 50/50 legal split says nothing about who truly pays. Because labor supply is less elastic than demand, workers bear most of a payroll tax through lower take-home wages."
+  },
+  {
+    "track": "economics",
+    "title": "econ-tax-03",
+    "topic": "tax_incidence",
+    "kind": "mcq",
+    "difficulty": 3,
+    "scenario": "In the early 1990s the U.S. taxed luxury yachts, levied on buyers. Yacht demand is very elastic (buyers can spend on other luxuries); yacht supply is relatively inelastic in the short run.",
+    "prompt": "Who ended up bearing most of the tax?",
+    "choices": [
+      {
+        "text": "Producers and their workers — the inelastic supply side, as buyers simply bought other luxuries.",
+        "correct": true,
+        "rationale": "The elastic side escapes; the inelastic side (boatbuilders) absorbs the burden."
+      },
+      {
+        "text": "Wealthy buyers — the tax was charged to them.",
+        "correct": false,
+        "rationale": "Elastic buyers walked away, so they escaped most of the burden despite remitting it."
+      },
+      {
+        "text": "Split evenly between buyers and builders.",
+        "correct": false,
+        "rationale": "Very different elasticities produce a lopsided split toward the inelastic builders."
+      },
+      {
+        "text": "The government captured it all as revenue.",
+        "correct": false,
+        "rationale": "Revenue collapsed precisely because elastic buyers left the market; builders bore the loss."
+      }
+    ],
+    "payload": null,
+    "explanation": "The luxury tax is the classic case: elastic buyers dodged it, inelastic boatbuilders (and their laid-off workers) bore it. Incidence lands on whoever can't walk away."
+  },
+  {
+    "track": "economics",
+    "title": "econ-trade-01",
+    "topic": "comparative_advantage",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "Country A runs a persistent trade deficit with Country B — it imports more from B than it exports to B.",
+    "prompt": "Which country is 'losing' from this trade?",
+    "choices": [
+      {
+        "text": "Neither necessarily — both gain from voluntary exchange; the deficit is financed by offsetting capital inflows.",
+        "correct": true,
+        "rationale": "Trade isn't zero-sum; a bilateral deficit reflects saving/investment flows, not a scoreboard loss."
+      },
+      {
+        "text": "Country A — money is leaving to buy imports.",
+        "correct": false,
+        "rationale": "The mercantilist 'money leaving' framing ignores the goods gained and the capital account offset."
+      },
+      {
+        "text": "Country B — it's giving up real goods for paper.",
+        "correct": false,
+        "rationale": "B receives assets/claims it values; both sides trade voluntarily because both expect to gain."
+      },
+      {
+        "text": "Whichever has the larger deficit in dollar terms.",
+        "correct": false,
+        "rationale": "Deficit size isn't a measure of loss; voluntary trade is positive-sum for both."
+      }
+    ],
+    "payload": null,
+    "explanation": "A trade deficit is not a loss. Both parties trade because each values what it receives more than what it gives; the deficit is mirrored by a capital-account surplus."
+  },
+  {
+    "track": "economics",
+    "title": "econ-trade-02",
+    "topic": "comparative_advantage",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "Country A is more productive than Country B at making BOTH wheat and cloth (an absolute advantage in each).",
+    "prompt": "Can both countries still gain by trading?",
+    "choices": [
+      {
+        "text": "Yes — each specializes where its opportunity cost is lower (comparative advantage), and both end up with more.",
+        "correct": true,
+        "rationale": "Gains from trade come from comparative, not absolute, advantage — differing opportunity costs suffice."
+      },
+      {
+        "text": "No — A is better at everything, so it should make both and not trade.",
+        "correct": false,
+        "rationale": "Even a country better at everything gains by concentrating on its lowest-opportunity-cost good."
+      },
+      {
+        "text": "Only if A agrees to a fair-trade subsidy for B.",
+        "correct": false,
+        "rationale": "No subsidy is needed; differing opportunity costs alone create mutual gains."
+      },
+      {
+        "text": "Only if B can achieve an absolute advantage in something first.",
+        "correct": false,
+        "rationale": "Absolute advantage is unnecessary; comparative advantage always exists as long as opportunity costs differ."
+      }
+    ],
+    "payload": null,
+    "explanation": "This is Ricardo's insight: absolute advantage in everything doesn't preclude gains from trade. As long as opportunity costs differ, specialization by comparative advantage makes both better off."
+  },
+  {
+    "track": "economics",
+    "title": "econ-trade-03",
+    "topic": "comparative_advantage",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "A new machine lets one worker produce what previously took ten workers.",
+    "prompt": "In the long run, does this necessarily destroy total employment?",
+    "choices": [
+      {
+        "text": "No — cheaper output and freed labor create demand and jobs elsewhere; total work isn't fixed.",
+        "correct": true,
+        "rationale": "The lump-of-labor fallacy assumes a fixed quantity of work; productivity gains historically reallocate labor, not eliminate it."
+      },
+      {
+        "text": "Yes — nine of every ten such jobs are gone forever with nothing to replace them.",
+        "correct": false,
+        "rationale": "That's the lump-of-labor fallacy; freed resources and lower prices generate new demand and roles."
+      },
+      {
+        "text": "Only if the government mandates shorter work weeks.",
+        "correct": false,
+        "rationale": "No mandate is required; markets reallocate freed labor over time."
+      },
+      {
+        "text": "Yes — automation always reduces the total number of jobs in an economy.",
+        "correct": false,
+        "rationale": "Two centuries of automation raised living standards without permanent mass unemployment; the total isn't fixed."
+      }
+    ],
+    "payload": null,
+    "explanation": "Treating total employment as a fixed pie is the lump-of-labor fallacy. Productivity gains lower prices and free labor, which raises real income and creates work elsewhere."
   },
   {
     "track": "statistics",
@@ -3570,6 +4164,246 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "truth": 11.1
     },
     "explanation": "A modest 90% specificity is deadly for mass screening of a rare disease: false positives swamp true ones until prevalence reaches about 11%. This is why broad screening for rare conditions can do more harm (from false alarms) than good."
+  },
+  {
+    "track": "economics",
+    "title": "econ-mkt-01",
+    "topic": "tax_incidence",
+    "kind": "market",
+    "difficulty": 2,
+    "scenario": "A regional market for a boxed good. Demand is Qd = 100 − 2P; supply is Qs = −20 + 3P (P in dollars). A $10-per-unit tax is now collected from sellers.",
+    "prompt": "Predict the price consumers will pay after the $10 seller-side tax.",
+    "choices": [],
+    "payload": {
+      "unit": "$",
+      "min": 15,
+      "max": 40,
+      "lever": "tax",
+      "target": "price",
+      "policy": 10,
+      "demand": {
+        "a": 100,
+        "b": 2
+      },
+      "supply": {
+        "c": -20,
+        "d": 3
+      },
+      "truth": 30,
+      "naive": 24,
+      "tol": 1.5
+    },
+    "explanation": "Pre-tax the market cleared at P=24. A seller-side tax shifts effective supply up; the new consumer price solves 100−2P = −20+3(P−10), giving Pc=30. Consumers pay $6 of the $10 — most of it — even though sellers remit the tax, because demand here is less elastic than supply. The naive answer ($24, 'sellers just eat it') ignores that."
+  },
+  {
+    "track": "economics",
+    "title": "econ-mkt-02",
+    "topic": "tax_incidence",
+    "kind": "market",
+    "difficulty": 2,
+    "scenario": "Demand is Qd = 120 − 3P; supply is Qs = 5P (a supplier who ramps up easily). An $8-per-unit tax is collected from sellers.",
+    "prompt": "Predict the price consumers will pay after the $8 seller-side tax.",
+    "choices": [],
+    "payload": {
+      "unit": "$",
+      "min": 10,
+      "max": 30,
+      "lever": "tax",
+      "target": "price",
+      "policy": 8,
+      "demand": {
+        "a": 120,
+        "b": 3
+      },
+      "supply": {
+        "c": 0,
+        "d": 5
+      },
+      "truth": 20,
+      "naive": 15,
+      "tol": 1.5
+    },
+    "explanation": "Pre-tax P=15. With elastic supply and less-elastic demand, buyers bear more: 120−3P = 5(P−8) gives Pc=20, so consumers absorb $5 of the $8. The more elastic (escapable) side — here supply — shifts the burden onto the inelastic buyers. Naive '$15, unchanged' misses the incidence."
+  },
+  {
+    "track": "economics",
+    "title": "econ-mkt-03",
+    "topic": "tax_incidence",
+    "kind": "market",
+    "difficulty": 3,
+    "scenario": "Demand is Qd = 90 − P and supply is Qs = −10 + P — equal and opposite slopes, so demand and supply are equally elastic at the equilibrium. A $20 tax is collected from sellers.",
+    "prompt": "Predict the price consumers will pay after the $20 seller-side tax.",
+    "choices": [],
+    "payload": {
+      "unit": "$",
+      "min": 40,
+      "max": 75,
+      "lever": "tax",
+      "target": "price",
+      "policy": 20,
+      "demand": {
+        "a": 90,
+        "b": 1
+      },
+      "supply": {
+        "c": -10,
+        "d": 1
+      },
+      "truth": 60,
+      "naive": 50,
+      "tol": 2
+    },
+    "explanation": "Pre-tax P=50. With equal elasticities the tax splits exactly in half: the consumer price rises by $10 (half of $20) to $60, and sellers net $40. Equal elasticity is the one case where the 50/50 statutory feel is also the true split — a useful anchor for seeing why unequal elasticities tilt it."
+  },
+  {
+    "track": "economics",
+    "title": "econ-mkt-04",
+    "topic": "tax_incidence",
+    "kind": "market",
+    "difficulty": 1,
+    "scenario": "A large commodity market: Demand Qd = 200 − 4P, Supply Qs = −40 + 6P. A $5-per-unit tax is collected from sellers.",
+    "prompt": "Predict the price consumers will pay after the $5 seller-side tax.",
+    "choices": [],
+    "payload": {
+      "unit": "$",
+      "min": 18,
+      "max": 36,
+      "lever": "tax",
+      "target": "price",
+      "policy": 5,
+      "demand": {
+        "a": 200,
+        "b": 4
+      },
+      "supply": {
+        "c": -40,
+        "d": 6
+      },
+      "truth": 27,
+      "naive": 24,
+      "tol": 1
+    },
+    "explanation": "Pre-tax P=24. Supply is more elastic than demand (slope 6 vs 4), so buyers bear the larger share: the consumer price rises $3 of the $5 to $27. Who remits the tax (sellers) again tells you nothing about who pays it."
+  },
+  {
+    "track": "economics",
+    "title": "econ-mkt-05",
+    "topic": "secondary_effects",
+    "kind": "market",
+    "difficulty": 2,
+    "scenario": "An apartment market clears with Demand Qd = 100 − 2P and Supply Qs = −20 + 3P (P in $100s/month). The city imposes a binding rent ceiling at P = 15.",
+    "prompt": "Predict the number of apartments actually rented under the ceiling.",
+    "choices": [],
+    "payload": {
+      "unit": " units",
+      "min": 10,
+      "max": 80,
+      "lever": "ceiling",
+      "target": "quantity",
+      "policy": 15,
+      "demand": {
+        "a": 100,
+        "b": 2
+      },
+      "supply": {
+        "c": -20,
+        "d": 3
+      },
+      "truth": 25,
+      "naive": 70,
+      "tol": 4
+    },
+    "explanation": "The free market cleared at P=24, Q=52. At the $15 ceiling, quantity demanded jumps to 70 but quantity supplied falls to 25 — and the short side rules, so only 25 units are actually rented. The naive answer (70, 'everyone who wants one at $15 gets one') forgets that supply contracts; the ceiling creates a 45-unit shortage and houses fewer people than before."
+  },
+  {
+    "track": "economics",
+    "title": "econ-mkt-06",
+    "topic": "secondary_effects",
+    "kind": "market",
+    "difficulty": 3,
+    "scenario": "A market clears with Demand Qd = 120 − 3P and Supply Qs = 5P. A regulator sets a binding price ceiling at P = 10.",
+    "prompt": "Predict the quantity actually transacted under the ceiling.",
+    "choices": [],
+    "payload": {
+      "unit": " units",
+      "min": 20,
+      "max": 100,
+      "lever": "ceiling",
+      "target": "quantity",
+      "policy": 10,
+      "demand": {
+        "a": 120,
+        "b": 3
+      },
+      "supply": {
+        "c": 0,
+        "d": 5
+      },
+      "truth": 50,
+      "naive": 90,
+      "tol": 5
+    },
+    "explanation": "Free equilibrium is P=15, Q=75. At the $10 ceiling, demand rises to 90 but supply falls to 50; the short side (supply) determines that just 50 trade. The gap of 40 is the shortage — the unseen cost of the 'affordable' price. Naive 90 counts wishful demand, not what suppliers will actually provide."
+  },
+  {
+    "track": "economics",
+    "title": "econ-mkt-07",
+    "topic": "secondary_effects",
+    "kind": "market",
+    "difficulty": 1,
+    "scenario": "A small market clears with Demand Qd = 80 − P and Supply Qs = −20 + P. A binding price ceiling is set at P = 40.",
+    "prompt": "Predict the quantity actually transacted under the ceiling.",
+    "choices": [],
+    "payload": {
+      "unit": " units",
+      "min": 10,
+      "max": 60,
+      "lever": "ceiling",
+      "target": "quantity",
+      "policy": 40,
+      "demand": {
+        "a": 80,
+        "b": 1
+      },
+      "supply": {
+        "c": -20,
+        "d": 1
+      },
+      "truth": 20,
+      "naive": 40,
+      "tol": 3
+    },
+    "explanation": "The market would clear at P=50, Q=30. Hold price down to 40 and supply falls to 20 while demand rises to 40 — the short side means only 20 change hands, fewer than the free-market 30. A ceiling meant to help buyers shrinks the number who actually get the good."
+  },
+  {
+    "track": "economics",
+    "title": "econ-mkt-08",
+    "topic": "secondary_effects",
+    "kind": "market",
+    "difficulty": 2,
+    "scenario": "A market clears with Demand Qd = 150 − 5P and Supply Qs = 10P. A binding price ceiling is imposed at P = 6.",
+    "prompt": "Predict the quantity actually transacted under the ceiling.",
+    "choices": [],
+    "payload": {
+      "unit": " units",
+      "min": 20,
+      "max": 140,
+      "lever": "ceiling",
+      "target": "quantity",
+      "policy": 6,
+      "demand": {
+        "a": 150,
+        "b": 5
+      },
+      "supply": {
+        "c": 0,
+        "d": 10
+      },
+      "truth": 60,
+      "naive": 120,
+      "tol": 6
+    },
+    "explanation": "Free equilibrium is P=10, Q=100. At the $6 ceiling, demand climbs to 120 but supply drops to 60; only 60 trade. The ceiling cuts quantity below the free-market level and rations a 60-unit shortage — the opposite of what its supporters intend."
   }
 ];
 

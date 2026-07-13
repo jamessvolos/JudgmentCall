@@ -23,7 +23,7 @@ for (const q of QUIZ_SEEDS) {
   if (!track) continue;
   ok(track.topics.some((t) => t.id === q.topic), `${label}: topic "${q.topic}" exists in ${q.track}`);
   ok([1, 2, 3].includes(q.difficulty), `${label}: difficulty in 1..3`);
-  ok(["mcq", "estimate", "duel", "bakeoff", "flood"].includes(q.kind), `${label}: kind is mcq|estimate|duel|bakeoff|flood`);
+  ok(["mcq", "estimate", "duel", "bakeoff", "flood", "market"].includes(q.kind), `${label}: kind is mcq|estimate|duel|bakeoff|flood|market`);
   ok(!!q.scenario.trim() && !!q.prompt.trim() && !!q.explanation.trim(), `${label}: scenario/prompt/explanation non-empty`);
   if (q.kind === "mcq") {
     ok(q.choices.filter((c) => c.correct).length === 1, `${label}: exactly one correct choice`);
@@ -52,6 +52,17 @@ for (const q of QUIZ_SEEDS) {
     ok(!!p && Math.abs(expected - p.truth) <= 0.15, `${label}: flood truth is the PPV-50 prevalence`);
     ok(p.min < p.truth && p.truth < p.max, `${label}: flood truth sits inside the slider range`);
     ok(q.choices.length === 0, `${label}: flood carries no choices`);
+  } else if (q.kind === "market") {
+    const p = q.payload as { lever: string; policy: number; demand: { a: number; b: number }; supply: { c: number; d: number }; truth: number; naive: number; tol: number; min: number; max: number };
+    const { a, b } = p.demand, { c, d } = p.supply;
+    const expected =
+      p.lever === "none" ? (a - c) / (b + d)
+      : p.lever === "tax" ? (a - c + d * p.policy) / (b + d)
+      : c + d * p.policy; // ceiling short side
+    ok(Math.abs(Math.round(expected * 100) / 100 - p.truth) <= 0.05, `${label}: market truth matches the linear model`);
+    ok(p.min < p.truth && p.truth < p.max, `${label}: market truth sits inside the number-line`);
+    ok(typeof p.naive === "number" && p.tol > 0, `${label}: market carries a naive value + tolerance`);
+    ok(q.choices.length === 0, `${label}: market carries no choices`);
   }
   if (titles.has(q.title)) dupTitles++;
   titles.add(q.title);
