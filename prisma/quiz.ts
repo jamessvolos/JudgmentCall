@@ -7,7 +7,7 @@
 import type { PrismaClient } from "@prisma/client";
 
 export type QuizChoice = { text: string; correct: boolean; rationale: string };
-export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market";
+export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline";
 export type QuizSeed = {
   track: "statistics" | "architecture" | "economics";
   title: string; // stable natural key for idempotent sync
@@ -1650,6 +1650,72 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     ],
     "payload": null,
     "explanation": "EAV buys flexibility you don't need when the schema is known, and charges for it with self-joins, no type checking, and no per-field indexes or constraints. Model known fields as columns; reserve EAV for truly sparse, open-ended attributes."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-scaling-queue-01",
+    "topic": "scaling",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "A service processes λ = 500 requests/second, and each request spends a mean of W = 40 ms in the system (queue + service).",
+    "prompt": "On average, how many requests are 'in flight' (in the system) at once?",
+    "choices": [
+      {
+        "text": "20 — by Little's Law, L = λ·W = 500 × 0.040 s.",
+        "correct": true,
+        "rationale": "Little's Law ties concurrency to throughput × latency: L = λW = 500 × 0.04 = 20."
+      },
+      {
+        "text": "500 — one per request per second.",
+        "correct": false,
+        "rationale": "That's the arrival rate, not the number resident; you must multiply by the time each stays (W)."
+      },
+      {
+        "text": "40 — the mean time in the system.",
+        "correct": false,
+        "rationale": "40 ms is a latency, not a count; concurrency is λ·W."
+      },
+      {
+        "text": "It depends on the number of CPU cores, not λ or W.",
+        "correct": false,
+        "rationale": "Average in-flight count is λ·W regardless of cores; cores affect service rate, which is already inside W."
+      }
+    ],
+    "payload": null,
+    "explanation": "Little's Law (L = λW) links the three quantities: at 500 req/s and 40 ms each, ~20 requests are resident on average. This is why thread-pool / connection-pool sizing must equal λ·W, not a round number someone liked."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-reliability-knee-01",
+    "topic": "reliability",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "A queue running at 90% utilization has a mean queue length of L = ρ/(1−ρ) = 9. Load rises so utilization goes from 90% to 95%.",
+    "prompt": "What happens to the mean queue length?",
+    "choices": [
+      {
+        "text": "It roughly doubles, to about 19 — L = 0.95/0.05 = 19.",
+        "correct": true,
+        "rationale": "L = ρ/(1−ρ) explodes near ρ=1: a 5-point rise from 90% to 95% roughly doubles the backlog."
+      },
+      {
+        "text": "It rises about 5%, matching the 5-point utilization increase.",
+        "correct": false,
+        "rationale": "Queue length is non-linear in utilization; near the top a small ρ increase causes a large jump."
+      },
+      {
+        "text": "It stays about 9 — utilization and queue length aren't related.",
+        "correct": false,
+        "rationale": "They're tightly related: L = ρ/(1−ρ); L grows without bound as ρ→1."
+      },
+      {
+        "text": "It falls, because higher utilization means better efficiency.",
+        "correct": false,
+        "rationale": "Higher utilization means less slack to absorb bursts, so the backlog grows, not shrinks."
+      }
+    ],
+    "payload": null,
+    "explanation": "L = ρ/(1−ρ) is a hockey stick: 0.9→9, 0.95→19, 0.99→99. The last few points of utilization are the expensive ones — 'we're only at 90%' is exactly where a small load rise doubles your latency."
   },
   {
     "track": "economics",
@@ -4404,6 +4470,174 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "tol": 6
     },
     "explanation": "Free equilibrium is P=10, Q=100. At the $6 ceiling, demand climbs to 120 but supply drops to 60; only 60 trade. The ceiling cuts quantity below the free-market level and rations a 60-unit shortage — the opposite of what its supporters intend."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-redline-01",
+    "topic": "scaling",
+    "kind": "redline",
+    "difficulty": 2,
+    "scenario": "A single-threaded service handles requests at a mean rate of μ = 100 req/s (about 10 ms each). Arrivals are bursty (roughly Poisson). The SLA is a p99 latency under 100 ms.",
+    "prompt": "What is the MAX average utilization you can run this at and still hold p99 < 100 ms?",
+    "choices": [],
+    "payload": {
+      "mu": 100,
+      "slaMs": 100,
+      "percentile": 99,
+      "min": 20,
+      "max": 99,
+      "truth": 53.9,
+      "naive": 90,
+      "tol": 6
+    },
+    "explanation": "For an M/M/1 queue, p99 latency = ln(100)/(μ(1−ρ)). Setting that to 100 ms gives ρ* = 1 − ln(100)/(100·0.1) ≈ 54%. The knee sits far below the ~90% most people guess: past ~54% the tail goes vertical. Latency is non-linear in utilization — you buy headroom, not waste, by staying left of the knee."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-redline-02",
+    "topic": "scaling",
+    "kind": "redline",
+    "difficulty": 2,
+    "scenario": "A fast in-memory service handles μ = 2000 req/s (mean service ~0.5 ms). Arrivals are roughly Poisson. The SLA is p99 latency under 20 ms.",
+    "prompt": "What is the MAX average utilization you can run this at and still hold p99 < 20 ms?",
+    "choices": [],
+    "payload": {
+      "mu": 2000,
+      "slaMs": 20,
+      "percentile": 99,
+      "min": 40,
+      "max": 99,
+      "truth": 88.5,
+      "naive": 99,
+      "tol": 6
+    },
+    "explanation": "ρ* = 1 − ln(100)/(2000·0.02) ≈ 88%. Here the SLA (20 ms) is 40× the mean service time (0.5 ms), so there's room to run hot. The lever isn't 'how loaded feels safe' — it's the SLA-to-service-time ratio. Same math as the 54% case, very different answer."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-redline-03",
+    "topic": "reliability",
+    "kind": "redline",
+    "difficulty": 3,
+    "scenario": "A service handles μ = 500 req/s (mean ~2 ms). It backs a payments flow, so the SLA is a strict p99.9 latency under 50 ms. Arrivals are roughly Poisson.",
+    "prompt": "What is the MAX average utilization you can run this at and still hold p99.9 < 50 ms?",
+    "choices": [],
+    "payload": {
+      "mu": 500,
+      "slaMs": 50,
+      "percentile": 99.9,
+      "min": 30,
+      "max": 99,
+      "truth": 72.4,
+      "naive": 95,
+      "tol": 6
+    },
+    "explanation": "The deep tail costs you: p99.9 uses ln(1000) ≈ 6.91 instead of ln(100) ≈ 4.61. ρ* = 1 − 6.91/(500·0.05) ≈ 72%. Chasing a higher percentile pulls the safe knee down — the stricter your tail SLA, the more headroom you must leave."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-redline-04",
+    "topic": "reliability",
+    "kind": "redline",
+    "difficulty": 2,
+    "scenario": "A service handles μ = 200 req/s (mean 5 ms), arrivals roughly Poisson. The SLA is a p95 latency under 50 ms.",
+    "prompt": "What is the MAX average utilization you can run this at and still hold p95 < 50 ms?",
+    "choices": [],
+    "payload": {
+      "mu": 200,
+      "slaMs": 50,
+      "percentile": 95,
+      "min": 30,
+      "max": 99,
+      "truth": 70,
+      "naive": 92,
+      "tol": 6
+    },
+    "explanation": "ρ* = 1 − ln(20)/(200·0.05) ≈ 70%. A looser percentile (p95, ln(20) ≈ 3.0) allows more load than p99 would — but still nowhere near the ~92% intuition. Every percentile has its own knee; none of them is 'basically full.'"
+  },
+  {
+    "track": "architecture",
+    "title": "arch-redline-05",
+    "topic": "scaling",
+    "kind": "redline",
+    "difficulty": 1,
+    "scenario": "A service handles μ = 1000 req/s (mean 1 ms), arrivals roughly Poisson. The SLA is p99 latency under 10 ms.",
+    "prompt": "What is the MAX average utilization you can run this at and still hold p99 < 10 ms?",
+    "choices": [],
+    "payload": {
+      "mu": 1000,
+      "slaMs": 10,
+      "percentile": 99,
+      "min": 20,
+      "max": 99,
+      "truth": 53.9,
+      "naive": 90,
+      "tol": 6
+    },
+    "explanation": "ρ* = 1 − ln(100)/(1000·0.01) ≈ 54% — identical to the 100 req/s case, because the SLA-to-service-time ratio (10 ms vs 1 ms = 10×) is the same. The absolute throughput doesn't set the knee; the ratio does."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-redline-06",
+    "topic": "cost",
+    "kind": "redline",
+    "difficulty": 3,
+    "scenario": "A batch-ish API handles μ = 100 req/s (mean 10 ms). It's latency-tolerant: the SLA is a generous p99 under 200 ms. You're under pressure to cut the cluster bill.",
+    "prompt": "What is the MAX average utilization you can run this at and still hold p99 < 200 ms?",
+    "choices": [],
+    "payload": {
+      "mu": 100,
+      "slaMs": 200,
+      "percentile": 99,
+      "min": 30,
+      "max": 99,
+      "truth": 77,
+      "naive": 97,
+      "tol": 6
+    },
+    "explanation": "ρ* = 1 − ln(100)/(100·0.2) ≈ 77%. A looser SLA lets you run hotter and buy fewer machines — utilization is the $/latency dial. But even here it's 77%, not the ~97% that would truly minimize cost: the last 20 points of utilization are unaffordable in latency."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-redline-07",
+    "topic": "reliability",
+    "kind": "redline",
+    "difficulty": 3,
+    "scenario": "A slow downstream (a third-party call) serves μ = 50 req/s — mean service ~20 ms. Arrivals are roughly Poisson. Your SLA is p99 latency under 100 ms.",
+    "prompt": "What is the MAX average utilization you can run this at and still hold p99 < 100 ms?",
+    "choices": [],
+    "payload": {
+      "mu": 50,
+      "slaMs": 100,
+      "percentile": 99,
+      "min": 2,
+      "max": 90,
+      "truth": 7.9,
+      "naive": 70,
+      "tol": 5
+    },
+    "explanation": "ρ* = 1 − ln(100)/(50·0.1) ≈ 8%. When the SLA (100 ms) is only ~5× the mean service time (20 ms), the queue can barely be loaded — a slow backend with a tight tail SLA must run nearly idle, or you shed load / add parallelism. The knee can be shockingly low."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-redline-08",
+    "topic": "scaling",
+    "kind": "redline",
+    "difficulty": 2,
+    "scenario": "A very fast edge service handles μ = 5000 req/s (mean 0.2 ms), arrivals roughly Poisson. The SLA is p99 latency under 5 ms.",
+    "prompt": "What is the MAX average utilization you can run this at and still hold p99 < 5 ms?",
+    "choices": [],
+    "payload": {
+      "mu": 5000,
+      "slaMs": 5,
+      "percentile": 99,
+      "min": 40,
+      "max": 99,
+      "truth": 81.6,
+      "naive": 98,
+      "tol": 6
+    },
+    "explanation": "ρ* = 1 − ln(100)/(5000·0.005) ≈ 82%. The SLA is 25× the mean service time, so it tolerates fairly high load — but the last ~17 points to '99% full' are still off-limits. Fast service earns headroom; it never earns the whole tank."
   }
 ];
 

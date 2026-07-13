@@ -29,7 +29,7 @@ type ItemDto = {
   id: string;
   track: string;
   topic: string;
-  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline";
   difficulty: number;
   scenario: string;
   prompt: string;
@@ -39,6 +39,7 @@ type ItemDto = {
   bakeoff?: { keys: BakeKeyLite[] };
   flood?: { sensitivity: number; specificity: number; min: number; max: number };
   market?: { unit: string; min: number; max: number; lever: "none" | "tax" | "ceiling"; target: "price" | "quantity" };
+  redline?: { mu: number; slaMs: number; percentile: number; min: number; max: number };
 };
 type LevelDto = { n: number; roman: string; title: string; floor: number | null; gate: string };
 type CalBinDto = { lo: number; hi: number; meanConf: number; accuracy: number; count: number };
@@ -74,7 +75,7 @@ type GetDto = { item: ItemDto | null; remaining: number; liveRating: number; cou
 type RevealChoice = { i: number; text: string; correct: boolean; rationale: string };
 type PostDto = {
   correct: boolean;
-  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline";
   topic: string;
   confidence: number | null;
   // mcq
@@ -115,6 +116,10 @@ type PostDto = {
   eqPrice?: number;
   eqQty?: number;
   tol?: number;
+  // redline
+  mu?: number;
+  slaMs?: number;
+  percentile?: number;
   liveRating: number;
   ratingDelta: number;
   count: number;
@@ -700,7 +705,7 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
   onNext: () => void; onBank: () => void;
 }) {
   const topic = topicOf(track, item.topic);
-  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : item.kind === "flood" ? "BASE-RATE" : item.kind === "market" ? "MARKET" : "CALL";
+  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : item.kind === "flood" ? "BASE-RATE" : item.kind === "market" ? "MARKET" : item.kind === "redline" ? "REDLINE" : "CALL";
   const [hintOpen, setHintOpen] = useState(true);
   const descent = runMode === "descent";
   // the post-reveal control: descent shows Bank/Deeper (or Surface on a bust);
@@ -752,6 +757,7 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
       {item.kind === "bakeoff" && <BakeoffCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
       {item.kind === "flood" && <FloodCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
       {item.kind === "market" && <MarketCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
+      {item.kind === "redline" && <RedlineCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
     </div>
   );
 }
@@ -1389,6 +1395,132 @@ function MarketCall({ item, reveal, submitting, onSubmit, postReveal }: {
             </div>
           </div>
           <div className="mt-3 flex justify-center"><MarketChart reveal={reveal} /></div>
+          <p className="mt-2 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
+          {postReveal}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ---- REDLINE (architecture signature: predict the max utilization a queue can
+// run at under an SLA; the p99 hockey-stick is a reveal) ----------------------
+// Winner of the architecture 10x competition (Latency Physics), reframed to be
+// calibration-native (predict a number + stake conviction + naive_trap on the
+// seductive "run it hot" value), with the p99 curve rendered ONCE on the reveal
+// so its λ→μ singularity is handled with the knee already known.
+function RedlineChart({ reveal }: { reveal: PostDto }) {
+  const mu = reveal.mu, slaMs = reveal.slaMs, p = (reveal.percentile ?? 99) / 100;
+  if (mu == null || slaMs == null || reveal.truth == null) return null;
+  const z = Math.log(1 / (1 - p));
+  const W = 300, H = 190, pad = 26;
+  const yMax = slaMs * 2.4;
+  const sx = (u: number) => pad + Math.max(0, Math.min(1, u / 100)) * (W - 2 * pad);
+  const sy = (ms: number) => H - pad - Math.max(0, Math.min(1, ms / yMax)) * (H - 2 * pad);
+  const p99ms = (u: number) => (z / (mu * (1 - u / 100))) * 1000;
+  // sample the hockey-stick from 0 to just shy of 100% utilization, clipped
+  const pts: string[] = [];
+  for (let u = 0; u <= 97; u += 1.5) pts.push(`${sx(u)},${sy(p99ms(u))}`);
+  const your = reveal.yourValue ?? 0;
+  const within = Math.abs(your - reveal.truth) <= (reveal.tol ?? 0);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full max-w-[340px]" role="img" aria-label="p99 latency versus utilization, with the SLA line and the knee">
+      <line x1={pad} y1={H - pad} x2={W - pad} y2={H - pad} className="stroke-card-border" strokeWidth={1} />
+      <line x1={pad} y1={pad} x2={pad} y2={H - pad} className="stroke-card-border" strokeWidth={1} />
+      {/* SLA line */}
+      <line x1={pad} y1={sy(slaMs)} x2={W - pad} y2={sy(slaMs)} className="stroke-rule-strong" strokeDasharray="3 2" strokeWidth={1} />
+      <text x={W - pad} y={sy(slaMs) - 3} textAnchor="end" className="fill-muted" style={{ fontSize: 7, fontFamily: "var(--font-mono)" }}>SLA {slaMs}ms</text>
+      {/* the p99 hockey-stick */}
+      <polyline points={pts.join(" ")} className="fill-none stroke-accent" strokeWidth={1.5} />
+      {/* naive ("≈ full") tick */}
+      {reveal.naive != null && (
+        <line x1={sx(reveal.naive)} y1={pad} x2={sx(reveal.naive)} y2={H - pad} className="stroke-muted/40" strokeDasharray="1 2" strokeWidth={1} />
+      )}
+      {/* the knee (truth) */}
+      <line x1={sx(reveal.truth)} y1={sy(slaMs)} x2={sx(reveal.truth)} y2={H - pad} className="stroke-ink-strong" strokeWidth={1} />
+      <circle cx={sx(reveal.truth)} cy={sy(slaMs)} r={2.5} className="fill-ink-strong" />
+      <text x={sx(reveal.truth) + 3} y={H - pad - 3} className="fill-ink-strong" style={{ fontSize: 7, fontFamily: "var(--font-mono)" }}>knee {reveal.truth}%</text>
+      {/* your guess */}
+      <line x1={sx(your)} y1={pad} x2={sx(your)} y2={H - pad} className={within ? "stroke-accent" : "stroke-danger"} strokeWidth={1.5} />
+      <text x={W / 2} y={H - 1} textAnchor="middle" className="fill-muted/70" style={{ fontSize: 7, fontFamily: "var(--font-mono)" }}>utilization →</text>
+      <text x={pad - 4} y={pad} textAnchor="end" className="fill-muted/70" style={{ fontSize: 7, fontFamily: "var(--font-mono)" }}>p99</text>
+    </svg>
+  );
+}
+function RedlineCall({ item, reveal, submitting, onSubmit, postReveal }: {
+  item: ItemDto; reveal: PostDto | null; submitting: boolean;
+  onSubmit: (a: { value: number }, c: number | null) => void; postReveal: ReactNode;
+}) {
+  const r = item.redline!;
+  const [value, setValue] = useState(Math.round((r.min + r.max) / 2));
+  const [conviction, setConviction] = useState<number | null>(null);
+  const pctl = r.percentile === 99.9 ? "p99.9" : r.percentile === 95 ? "p95" : "p99";
+  const your = reveal?.yourValue ?? 0;
+  const within = reveal ? Math.abs(your - (reveal.truth ?? 0)) <= (reveal.tol ?? 0) : false;
+  const tooLow = reveal ? !within && your < (reveal.truth ?? 0) : false;
+  const span = r.max - r.min;
+  const cx = (v: number) => `${Math.max(0, Math.min(100, ((v - r.min) / span) * 100))}%`;
+  return (
+    <>
+      <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The queue</p>
+        <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
+        <p className="mt-2 font-mono text-[0.65rem] text-muted/70">μ = {r.mu} req/s · SLA {pctl} &lt; {r.slaMs} ms</p>
+      </div>
+      <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
+      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">Predict from the setup — the p99 curve is revealed after you commit.</p>
+
+      {!reveal ? (
+        <>
+          <div className="mt-4 rounded-lg border border-card-border bg-card px-4 py-4">
+            <div className="flex items-baseline justify-between font-mono text-[0.7rem] text-muted">
+              <span>max utilization</span>
+              <span className="tabular-nums text-ink-strong text-sm">{value}%</span>
+            </div>
+            <input type="range" min={r.min} max={r.max} step={1} value={value} onChange={(e) => setValue(Number(e.target.value))} aria-label="predicted max utilization" className="mt-2 w-full accent-[var(--accent)]" />
+            <div className="mt-1 flex justify-between font-mono text-[0.55rem] text-muted/70"><span>{r.min}%</span><span>{r.max}%</span></div>
+            <div className="mt-3 flex items-center justify-center gap-2 font-mono text-[0.65rem]">
+              <button onClick={() => setValue((v) => Math.max(r.min, v - 1))} className="rounded border border-card-border px-2 py-0.5 text-accent" aria-label="decrease">−</button>
+              <span className="tabular-nums text-foreground">{value}%</span>
+              <button onClick={() => setValue((v) => Math.min(r.max, v + 1))} className="rounded border border-card-border px-2 py-0.5 text-accent" aria-label="increase">+</button>
+            </div>
+          </div>
+          <ConvictionBar floor={50} conviction={conviction} setConviction={setConviction} submitting={submitting} onCommit={() => onSubmit({ value }, conviction)} />
+        </>
+      ) : (
+        <div className="verdict-card-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+          <RevealHeader correct={reveal.correct} delta={reveal.ratingDelta} rating={reveal.liveRating} />
+          {reveal.confidence != null && <ConvictionEcho confidence={reveal.confidence} correct={reveal.correct} />}
+          <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted">
+            You said {your}% · the knee is at {reveal.truth}%
+          </p>
+          {reveal.naiveTrap && (
+            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">You&apos;d run it near full — past the knee the p99 tail goes vertical.</p>
+          )}
+          {tooLow && !reveal.naiveTrap && (
+            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-muted/70">Safe — but well under the knee is idle capacity you&apos;re paying for. Over-provisioning is the other failure mode.</p>
+          )}
+          {/* caliper strip: you · ≈full · knee, distance-shaded */}
+          <div className="relative mt-4 h-9">
+            <div className="absolute left-0 right-0 top-4 h-px bg-card-border" />
+            <div className={`absolute top-4 h-1 -translate-y-1/2 rounded ${within ? "bg-accent/40" : "bg-danger/40"}`}
+              style={{ left: cx(Math.min(your, reveal.truth ?? 0)), width: `calc(${cx(Math.max(your, reveal.truth ?? 0))} - ${cx(Math.min(your, reveal.truth ?? 0))})` }} />
+            {reveal.naive != null && (
+              <div className="absolute top-4 -translate-x-1/2 -translate-y-1/2" style={{ left: cx(reveal.naive) }}>
+                <span className="block h-2.5 w-px bg-muted/60" />
+                <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem] text-muted/70">≈ full</span>
+              </div>
+            )}
+            <div className={`absolute top-4 -translate-x-1/2 -translate-y-1/2 ${within ? "text-accent" : "text-danger"}`} style={{ left: cx(your) }}>
+              <span className="block h-3 w-0.5 bg-current" />
+              <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">you</span>
+            </div>
+            <div className="absolute top-4 -translate-x-1/2 -translate-y-1/2 text-ink-strong" style={{ left: cx(reveal.truth ?? 0) }}>
+              <span className="block h-3 w-0.5 bg-current" />
+              <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">knee</span>
+            </div>
+          </div>
+          <div className="mt-3 flex justify-center"><RedlineChart reveal={reveal} /></div>
           <p className="mt-2 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
           {postReveal}
         </div>

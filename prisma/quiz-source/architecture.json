@@ -688,5 +688,65 @@
    }
   ],
   "explanation": "EAV buys flexibility you don't need when the schema is known, and charges for it with self-joins, no type checking, and no per-field indexes or constraints. Model known fields as columns; reserve EAV for truly sparse, open-ended attributes."
+ },
+ {
+  "title": "arch-scaling-queue-01",
+  "topic": "scaling",
+  "difficulty": 2,
+  "scenario": "A service processes λ = 500 requests/second, and each request spends a mean of W = 40 ms in the system (queue + service).",
+  "prompt": "On average, how many requests are 'in flight' (in the system) at once?",
+  "choices": [
+   {
+    "text": "20 — by Little's Law, L = λ·W = 500 × 0.040 s.",
+    "correct": true,
+    "rationale": "Little's Law ties concurrency to throughput × latency: L = λW = 500 × 0.04 = 20."
+   },
+   {
+    "text": "500 — one per request per second.",
+    "correct": false,
+    "rationale": "That's the arrival rate, not the number resident; you must multiply by the time each stays (W)."
+   },
+   {
+    "text": "40 — the mean time in the system.",
+    "correct": false,
+    "rationale": "40 ms is a latency, not a count; concurrency is λ·W."
+   },
+   {
+    "text": "It depends on the number of CPU cores, not λ or W.",
+    "correct": false,
+    "rationale": "Average in-flight count is λ·W regardless of cores; cores affect service rate, which is already inside W."
+   }
+  ],
+  "explanation": "Little's Law (L = λW) links the three quantities: at 500 req/s and 40 ms each, ~20 requests are resident on average. This is why thread-pool / connection-pool sizing must equal λ·W, not a round number someone liked."
+ },
+ {
+  "title": "arch-reliability-knee-01",
+  "topic": "reliability",
+  "difficulty": 2,
+  "scenario": "A queue running at 90% utilization has a mean queue length of L = ρ/(1−ρ) = 9. Load rises so utilization goes from 90% to 95%.",
+  "prompt": "What happens to the mean queue length?",
+  "choices": [
+   {
+    "text": "It roughly doubles, to about 19 — L = 0.95/0.05 = 19.",
+    "correct": true,
+    "rationale": "L = ρ/(1−ρ) explodes near ρ=1: a 5-point rise from 90% to 95% roughly doubles the backlog."
+   },
+   {
+    "text": "It rises about 5%, matching the 5-point utilization increase.",
+    "correct": false,
+    "rationale": "Queue length is non-linear in utilization; near the top a small ρ increase causes a large jump."
+   },
+   {
+    "text": "It stays about 9 — utilization and queue length aren't related.",
+    "correct": false,
+    "rationale": "They're tightly related: L = ρ/(1−ρ); L grows without bound as ρ→1."
+   },
+   {
+    "text": "It falls, because higher utilization means better efficiency.",
+    "correct": false,
+    "rationale": "Higher utilization means less slack to absorb bursts, so the backlog grows, not shrinks."
+   }
+  ],
+  "explanation": "L = ρ/(1−ρ) is a hockey stick: 0.9→9, 0.95→19, 0.99→99. The last few points of utilization are the expensive ones — 'we're only at 90%' is exactly where a small load rise doubles your latency."
  }
 ]

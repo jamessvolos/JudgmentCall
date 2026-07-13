@@ -59,6 +59,10 @@ type MarketPayload = {
   demand: { a: number; b: number }; supply: { c: number; d: number };
   truth: number; naive: number; tol: number;
 };
+type RedlinePayload = {
+  mu: number; slaMs: number; percentile: number;
+  min: number; max: number; truth: number; naive: number; tol: number;
+};
 
 // GET /api/train?sessionId=...&track=...&topic=... — next item + The Record.
 async function getHandler(request: Request) {
@@ -116,6 +120,11 @@ async function getHandler(request: Request) {
     // curves, the naive value, or the truth. The learner commits from intuition;
     // the market chart is a REVEAL, so the answer can't be back-computed.
     item = { ...base, market: { unit: p.unit, min: p.min, max: p.max, lever: p.lever, target: p.target } };
+  } else if (it.kind === "redline") {
+    const p = JSON.parse(it.payload ?? "{}") as RedlinePayload;
+    // send the queue's service rate + SLA (the scenario) + slider frame — never
+    // the knee (truth) or the naive value. The p99 curve is a REVEAL.
+    item = { ...base, redline: { mu: p.mu, slaMs: p.slaMs, percentile: p.percentile, min: p.min, max: p.max } };
   } else {
     const choices = parseChoices(it.choices).map((c, i) => ({ i, text: c.text }));
     item = { ...base, choices: shuffled(choices) };
@@ -230,6 +239,18 @@ async function postHandler(request: Request) {
       truth: p.truth, naive: p.naive, yourValue: value, naiveTrap,
       unit: p.unit, target: p.target, lever: p.lever, policy: p.policy, tol: p.tol,
       demand: p.demand, supply: p.supply, eqPrice, eqQty,
+      explanation: item.explanation,
+    };
+  } else if (item.kind === "redline") {
+    const p = JSON.parse(item.payload ?? "{}") as RedlinePayload;
+    const value = Number(body?.value);
+    if (!Number.isFinite(value)) return NextResponse.json({ error: "invalid value" }, { status: 400 });
+    correct = Math.abs(value - p.truth) <= p.tol;
+    // naive_trap: landed near the seductive "run it hot" utilization while missing the knee
+    const naiveTrap = !correct && Math.abs(value - p.naive) <= p.tol;
+    reveal = {
+      truth: p.truth, naive: p.naive, yourValue: value, naiveTrap, tol: p.tol,
+      mu: p.mu, slaMs: p.slaMs, percentile: p.percentile,
       explanation: item.explanation,
     };
   } else {

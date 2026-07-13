@@ -23,7 +23,7 @@ for (const q of QUIZ_SEEDS) {
   if (!track) continue;
   ok(track.topics.some((t) => t.id === q.topic), `${label}: topic "${q.topic}" exists in ${q.track}`);
   ok([1, 2, 3].includes(q.difficulty), `${label}: difficulty in 1..3`);
-  ok(["mcq", "estimate", "duel", "bakeoff", "flood", "market"].includes(q.kind), `${label}: kind is mcq|estimate|duel|bakeoff|flood|market`);
+  ok(["mcq", "estimate", "duel", "bakeoff", "flood", "market", "redline"].includes(q.kind), `${label}: kind is mcq|estimate|duel|bakeoff|flood|market|redline`);
   ok(!!q.scenario.trim() && !!q.prompt.trim() && !!q.explanation.trim(), `${label}: scenario/prompt/explanation non-empty`);
   if (q.kind === "mcq") {
     ok(q.choices.filter((c) => c.correct).length === 1, `${label}: exactly one correct choice`);
@@ -63,6 +63,15 @@ for (const q of QUIZ_SEEDS) {
     ok(p.min < p.truth && p.truth < p.max, `${label}: market truth sits inside the number-line`);
     ok(typeof p.naive === "number" && p.tol > 0, `${label}: market carries a naive value + tolerance`);
     ok(q.choices.length === 0, `${label}: market carries no choices`);
+  } else if (q.kind === "redline") {
+    const p = q.payload as { mu: number; slaMs: number; percentile: number; truth: number; naive: number; tol: number; min: number; max: number };
+    // re-derive the knee: rho* = 1 - ln(1/(1-p))/(mu*SLA_seconds)
+    const z = Math.log(1 / (1 - p.percentile / 100));
+    const expected = (1 - z / (p.mu * (p.slaMs / 1000))) * 100;
+    ok(Math.abs(Math.round(expected * 10) / 10 - p.truth) <= 0.1, `${label}: redline truth is the M/M/1 knee`);
+    ok(p.min < p.truth && p.truth < p.max, `${label}: redline truth sits inside the slider`);
+    ok(Math.abs(p.naive - p.truth) > p.tol, `${label}: redline naive is a genuine trap (outside tolerance)`);
+    ok(q.choices.length === 0, `${label}: redline carries no choices`);
   }
   if (titles.has(q.title)) dupTitles++;
   titles.add(q.title);
