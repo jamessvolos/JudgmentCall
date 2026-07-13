@@ -782,6 +782,105 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "explanation": "Average speed is total distance divided by total time, not the mean of the speeds. When rates are combined, the quantity you average over (here, time) does the weighting — averaging over equal distances overweights the fast segment. Match the average to the right base."
   },
   {
+    "track": "statistics",
+    "title": "stats-uncertainty-04",
+    "topic": "uncertainty",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "A study reports that a new drug reduced symptoms more than placebo, p = 0.04.",
+    "prompt": "What does p = 0.04 actually tell you?",
+    "choices": [
+      {
+        "text": "If the drug truly had no effect, data at least this extreme would occur about 4% of the time.",
+        "correct": true,
+        "rationale": "That's the definition of a p-value: the probability of the observed (or more extreme) data under the null hypothesis of no effect."
+      },
+      {
+        "text": "There's a 96% chance the drug works.",
+        "correct": false,
+        "rationale": "A p-value is not the probability the hypothesis is true; it says nothing directly about P(effect is real)."
+      },
+      {
+        "text": "The effect is large and clinically important.",
+        "correct": false,
+        "rationale": "Significance is about ruling out chance, not about effect size or clinical importance — a tiny effect can be significant with enough data."
+      },
+      {
+        "text": "There's a 4% chance the result was a fluke.",
+        "correct": false,
+        "rationale": "The p-value assumes the null is true; it isn't the probability that this particular result is a false positive."
+      }
+    ],
+    "payload": null,
+    "explanation": "A p-value measures how surprising the data would be if there were no effect — not the probability the effect is real, and not its size. Small p rules out chance as an easy explanation; it doesn't prove importance."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-association-05",
+    "topic": "association",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "Across cities, monthly ice-cream sales correlate strongly with monthly drowning deaths.",
+    "prompt": "What most likely explains this correlation?",
+    "choices": [
+      {
+        "text": "A lurking variable — hot weather — drives both swimming (hence drownings) and ice-cream sales.",
+        "correct": true,
+        "rationale": "A common cause produces correlation between two effects with no causal link between them."
+      },
+      {
+        "text": "Eating ice cream impairs swimming ability and causes drownings.",
+        "correct": false,
+        "rationale": "This invents a direct causal story where a confounder (season/temperature) is the parsimonious explanation."
+      },
+      {
+        "text": "Drownings drive grieving families to buy more ice cream.",
+        "correct": false,
+        "rationale": "Reverse causation is implausible and unsupported; the shared driver is temperature."
+      },
+      {
+        "text": "The correlation must be a coincidence with no explanation.",
+        "correct": false,
+        "rationale": "A strong, repeatable seasonal pattern isn't coincidence — it points to a common cause."
+      }
+    ],
+    "payload": null,
+    "explanation": "Correlation between two effects of a common cause is classic confounding. Before believing X causes Y, ask what third variable could drive both — here, warm weather."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-variation-05",
+    "topic": "variation",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "Rookies who win 'Player of the Year' often perform worse the next season — the so-called sophomore slump. Commentators blame complacency and pressure.",
+    "prompt": "What's the simplest statistical explanation?",
+    "choices": [
+      {
+        "text": "Regression to the mean: an award-winning season is partly luck, and luck doesn't repeat, so the next year drifts back toward their true level.",
+        "correct": true,
+        "rationale": "Extreme outcomes are inflated by favorable noise; subsequent performance regresses toward the underlying mean."
+      },
+      {
+        "text": "Winning an award causally makes athletes lazy.",
+        "correct": false,
+        "rationale": "A behavioral story isn't needed; the pattern follows from selecting on an extreme year."
+      },
+      {
+        "text": "Sophomores face tougher schedules by rule.",
+        "correct": false,
+        "rationale": "No such rule exists; this is an ad hoc explanation for a purely statistical effect."
+      },
+      {
+        "text": "The award voters were simply wrong about the rookies.",
+        "correct": false,
+        "rationale": "The players really were best that year; regression explains the decline without impugning the vote."
+      }
+    ],
+    "payload": null,
+    "explanation": "Whenever you select the extreme (best rookie season), the next measurement tends to move back toward average because the extreme was partly luck. No motivational story required."
+  },
+  {
     "track": "architecture",
     "title": "arch-storage-01",
     "topic": "storage",
@@ -1454,6 +1553,105 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "explanation": "Automation is an investment that pays off only when frequency and stability make manual cost exceed build-plus-maintenance cost. When usage is rare and requirements churn, the cheapest correct answer is often not to build the pipeline at all."
   },
   {
+    "track": "architecture",
+    "title": "arch-reliability-05",
+    "topic": "reliability",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "A payment API call times out, so the client retries. Sometimes the first call had actually succeeded, and the customer gets charged twice.",
+    "prompt": "What's the standard fix?",
+    "choices": [
+      {
+        "text": "Require an idempotency key so a retried request with the same key is recognized and not re-applied.",
+        "correct": true,
+        "rationale": "Idempotency keys let the server dedupe retries, making at-least-once delivery safe for money movement."
+      },
+      {
+        "text": "Stop retrying failed requests entirely.",
+        "correct": false,
+        "rationale": "Timeouts are ambiguous — the call may have failed — so never retrying drops legitimate payments; retries need to be safe, not banned."
+      },
+      {
+        "text": "Make the network faster so timeouts never happen.",
+        "correct": false,
+        "rationale": "You can't eliminate timeouts; the system must be correct despite them."
+      },
+      {
+        "text": "Log the duplicate and refund it later.",
+        "correct": false,
+        "rationale": "Reactive cleanup is error-prone and user-hostile compared to preventing the double charge with idempotency."
+      }
+    ],
+    "payload": null,
+    "explanation": "Networks give you at-least-once delivery, so retries can duplicate. An idempotency key makes repeated requests safe: the server applies the effect once and returns the same result for retries."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-cost-05",
+    "topic": "cost",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "A team keeps five years of raw logs in a hot, instantly-queryable store. 95% of queries only ever touch the last 30 days, but the bill covers all five years at hot-tier prices.",
+    "prompt": "What's the most cost-effective change that preserves access?",
+    "choices": [
+      {
+        "text": "Tier the data by age: keep recent logs hot and move older logs to cheap cold/archive storage, restoring on the rare deep query.",
+        "correct": true,
+        "rationale": "Matching storage cost to access frequency slashes the bill while keeping old data reachable when needed."
+      },
+      {
+        "text": "Delete everything older than 30 days.",
+        "correct": false,
+        "rationale": "That destroys data the business may need for audits or the occasional deep query; tiering keeps it cheaply."
+      },
+      {
+        "text": "Keep all five years hot but buy a bigger discount commitment.",
+        "correct": false,
+        "rationale": "A commitment discount on the wrong tier still overpays for cold data that's almost never queried."
+      },
+      {
+        "text": "Compress the hot store harder.",
+        "correct": false,
+        "rationale": "Compression helps a little, but the structural waste is storing rarely-touched data on the most expensive tier."
+      }
+    ],
+    "payload": null,
+    "explanation": "Storage cost should track access frequency. Lifecycle tiering — hot for recent, cold/archive for old — is the standard lever, cutting cost by an order of magnitude while keeping cold data restorable."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-modeling-05",
+    "topic": "modeling",
+    "kind": "mcq",
+    "difficulty": 3,
+    "scenario": "To 'stay flexible,' a team stores every product attribute as generic (entity, attribute, value) rows — an EAV table — even though products have a well-known, stable set of fields.",
+    "prompt": "What's the main problem with EAV here?",
+    "choices": [
+      {
+        "text": "Queries need many self-joins or pivots, types aren't enforced, and the database can't index or constrain fields it can't see — for a schema that's actually known.",
+        "correct": true,
+        "rationale": "EAV trades away typing, constraints, and query simplicity; it only pays off for genuinely sparse, unknown attributes."
+      },
+      {
+        "text": "EAV uses too much disk space to be viable.",
+        "correct": false,
+        "rationale": "Space isn't the core issue; the costs are query complexity, lost type safety, and un-indexable fields."
+      },
+      {
+        "text": "EAV can't store more than a few attributes.",
+        "correct": false,
+        "rationale": "It can store many — that's not the limitation; the limitation is how painfully you query and validate them."
+      },
+      {
+        "text": "Relational databases can't store key-value pairs at all.",
+        "correct": false,
+        "rationale": "They can; EAV is exactly that pattern — the problem is misapplying it to a known schema."
+      }
+    ],
+    "payload": null,
+    "explanation": "EAV buys flexibility you don't need when the schema is known, and charges for it with self-joins, no type checking, and no per-field indexes or constraints. Model known fields as columns; reserve EAV for truly sparse, open-ended attributes."
+  },
+  {
     "track": "statistics",
     "title": "stats-est-01",
     "topic": "sampling",
@@ -1641,6 +1839,111 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     },
     "explanation": "This teaches that a pooled rate depends on the subgroup mix: weighting gives 0.6 x 70% + 0.4 x 40% = 58%, not a simple average of 55%. Because the projected mix and each segment's rate carry their own uncertainty, the honest interval widens around that weighted estimate rather than treating 58% as exact."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-10",
+    "topic": "variation",
+    "kind": "estimate",
+    "difficulty": 2,
+    "scenario": "A call-center agent handled 92 calls yesterday — well above the team average of 70. Staffing wants to predict her output for an average day next week.",
+    "prompt": "Place your best estimate and a 90% interval for her typical daily calls next week.",
+    "choices": [],
+    "payload": {
+      "unit": " calls",
+      "min": 60,
+      "max": 95,
+      "truth": 76,
+      "good": {
+        "lo": 70,
+        "hi": 82
+      }
+    },
+    "explanation": "Regression to the mean: an unusually high day is part skill, part luck, and the luck won't repeat. Expect her to stay above average but drift back toward it — not to hold 92. Extremes are the observations most contaminated by noise."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-11",
+    "topic": "sampling",
+    "kind": "estimate",
+    "difficulty": 1,
+    "scenario": "A random sample of 600 customers found 55% would recommend the product. That 55% is a sample estimate, not the exact truth for all customers.",
+    "prompt": "Place your best estimate and a 90% interval for the true recommend rate among all customers.",
+    "choices": [],
+    "payload": {
+      "unit": "%",
+      "min": 40,
+      "max": 70,
+      "truth": 53,
+      "good": {
+        "lo": 49,
+        "hi": 57
+      }
+    },
+    "explanation": "With n=600 the standard error on a proportion near 50% is about 2 points, so a 90% interval spans roughly the sample value plus or minus 3–4 points. The band should straddle 55%, not sit exactly on it."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-12",
+    "topic": "uncertainty",
+    "kind": "estimate",
+    "difficulty": 3,
+    "scenario": "An A/B test with 1,000 users per arm showed the new checkout converting 3 points higher than the old one. With samples this size, the observed lift carries real uncertainty.",
+    "prompt": "Place your best estimate and a 90% interval for the true conversion lift.",
+    "choices": [],
+    "payload": {
+      "unit": "%",
+      "min": -4,
+      "max": 10,
+      "truth": 2,
+      "good": {
+        "lo": -1,
+        "hi": 5
+      }
+    },
+    "explanation": "A 3-point observed lift on n=1,000/arm has a wide confidence interval that likely includes zero — the result may not be significant. An honest band spans from a small negative to a mid-single-digit positive, not a confident '3% better'."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-13",
+    "topic": "association",
+    "kind": "estimate",
+    "difficulty": 3,
+    "scenario": "In a large class, taller students scored slightly higher on a test — the correlation between height and score was r = 0.30.",
+    "prompt": "Place your best estimate and a 90% interval for the % of test-score variance that height explains.",
+    "choices": [],
+    "payload": {
+      "unit": "%",
+      "min": 0,
+      "max": 40,
+      "truth": 9,
+      "good": {
+        "lo": 4,
+        "hi": 16
+      }
+    },
+    "explanation": "Variance explained is r², not r: 0.30 squared is 0.09, so height accounts for only about 9% of score variation. A correlation that sounds moderate often explains a surprisingly small share of the outcome."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-est-14",
+    "topic": "aggregation",
+    "kind": "estimate",
+    "difficulty": 2,
+    "scenario": "A company has two segments: 8,000 enterprise users rating it 4.4/5 and 2,000 free users rating it 2.9/5. Someone asks for the single company-wide average.",
+    "prompt": "Place your best estimate and a 90% interval for the overall (user-weighted) average rating.",
+    "choices": [],
+    "payload": {
+      "unit": "/5",
+      "min": 3,
+      "max": 5,
+      "truth": 4.1,
+      "good": {
+        "lo": 3.8,
+        "hi": 4.3
+      }
+    },
+    "explanation": "The blended average is weighted by group size, not a simple midpoint of 4.4 and 2.9 (which would be 3.65). Because enterprise users are 80% of the base, the overall lands near 4.1 — aggregation must respect the weights."
   },
   {
     "track": "architecture",
@@ -2097,6 +2400,234 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "alsoFits": "Design A is the right call when compute is steady and high-utilization or latency-sensitive, where a warm cluster's consistent performance beats paying serverless per-query premiums and enduring cold starts all day."
     },
     "explanation": "Both separate storage from compute, so both let storage grow cheaply — the decider is the spiky, mostly-idle compute profile against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-13",
+    "topic": "processing",
+    "kind": "duel",
+    "difficulty": 2,
+    "scenario": "Finance needs trustworthy daily revenue numbers. They occasionally amend a calculation rule and must restate history without heroics.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "daily revenue rollups · correctness over freshness · must be cheaply reprocessable when a tax rule changes",
+      "designA": {
+        "name": "Nightly batch job",
+        "sketch": "Warehouse ← scheduled batch recompute over the day's rows",
+        "bullets": [
+          "Recomputes each day's rollup from source rows",
+          "A rule change = re-run the job over history",
+          "Latency is hours, which finance accepts",
+          "Correctness and reprocessability come first"
+        ]
+      },
+      "designB": {
+        "name": "Streaming aggregation",
+        "sketch": "Events → stream processor → running totals in state",
+        "bullets": [
+          "Totals update within seconds of each sale",
+          "Restating history means replaying or rebuilding state",
+          "Exactly-once accounting adds real complexity",
+          "Freshness is its strength, backfill its weakness"
+        ]
+      },
+      "better": "A",
+      "deskRationale": "Both produce the daily number, but the deciding pressure is reprocessability under a rule change, not latency. A batch job restates history by simply re-running over source rows; a streaming pipeline must replay events and rebuild state to correct the past — costly and error-prone for an audited ledger that values correctness over freshness.",
+      "failureMode": "painful historical backfills",
+      "alsoFits": "Design B is right when freshness is the SLA — a live ops dashboard or fraud counter where seconds matter more than the ease of restating last quarter."
+    },
+    "explanation": "Both produce the daily number, but the deciding pressure is reprocessability under a rule change, not latency. A batch job restates history by simply re-running over source rows; a streaming pipeline must replay events and rebuild state to correct the past — costly and error-prone for an audited ledger that values correctness over freshness."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-14",
+    "topic": "modeling",
+    "kind": "duel",
+    "difficulty": 1,
+    "scenario": "A storefront product page assembled on every view. The catalog is edited a few times a day; shoppers hit it constantly.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "render a product page (name, price, review count) · p99 < 50ms · catalog changes rarely · reads outnumber writes 100:1",
+      "designA": {
+        "name": "Denormalized read model",
+        "sketch": "One document per product with fields pre-joined",
+        "bullets": [
+          "A page is a single keyed fetch — no joins",
+          "Edits update a few documents (rare)",
+          "Read path is flat and fast",
+          "Trades write simplicity for read speed"
+        ]
+      },
+      "designB": {
+        "name": "Normalized tables + joins",
+        "sketch": "products ⋈ prices ⋈ reviews at query time",
+        "bullets": [
+          "No duplication; each fact stored once",
+          "Every page view runs multi-table joins",
+          "Writes are trivially consistent",
+          "Read cost grows with join fan-out"
+        ]
+      },
+      "better": "A",
+      "deskRationale": "Both can serve the page, but reads outnumber writes 100:1 and the catalog rarely changes — so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat.",
+      "failureMode": "per-read join cost",
+      "alsoFits": "Design B wins when writes are frequent and many entities must stay mutually consistent — an order-management back office where duplication would breed update anomalies."
+    },
+    "explanation": "Both can serve the page, but reads outnumber writes 100:1 and the catalog rarely changes — so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-15",
+    "topic": "reliability",
+    "kind": "duel",
+    "difficulty": 3,
+    "scenario": "A ledger that records money movement. A confirmed write must survive the loss of any single node — a lost payment is unacceptable.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "payments ledger · no acknowledged write may be lost if a node fails · single region",
+      "designA": {
+        "name": "Synchronous quorum replication",
+        "sketch": "Write acked only after a majority of replicas persist it",
+        "bullets": [
+          "Ack waits for a durable majority",
+          "Any single node loss keeps every acked write",
+          "Adds a little write latency for the quorum",
+          "Durability is the non-negotiable here"
+        ]
+      },
+      "designB": {
+        "name": "Asynchronous replication",
+        "sketch": "Primary acks immediately; replicas catch up after",
+        "bullets": [
+          "Lowest write latency — ack is local",
+          "A crash can lose writes not yet shipped",
+          "Replica lag is a data-loss window",
+          "Throughput over durability"
+        ]
+      },
+      "better": "A",
+      "deskRationale": "Both replicate, but the SLA forbids losing any acknowledged write, and async replication has a lag window in which a primary crash drops the most recent commits. Synchronous quorum trades a few milliseconds of write latency for the guarantee the ledger actually requires.",
+      "failureMode": "lost writes on failover",
+      "alsoFits": "Design B is the right call when a small data-loss window is tolerable in exchange for latency and throughput — high-volume analytics or telemetry events, where losing the last second of data doesn't matter."
+    },
+    "explanation": "Both replicate, but the SLA forbids losing any acknowledged write, and async replication has a lag window in which a primary crash drops the most recent commits. Synchronous quorum trades a few milliseconds of write latency for the guarantee the ledger actually requires."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-16",
+    "topic": "cost",
+    "kind": "duel",
+    "difficulty": 2,
+    "scenario": "An internal analytics job that fires a handful of times daily, sits idle in between, and has a generous latency budget.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "internal reporting job · runs a few times a day in bursts · cost-sensitive · minutes of latency are fine",
+      "designA": {
+        "name": "On-demand / serverless compute",
+        "sketch": "Spin up per run → execute → tear down",
+        "bullets": [
+          "Pay only for the seconds it runs",
+          "Zero cost while idle (most of the day)",
+          "Cold-start adds seconds — acceptable here",
+          "Utilization-shaped billing fits bursty work"
+        ]
+      },
+      "designB": {
+        "name": "Always-on provisioned cluster",
+        "sketch": "A reserved cluster kept warm 24/7",
+        "bullets": [
+          "Instant response, no cold start",
+          "Pays for 24h even when idle",
+          "Simple, predictable capacity",
+          "Cheapest only at high steady utilization"
+        ]
+      },
+      "better": "A",
+      "deskRationale": "Both run the job, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero — the deciding factor when utilization is low and minutes of latency are acceptable.",
+      "failureMode": "paying for idle capacity",
+      "alsoFits": "Design B is cheaper once the workload is steady and high-utilization — a cluster running near-continuously, where reserved capacity beats per-invocation pricing."
+    },
+    "explanation": "Both run the job, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero — the deciding factor when utilization is low and minutes of latency are acceptable."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-17",
+    "topic": "scaling",
+    "kind": "duel",
+    "difficulty": 3,
+    "scenario": "A cache tier that autoscales through the day. Each resize should disturb as few keys as possible to preserve hit rate.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "distributed cache · nodes are added and removed often by autoscaling · minimize keys remapped on each membership change",
+      "designA": {
+        "name": "Consistent hashing",
+        "sketch": "Keys and nodes on a ring; a key owned by the next node clockwise",
+        "bullets": [
+          "Adding/removing a node remaps only its arc of keys",
+          "Hit rate survives frequent resizes",
+          "Virtual nodes even out the load",
+          "Built for churny membership"
+        ]
+      },
+      "designB": {
+        "name": "Modulo (hash % N) partitioning",
+        "sketch": "shard = hash(key) mod node_count",
+        "bullets": [
+          "Dead simple to reason about",
+          "Even spread at a fixed node count",
+          "Changing N remaps almost every key",
+          "Assumes stable membership"
+        ]
+      },
+      "better": "A",
+      "deskRationale": "Both distribute keys evenly at a fixed size, but membership changes often, and modulo partitioning remaps nearly all keys whenever N changes — cratering cache hit rate on every autoscale event. Consistent hashing moves only the keys near the changed node, which is exactly what churny membership needs.",
+      "failureMode": "mass remap on resize",
+      "alsoFits": "Design B is fine when the node count is stable and you value simplicity or need clean range math — a fixed-size partitioned store that rarely resizes."
+    },
+    "explanation": "Both distribute keys evenly at a fixed size, but membership changes often, and modulo partitioning remaps nearly all keys whenever N changes — cratering cache hit rate on every autoscale event. Consistent hashing moves only the keys near the changed node, which is exactly what churny membership needs."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-duel-18",
+    "topic": "storage",
+    "kind": "duel",
+    "difficulty": 1,
+    "scenario": "A product that lets users upload photos, served globally through a CDN. Volume grows without bound; durability and cost matter.",
+    "prompt": "Which design fits these constraints?",
+    "choices": [],
+    "payload": {
+      "constraint": "store user-uploaded images (avg 2 MB) · serve via CDN · cheap at scale · durable",
+      "designA": {
+        "name": "Object storage",
+        "sketch": "Upload → object store (S3-like) → CDN origin-pulls",
+        "bullets": [
+          "Priced for cheap, durable bulk blobs",
+          "CDN pulls directly from the bucket",
+          "Scales to unlimited objects",
+          "Keeps big binaries out of the database"
+        ]
+      },
+      "designB": {
+        "name": "BLOBs in the relational DB",
+        "sketch": "Image bytes stored in a table column",
+        "bullets": [
+          "One system; transactional with the row",
+          "Bloats the DB and its backups fast",
+          "Every read/backup drags binary weight",
+          "Doesn't fan out to a CDN naturally"
+        ]
+      },
+      "better": "A",
+      "deskRationale": "Both can hold the bytes, but at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic — the wrong tool once volume grows.",
+      "failureMode": "database bloat from binaries",
+      "alsoFits": "Design B is acceptable when blobs are tiny and must be transactionally consistent with their row — small thumbnails or signatures where atomicity with the record outweighs scale concerns."
+    },
+    "explanation": "Both can hold the bytes, but at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic — the wrong tool once volume grows."
   },
   {
     "track": "architecture",
@@ -2595,6 +3126,254 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "explanation": "Time-bucket keys hot-spot on the current window, and range-partitioning the series id lets a few chatty series overheat one shard. Hashing the high-cardinality series id balances writes while keeping each series co-located, so a single-series time-range read still hits just one shard. The lost cross-series ordering is rarely needed here."
   },
   {
+    "track": "architecture",
+    "title": "arch-bake-09",
+    "topic": "scaling",
+    "kind": "bakeoff",
+    "difficulty": 2,
+    "scenario": "A ride-hailing platform ingests ~40k location pings/sec, but 70% originate from three dense metro cities. Pings are stored across 8 shards and written far more than read.",
+    "prompt": "Pick the partition key that spreads write load most evenly.",
+    "choices": [],
+    "payload": {
+      "keys": [
+        {
+          "id": "city_id",
+          "label": "city_id",
+          "shards": [
+            740,
+            60,
+            55,
+            50,
+            65,
+            58,
+            52,
+            60
+          ],
+          "note": "A metro city maps to one shard and floods it; rural shards idle."
+        },
+        {
+          "id": "hash_city_id",
+          "label": "hash(city_id)",
+          "shards": [
+            420,
+            70,
+            300,
+            65,
+            72,
+            68,
+            60,
+            65
+          ],
+          "note": "Hashing scatters cities, but one huge city is still one key on one shard."
+        },
+        {
+          "id": "hash_trip_id",
+          "label": "hash(trip_id)",
+          "shards": [
+            162,
+            158,
+            160,
+            161,
+            159,
+            157,
+            163,
+            160
+          ],
+          "note": "A high-cardinality per-trip id splits even a dense city's pings across all shards."
+        }
+      ],
+      "best": "hash_trip_id",
+      "explanation": "When a few entities dominate, any key at city granularity — even hashed — pins that entity's traffic to one shard. Hashing a high-cardinality per-event id spreads a single hot city evenly."
+    },
+    "explanation": "When a few entities dominate, any key at city granularity — even hashed — pins that entity's traffic to one shard. Hashing a high-cardinality per-event id spreads a single hot city evenly."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-bake-10",
+    "topic": "scaling",
+    "kind": "bakeoff",
+    "difficulty": 2,
+    "scenario": "A social network writes feed entries via fan-out: when a celebrity with millions of followers posts, one write becomes millions. Writes land across 8 shards.",
+    "prompt": "Pick the partition key that keeps a celebrity's fan-out from hammering one shard.",
+    "choices": [],
+    "payload": {
+      "keys": [
+        {
+          "id": "author_id",
+          "label": "author_id",
+          "shards": [
+            900,
+            30,
+            25,
+            20,
+            28,
+            22,
+            26,
+            24
+          ],
+          "note": "A celebrity author is one key — the whole fan-out lands on a single shard."
+        },
+        {
+          "id": "hash_author_id",
+          "label": "hash(author_id)",
+          "shards": [
+            900,
+            30,
+            25,
+            22,
+            27,
+            23,
+            25,
+            23
+          ],
+          "note": "Hashing the author still maps one author to one shard; the whale is unmoved."
+        },
+        {
+          "id": "hash_follower_id",
+          "label": "hash(follower_id)",
+          "shards": [
+            138,
+            136,
+            140,
+            137,
+            139,
+            135,
+            141,
+            139
+          ],
+          "note": "Partitioning by the fan-out target scatters the millions of writes across all shards."
+        }
+      ],
+      "best": "hash_follower_id",
+      "explanation": "Fan-out writes are keyed by their target, not their source. Partitioning by follower_id spreads one celebrity's millions of writes evenly; any author-based key concentrates them on a single shard."
+    },
+    "explanation": "Fan-out writes are keyed by their target, not their source. Partitioning by follower_id spreads one celebrity's millions of writes evenly; any author-based key concentrates them on a single shard."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-bake-11",
+    "topic": "scaling",
+    "kind": "bakeoff",
+    "difficulty": 3,
+    "scenario": "A metrics platform ingests time-series points across 8 shards. Writes are almost entirely for the current hour; older hours are read-only.",
+    "prompt": "Pick the partition key that avoids a moving write hotspot.",
+    "choices": [],
+    "payload": {
+      "keys": [
+        {
+          "id": "timestamp_hour",
+          "label": "timestamp_hour",
+          "shards": [
+            980,
+            5,
+            4,
+            3,
+            4,
+            2,
+            1,
+            1
+          ],
+          "note": "All current writes hit one shard; the hotspot marches to a new shard each hour."
+        },
+        {
+          "id": "metric_name",
+          "label": "metric_name",
+          "shards": [
+            520,
+            60,
+            240,
+            50,
+            55,
+            48,
+            40,
+            187
+          ],
+          "note": "A couple of dominant metrics create persistent hot shards."
+        },
+        {
+          "id": "hash_series_id",
+          "label": "hash(series_id)",
+          "shards": [
+            128,
+            126,
+            130,
+            127,
+            129,
+            124,
+            131,
+            105
+          ],
+          "note": "Hashing the series id spreads current-hour writes across every shard."
+        }
+      ],
+      "best": "hash_series_id",
+      "explanation": "A time-based key sends all current writes to one shard and drags the hotspot to a new shard every hour. Hashing a high-cardinality series id spreads the live write load evenly and keeps each shard busy."
+    },
+    "explanation": "A time-based key sends all current writes to one shard and drags the hotspot to a new shard every hour. Hashing a high-cardinality series id spreads the live write load evenly and keeps each shard busy."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-bake-12",
+    "topic": "scaling",
+    "kind": "bakeoff",
+    "difficulty": 3,
+    "scenario": "An IoT fleet streams sensor readings across 8 shards. One firmware bug makes 55% of all readings come from a single misbehaving device model.",
+    "prompt": "Pick the partition key that survives one device model dominating the stream.",
+    "choices": [],
+    "payload": {
+      "keys": [
+        {
+          "id": "device_model",
+          "label": "device_model",
+          "shards": [
+            770,
+            60,
+            50,
+            55,
+            45,
+            58,
+            52,
+            50
+          ],
+          "note": "The buggy model is one key — its flood lands entirely on one shard."
+        },
+        {
+          "id": "device_id",
+          "label": "device_id",
+          "shards": [
+            300,
+            150,
+            160,
+            145,
+            155,
+            148,
+            152,
+            130
+          ],
+          "note": "Many devices of the buggy model still cluster; better, but uneven."
+        },
+        {
+          "id": "hash_reading_id",
+          "label": "hash(reading_id)",
+          "shards": [
+            172,
+            168,
+            170,
+            169,
+            171,
+            167,
+            173,
+            160
+          ],
+          "note": "A per-reading id scatters even the buggy model's flood across all shards."
+        }
+      ],
+      "best": "hash_reading_id",
+      "explanation": "Keying by a dominant attribute concentrates its traffic; even device_id clusters if the buggy model has few units. Hashing a per-reading id ignores the skew entirely and spreads every reading evenly."
+    },
+    "explanation": "Keying by a dominant attribute concentrates its traffic; even device_id clusters if the buggy model has few units. Hashing a per-reading id ignores the skew entirely and spreads every reading evenly."
+  },
+  {
     "track": "statistics",
     "title": "stats-flood-01",
     "topic": "base_rates",
@@ -2701,6 +3480,96 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "truth": 28.6
     },
     "explanation": "A mediocre test with 30% false-positive rate needs a fairly common condition before a positive result is trustworthy. Because predictive value tracks the base rate, false positives dominate until prevalence is high. True and false positives only balance around 28.6% prevalence."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-flood-07",
+    "topic": "base_rates",
+    "kind": "flood",
+    "difficulty": 1,
+    "scenario": "A spam filter flags 98% of real spam and correctly passes 90% of legitimate mail. Marketing worries too many good emails land in the spam folder.",
+    "prompt": "Drag the spam rate until a flagged email is a coin flip — P(spam | flagged) = 50%.",
+    "choices": [],
+    "payload": {
+      "sensitivity": 98,
+      "specificity": 90,
+      "min": 0,
+      "max": 40,
+      "truth": 9.3
+    },
+    "explanation": "Even a sharp filter mislabels 10% of legitimate mail. When most mail is legitimate, those false flags rival the true spam catches, so a flagged email is only even-odds spam once spam makes up about 9% of the inbox."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-flood-08",
+    "topic": "base_rates",
+    "kind": "flood",
+    "difficulty": 2,
+    "scenario": "A bank's fraud model catches 85% of fraudulent transactions and clears 97% of legitimate ones. Most transactions are legitimate.",
+    "prompt": "Drag the fraud rate until a flagged transaction is a coin flip — P(fraud | flagged) = 50%.",
+    "choices": [],
+    "payload": {
+      "sensitivity": 85,
+      "specificity": 97,
+      "min": 0,
+      "max": 20,
+      "truth": 3.4
+    },
+    "explanation": "A 3% false-positive rate sounds tiny, but applied to the huge pool of legitimate transactions it produces as many flags as real fraud does — until fraud climbs to about 3.4% of all transactions. Below that, most alerts are false alarms."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-flood-09",
+    "topic": "base_rates",
+    "kind": "flood",
+    "difficulty": 2,
+    "scenario": "An airport scanner detects 95% of prohibited items and correctly clears 92% of harmless bags. The overwhelming majority of bags are harmless.",
+    "prompt": "Drag the threat rate until a scanner alarm is a coin flip — P(threat | alarm) = 50%.",
+    "choices": [],
+    "payload": {
+      "sensitivity": 95,
+      "specificity": 92,
+      "min": 0,
+      "max": 40,
+      "truth": 7.8
+    },
+    "explanation": "With harmless bags vastly outnumbering threats, an 8% false-alarm rate generates a flood of false positives. Only when roughly 7.8% of bags carry a threat do true alarms finally match false ones — which is why real screening layers cheap scans before costly searches."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-flood-10",
+    "topic": "base_rates",
+    "kind": "flood",
+    "difficulty": 3,
+    "scenario": "A workplace drug test is very accurate: it detects 99% of actual users and correctly clears 98% of non-users. The company screens all employees, most of whom don't use.",
+    "prompt": "Drag the true usage rate until a positive result is a coin flip — P(user | positive) = 50%.",
+    "choices": [],
+    "payload": {
+      "sensitivity": 99,
+      "specificity": 98,
+      "min": 0,
+      "max": 15,
+      "truth": 2
+    },
+    "explanation": "Even at 98% specificity, testing a mostly-clean population means most positives are false. A positive is only even-odds real once true usage reaches about 2% — the reason confirmatory retests exist for accusatory screening."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-flood-11",
+    "topic": "base_rates",
+    "kind": "flood",
+    "difficulty": 3,
+    "scenario": "A blood biomarker for a rare cancer flags 80% of people who have it and correctly clears 90% of those who don't. It's pitched as a mass screening tool.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip — P(cancer | positive) = 50%.",
+    "choices": [],
+    "payload": {
+      "sensitivity": 80,
+      "specificity": 90,
+      "min": 0,
+      "max": 45,
+      "truth": 11.1
+    },
+    "explanation": "A modest 90% specificity is deadly for mass screening of a rare disease: false positives swamp true ones until prevalence reaches about 11%. This is why broad screening for rare conditions can do more harm (from false alarms) than good."
   }
 ];
 

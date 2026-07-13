@@ -1,234 +1,674 @@
 [
-  {
-    "title": "arch-bake-01",
-    "topic": "scaling",
-    "difficulty": 2,
-    "scenario": "A multi-tenant analytics SaaS ingests ~50k events/sec across 4,000 customer tenants, but three enterprise whales generate 80% of all events. Events are stored across 8 shards and mostly written, then batch-aggregated per tenant nightly.",
-    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
-    "keys": [
-      {
-        "id": "tenant_id",
-        "label": "tenant_id",
-        "shards": [820, 40, 35, 30, 45, 38, 42, 50],
-        "note": "A whale tenant maps to one shard and swamps it; most shards idle."
-      },
-      {
-        "id": "hash_tenant_id",
-        "label": "hash(tenant_id)",
-        "shards": [300, 88, 92, 85, 95, 90, 84, 96],
-        "note": "Hashing scatters tenants, but a single whale is still one key -> one hot shard."
-      },
-      {
-        "id": "hash_event_id",
-        "label": "hash(event_id)",
-        "shards": [124, 126, 123, 125, 124, 127, 123, 125],
-        "note": "Per-event high-cardinality hash spreads each whale's events across all shards."
-      }
+ {
+  "title": "arch-bake-01",
+  "topic": "scaling",
+  "difficulty": 2,
+  "scenario": "A multi-tenant analytics SaaS ingests ~50k events/sec across 4,000 customer tenants, but three enterprise whales generate 80% of all events. Events are stored across 8 shards and mostly written, then batch-aggregated per tenant nightly.",
+  "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+  "keys": [
+   {
+    "id": "tenant_id",
+    "label": "tenant_id",
+    "shards": [
+     820,
+     40,
+     35,
+     30,
+     45,
+     38,
+     42,
+     50
     ],
-    "best": "hash_event_id",
-    "explanation": "When a few whale entities dominate, any key with tenant granularity (even hashed) concentrates that entity on one shard. Hashing a high-cardinality per-event id splits a single whale's traffic evenly. The tradeoff: you lose per-tenant locality, so nightly per-tenant aggregation must scatter-gather across all shards."
-  },
-  {
-    "title": "arch-bake-02",
-    "topic": "scaling",
-    "difficulty": 1,
-    "scenario": "A clickstream pipeline appends ~20k rows/sec to 8 shards. Almost all writes are for the current day, and reporting reads are ad-hoc across arbitrary date ranges.",
-    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
-    "keys": [
-      {
-        "id": "event_date",
-        "label": "event_date",
-        "shards": [10, 12, 15, 20, 30, 50, 90, 700],
-        "note": "All of 'today' lands on one shard -> a moving write hotspot."
-      },
-      {
-        "id": "hash_event_id",
-        "label": "hash(event_id)",
-        "shards": [100, 98, 102, 99, 101, 100, 97, 103],
-        "note": "High-cardinality hash spreads today's writes across every shard."
-      },
-      {
-        "id": "hour_of_day",
-        "label": "hour_of_day",
-        "shards": [40, 55, 70, 30, 20, 610, 120, 90],
-        "note": "Only 24 values, and peak hours pile onto a few shards."
-      }
+    "note": "A whale tenant maps to one shard and swamps it; most shards idle."
+   },
+   {
+    "id": "hash_tenant_id",
+    "label": "hash(tenant_id)",
+    "shards": [
+     300,
+     88,
+     92,
+     85,
+     95,
+     90,
+     84,
+     96
     ],
-    "best": "hash_event_id",
-    "explanation": "Time-ordered keys create a hot 'now' shard because writes are time-skewed toward the present. A high-cardinality hash decouples placement from time and balances the write load. The cost is lost range-scan locality: a date-range report must fan out to all shards."
-  },
-  {
-    "title": "arch-bake-03",
-    "topic": "scaling",
-    "difficulty": 1,
-    "scenario": "An e-commerce orders table on 8 shards serves a marketplace where 70% of orders originate in one country and the rest are spread thin across a handful of others. Reads look up individual orders by id.",
-    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
-    "keys": [
-      {
-        "id": "country",
-        "label": "country",
-        "shards": [900, 300, 50, 0, 0, 0, 0, 0],
-        "note": "Low cardinality: only a few shards ever fill, and one dominates."
-      },
-      {
-        "id": "hash_order_id",
-        "label": "hash(order_id)",
-        "shards": [126, 124, 125, 127, 123, 125, 124, 126],
-        "note": "High-cardinality unique id spreads orders evenly regardless of geography."
-      },
-      {
-        "id": "customer_id",
-        "label": "customer_id",
-        "shards": [430, 130, 110, 95, 100, 85, 90, 80],
-        "note": "High cardinality, but a few bulk buyers still overheat their shard."
-      }
+    "note": "Hashing scatters tenants, but a single whale is still one key -> one hot shard."
+   },
+   {
+    "id": "hash_event_id",
+    "label": "hash(event_id)",
+    "shards": [
+     124,
+     126,
+     123,
+     125,
+     124,
+     127,
+     123,
+     125
     ],
-    "best": "hash_order_id",
-    "explanation": "A low-cardinality key like country can only use as many shards as it has distinct, evenly-sized values -- here most shards sit idle while one is molten, and customer_id inherits skew from a few bulk buyers. Hashing the unique order id gives high cardinality and uniform spread. Since reads are single-order lookups, the lost geographic locality costs nothing."
-  },
-  {
-    "title": "arch-bake-04",
-    "topic": "scaling",
-    "difficulty": 2,
-    "scenario": "A ledger service assigns strictly increasing order_id values and range-partitions them across 8 shards. Throughput is ~30k inserts/sec, and the id keeps climbing so new rows always fall in the highest range.",
-    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
-    "keys": [
-      {
-        "id": "order_id_range",
-        "label": "order_id (range)",
-        "shards": [5, 5, 5, 5, 5, 5, 5, 960],
-        "note": "Monotonic id + range partitioning -> every insert hits the newest shard."
-      },
-      {
-        "id": "hash_order_id",
-        "label": "hash(order_id)",
-        "shards": [122, 125, 124, 126, 123, 125, 124, 126],
-        "note": "Hashing the same id randomizes placement, killing the append hotspot."
-      },
-      {
-        "id": "created_hour",
-        "label": "created_hour",
-        "shards": [8, 10, 12, 14, 20, 60, 160, 700],
-        "note": "Also monotonic in time, so it too piles writes on the latest shard."
-      }
+    "note": "Per-event high-cardinality hash spreads each whale's events across all shards."
+   }
+  ],
+  "best": "hash_event_id",
+  "explanation": "When a few whale entities dominate, any key with tenant granularity (even hashed) concentrates that entity on one shard. Hashing a high-cardinality per-event id splits a single whale's traffic evenly. The tradeoff: you lose per-tenant locality, so nightly per-tenant aggregation must scatter-gather across all shards."
+ },
+ {
+  "title": "arch-bake-02",
+  "topic": "scaling",
+  "difficulty": 1,
+  "scenario": "A clickstream pipeline appends ~20k rows/sec to 8 shards. Almost all writes are for the current day, and reporting reads are ad-hoc across arbitrary date ranges.",
+  "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+  "keys": [
+   {
+    "id": "event_date",
+    "label": "event_date",
+    "shards": [
+     10,
+     12,
+     15,
+     20,
+     30,
+     50,
+     90,
+     700
     ],
-    "best": "hash_order_id",
-    "explanation": "Monotonically increasing keys under range partitioning always write to the last shard, creating a classic append hotspot no matter how many shards you add. Hashing the id breaks the ordering and distributes inserts uniformly. You forfeit efficient id-range scans, which is usually acceptable for insert-heavy ledgers."
-  },
-  {
-    "title": "arch-bake-05",
-    "topic": "scaling",
-    "difficulty": 2,
-    "scenario": "A billing platform stores usage rows for 100k roughly equal-sized accounts on 8 shards. Load is naturally uniform across accounts, and the dominant query is a per-account range scan of a month of line items.",
-    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
-    "keys": [
-      {
-        "id": "account_id",
-        "label": "account_id",
-        "shards": [100, 101, 99, 100, 102, 98, 101, 99],
-        "note": "Already high-cardinality and uniform, so it balances AND keeps each account co-located."
-      },
-      {
-        "id": "hash_account_id",
-        "label": "hash(account_id)",
-        "shards": [112, 94, 106, 90, 108, 96, 100, 94],
-        "note": "Hashing an already-uniform key adds no balance and scatters each account's rows."
-      },
-      {
-        "id": "region",
-        "label": "region",
-        "shards": [560, 210, 120, 40, 0, 0, 0, 0],
-        "note": "Low cardinality with an uneven regional mix -> idle shards and one hot one."
-      }
+    "note": "All of 'today' lands on one shard -> a moving write hotspot."
+   },
+   {
+    "id": "hash_event_id",
+    "label": "hash(event_id)",
+    "shards": [
+     100,
+     98,
+     102,
+     99,
+     101,
+     100,
+     97,
+     103
     ],
-    "best": "account_id",
-    "explanation": "Hashing is not always the answer: when the natural key is already high-cardinality and access is uniform, the raw key balances just as well while preserving locality. Here account_id keeps each account's month of rows on one shard for a cheap range scan, whereas hashing would shatter that scan across shards for no balancing benefit."
-  },
-  {
-    "title": "arch-bake-06",
-    "topic": "scaling",
-    "difficulty": 3,
-    "scenario": "A social feed writes ~80k posts and reactions/sec across 8 shards. A handful of celebrity accounts produce a hugely disproportionate share of writes, and reads fetch individual posts by post id.",
-    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
-    "keys": [
-      {
-        "id": "author_user_id",
-        "label": "author user_id",
-        "shards": [600, 62, 55, 58, 60, 50, 57, 58],
-        "note": "A celebrity author is one key, so all their writes crush a single shard."
-      },
-      {
-        "id": "hash_user_id",
-        "label": "hash(user_id)",
-        "shards": [300, 92, 85, 95, 88, 96, 90, 84],
-        "note": "Hashing spreads normal users but a celebrity is still one key -> one hot shard."
-      },
-      {
-        "id": "hash_post_id",
-        "label": "hash(post_id)",
-        "shards": [124, 126, 125, 123, 127, 124, 126, 125],
-        "note": "Each post is a distinct key, so even a celebrity's posts scatter across all shards."
-      }
+    "note": "High-cardinality hash spreads today's writes across every shard."
+   },
+   {
+    "id": "hour_of_day",
+    "label": "hour_of_day",
+    "shards": [
+     40,
+     55,
+     70,
+     30,
+     20,
+     610,
+     120,
+     90
     ],
-    "best": "hash_post_id",
-    "explanation": "A celebrity is a single high-frequency key, so partitioning by user (raw or hashed) traps all their writes on one shard. Only a per-write high-cardinality key like hash(post_id) splits one hot author across the cluster. The tradeoff is that assembling one author's timeline now requires a fan-out read."
-  },
-  {
-    "title": "arch-bake-07",
-    "topic": "scaling",
-    "difficulty": 2,
-    "scenario": "A fulfillment system tracks orders on 8 shards where each order has a status field (pending, shipped, delivered, ...). Most live orders sit in 'pending', a few big retail customers place many orders, and reads are single-order lookups by id.",
-    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
-    "keys": [
-      {
-        "id": "status",
-        "label": "status",
-        "shards": [1200, 200, 80, 20, 0, 0, 0, 0],
-        "note": "A handful of statuses, and 'pending' dwarfs the rest -> extreme skew, idle shards."
-      },
-      {
-        "id": "customer_id",
-        "label": "customer_id",
-        "shards": [520, 120, 90, 70, 80, 60, 75, 85],
-        "note": "Big retail customers are heavy keys, so their shard runs hot."
-      },
-      {
-        "id": "hash_order_id",
-        "label": "hash(order_id)",
-        "shards": [126, 124, 125, 127, 123, 125, 124, 126],
-        "note": "Unique per-order key with high cardinality spreads load flat."
-      }
+    "note": "Only 24 values, and peak hours pile onto a few shards."
+   }
+  ],
+  "best": "hash_event_id",
+  "explanation": "Time-ordered keys create a hot 'now' shard because writes are time-skewed toward the present. A high-cardinality hash decouples placement from time and balances the write load. The cost is lost range-scan locality: a date-range report must fan out to all shards."
+ },
+ {
+  "title": "arch-bake-03",
+  "topic": "scaling",
+  "difficulty": 1,
+  "scenario": "An e-commerce orders table on 8 shards serves a marketplace where 70% of orders originate in one country and the rest are spread thin across a handful of others. Reads look up individual orders by id.",
+  "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+  "keys": [
+   {
+    "id": "country",
+    "label": "country",
+    "shards": [
+     900,
+     300,
+     50,
+     0,
+     0,
+     0,
+     0,
+     0
     ],
-    "best": "hash_order_id",
-    "explanation": "Status is low-cardinality and its values are wildly uneven, so it can never balance; customer_id inherits skew from whale customers. Hashing the unique order id maximizes cardinality and evens the load. With single-order lookups there is no locality to preserve, so hashing is a clean win."
-  },
-  {
-    "title": "arch-bake-08",
-    "topic": "scaling",
-    "difficulty": 3,
-    "scenario": "A metrics store ingests ~200k datapoints/sec from 500k time series onto 8 shards. Writes arrive continuously for the current time window, a few very high-frequency series dominate volume, and queries read one series over a time range.",
-    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
-    "keys": [
-      {
-        "id": "ts_hour",
-        "label": "ts_hour (time bucket)",
-        "shards": [8, 10, 12, 15, 40, 80, 150, 600],
-        "note": "All current-window writes converge on one shard -> a moving time hotspot."
-      },
-      {
-        "id": "series_id_range",
-        "label": "series_id (range)",
-        "shards": [500, 90, 80, 70, 85, 75, 60, 90],
-        "note": "A few chatty series land in one range and overheat that shard."
-      },
-      {
-        "id": "hash_series_id",
-        "label": "hash(series_id)",
-        "shards": [126, 124, 125, 123, 127, 125, 124, 126],
-        "note": "Hashing across 500k series spreads writes flat; each series still stays on one shard for range reads."
-      }
+    "note": "Low cardinality: only a few shards ever fill, and one dominates."
+   },
+   {
+    "id": "hash_order_id",
+    "label": "hash(order_id)",
+    "shards": [
+     126,
+     124,
+     125,
+     127,
+     123,
+     125,
+     124,
+     126
     ],
-    "best": "hash_series_id",
-    "explanation": "Time-bucket keys hot-spot on the current window, and range-partitioning the series id lets a few chatty series overheat one shard. Hashing the high-cardinality series id balances writes while keeping each series co-located, so a single-series time-range read still hits just one shard. The lost cross-series ordering is rarely needed here."
-  }
+    "note": "High-cardinality unique id spreads orders evenly regardless of geography."
+   },
+   {
+    "id": "customer_id",
+    "label": "customer_id",
+    "shards": [
+     430,
+     130,
+     110,
+     95,
+     100,
+     85,
+     90,
+     80
+    ],
+    "note": "High cardinality, but a few bulk buyers still overheat their shard."
+   }
+  ],
+  "best": "hash_order_id",
+  "explanation": "A low-cardinality key like country can only use as many shards as it has distinct, evenly-sized values -- here most shards sit idle while one is molten, and customer_id inherits skew from a few bulk buyers. Hashing the unique order id gives high cardinality and uniform spread. Since reads are single-order lookups, the lost geographic locality costs nothing."
+ },
+ {
+  "title": "arch-bake-04",
+  "topic": "scaling",
+  "difficulty": 2,
+  "scenario": "A ledger service assigns strictly increasing order_id values and range-partitions them across 8 shards. Throughput is ~30k inserts/sec, and the id keeps climbing so new rows always fall in the highest range.",
+  "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+  "keys": [
+   {
+    "id": "order_id_range",
+    "label": "order_id (range)",
+    "shards": [
+     5,
+     5,
+     5,
+     5,
+     5,
+     5,
+     5,
+     960
+    ],
+    "note": "Monotonic id + range partitioning -> every insert hits the newest shard."
+   },
+   {
+    "id": "hash_order_id",
+    "label": "hash(order_id)",
+    "shards": [
+     122,
+     125,
+     124,
+     126,
+     123,
+     125,
+     124,
+     126
+    ],
+    "note": "Hashing the same id randomizes placement, killing the append hotspot."
+   },
+   {
+    "id": "created_hour",
+    "label": "created_hour",
+    "shards": [
+     8,
+     10,
+     12,
+     14,
+     20,
+     60,
+     160,
+     700
+    ],
+    "note": "Also monotonic in time, so it too piles writes on the latest shard."
+   }
+  ],
+  "best": "hash_order_id",
+  "explanation": "Monotonically increasing keys under range partitioning always write to the last shard, creating a classic append hotspot no matter how many shards you add. Hashing the id breaks the ordering and distributes inserts uniformly. You forfeit efficient id-range scans, which is usually acceptable for insert-heavy ledgers."
+ },
+ {
+  "title": "arch-bake-05",
+  "topic": "scaling",
+  "difficulty": 2,
+  "scenario": "A billing platform stores usage rows for 100k roughly equal-sized accounts on 8 shards. Load is naturally uniform across accounts, and the dominant query is a per-account range scan of a month of line items.",
+  "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+  "keys": [
+   {
+    "id": "account_id",
+    "label": "account_id",
+    "shards": [
+     100,
+     101,
+     99,
+     100,
+     102,
+     98,
+     101,
+     99
+    ],
+    "note": "Already high-cardinality and uniform, so it balances AND keeps each account co-located."
+   },
+   {
+    "id": "hash_account_id",
+    "label": "hash(account_id)",
+    "shards": [
+     112,
+     94,
+     106,
+     90,
+     108,
+     96,
+     100,
+     94
+    ],
+    "note": "Hashing an already-uniform key adds no balance and scatters each account's rows."
+   },
+   {
+    "id": "region",
+    "label": "region",
+    "shards": [
+     560,
+     210,
+     120,
+     40,
+     0,
+     0,
+     0,
+     0
+    ],
+    "note": "Low cardinality with an uneven regional mix -> idle shards and one hot one."
+   }
+  ],
+  "best": "account_id",
+  "explanation": "Hashing is not always the answer: when the natural key is already high-cardinality and access is uniform, the raw key balances just as well while preserving locality. Here account_id keeps each account's month of rows on one shard for a cheap range scan, whereas hashing would shatter that scan across shards for no balancing benefit."
+ },
+ {
+  "title": "arch-bake-06",
+  "topic": "scaling",
+  "difficulty": 3,
+  "scenario": "A social feed writes ~80k posts and reactions/sec across 8 shards. A handful of celebrity accounts produce a hugely disproportionate share of writes, and reads fetch individual posts by post id.",
+  "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+  "keys": [
+   {
+    "id": "author_user_id",
+    "label": "author user_id",
+    "shards": [
+     600,
+     62,
+     55,
+     58,
+     60,
+     50,
+     57,
+     58
+    ],
+    "note": "A celebrity author is one key, so all their writes crush a single shard."
+   },
+   {
+    "id": "hash_user_id",
+    "label": "hash(user_id)",
+    "shards": [
+     300,
+     92,
+     85,
+     95,
+     88,
+     96,
+     90,
+     84
+    ],
+    "note": "Hashing spreads normal users but a celebrity is still one key -> one hot shard."
+   },
+   {
+    "id": "hash_post_id",
+    "label": "hash(post_id)",
+    "shards": [
+     124,
+     126,
+     125,
+     123,
+     127,
+     124,
+     126,
+     125
+    ],
+    "note": "Each post is a distinct key, so even a celebrity's posts scatter across all shards."
+   }
+  ],
+  "best": "hash_post_id",
+  "explanation": "A celebrity is a single high-frequency key, so partitioning by user (raw or hashed) traps all their writes on one shard. Only a per-write high-cardinality key like hash(post_id) splits one hot author across the cluster. The tradeoff is that assembling one author's timeline now requires a fan-out read."
+ },
+ {
+  "title": "arch-bake-07",
+  "topic": "scaling",
+  "difficulty": 2,
+  "scenario": "A fulfillment system tracks orders on 8 shards where each order has a status field (pending, shipped, delivered, ...). Most live orders sit in 'pending', a few big retail customers place many orders, and reads are single-order lookups by id.",
+  "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+  "keys": [
+   {
+    "id": "status",
+    "label": "status",
+    "shards": [
+     1200,
+     200,
+     80,
+     20,
+     0,
+     0,
+     0,
+     0
+    ],
+    "note": "A handful of statuses, and 'pending' dwarfs the rest -> extreme skew, idle shards."
+   },
+   {
+    "id": "customer_id",
+    "label": "customer_id",
+    "shards": [
+     520,
+     120,
+     90,
+     70,
+     80,
+     60,
+     75,
+     85
+    ],
+    "note": "Big retail customers are heavy keys, so their shard runs hot."
+   },
+   {
+    "id": "hash_order_id",
+    "label": "hash(order_id)",
+    "shards": [
+     126,
+     124,
+     125,
+     127,
+     123,
+     125,
+     124,
+     126
+    ],
+    "note": "Unique per-order key with high cardinality spreads load flat."
+   }
+  ],
+  "best": "hash_order_id",
+  "explanation": "Status is low-cardinality and its values are wildly uneven, so it can never balance; customer_id inherits skew from whale customers. Hashing the unique order id maximizes cardinality and evens the load. With single-order lookups there is no locality to preserve, so hashing is a clean win."
+ },
+ {
+  "title": "arch-bake-08",
+  "topic": "scaling",
+  "difficulty": 3,
+  "scenario": "A metrics store ingests ~200k datapoints/sec from 500k time series onto 8 shards. Writes arrive continuously for the current time window, a few very high-frequency series dominate volume, and queries read one series over a time range.",
+  "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+  "keys": [
+   {
+    "id": "ts_hour",
+    "label": "ts_hour (time bucket)",
+    "shards": [
+     8,
+     10,
+     12,
+     15,
+     40,
+     80,
+     150,
+     600
+    ],
+    "note": "All current-window writes converge on one shard -> a moving time hotspot."
+   },
+   {
+    "id": "series_id_range",
+    "label": "series_id (range)",
+    "shards": [
+     500,
+     90,
+     80,
+     70,
+     85,
+     75,
+     60,
+     90
+    ],
+    "note": "A few chatty series land in one range and overheat that shard."
+   },
+   {
+    "id": "hash_series_id",
+    "label": "hash(series_id)",
+    "shards": [
+     126,
+     124,
+     125,
+     123,
+     127,
+     125,
+     124,
+     126
+    ],
+    "note": "Hashing across 500k series spreads writes flat; each series still stays on one shard for range reads."
+   }
+  ],
+  "best": "hash_series_id",
+  "explanation": "Time-bucket keys hot-spot on the current window, and range-partitioning the series id lets a few chatty series overheat one shard. Hashing the high-cardinality series id balances writes while keeping each series co-located, so a single-series time-range read still hits just one shard. The lost cross-series ordering is rarely needed here."
+ },
+ {
+  "title": "arch-bake-09",
+  "topic": "scaling",
+  "difficulty": 2,
+  "scenario": "A ride-hailing platform ingests ~40k location pings/sec, but 70% originate from three dense metro cities. Pings are stored across 8 shards and written far more than read.",
+  "prompt": "Pick the partition key that spreads write load most evenly.",
+  "keys": [
+   {
+    "id": "city_id",
+    "label": "city_id",
+    "shards": [
+     740,
+     60,
+     55,
+     50,
+     65,
+     58,
+     52,
+     60
+    ],
+    "note": "A metro city maps to one shard and floods it; rural shards idle."
+   },
+   {
+    "id": "hash_city_id",
+    "label": "hash(city_id)",
+    "shards": [
+     420,
+     70,
+     300,
+     65,
+     72,
+     68,
+     60,
+     65
+    ],
+    "note": "Hashing scatters cities, but one huge city is still one key on one shard."
+   },
+   {
+    "id": "hash_trip_id",
+    "label": "hash(trip_id)",
+    "shards": [
+     162,
+     158,
+     160,
+     161,
+     159,
+     157,
+     163,
+     160
+    ],
+    "note": "A high-cardinality per-trip id splits even a dense city's pings across all shards."
+   }
+  ],
+  "best": "hash_trip_id",
+  "explanation": "When a few entities dominate, any key at city granularity — even hashed — pins that entity's traffic to one shard. Hashing a high-cardinality per-event id spreads a single hot city evenly."
+ },
+ {
+  "title": "arch-bake-10",
+  "topic": "scaling",
+  "difficulty": 2,
+  "scenario": "A social network writes feed entries via fan-out: when a celebrity with millions of followers posts, one write becomes millions. Writes land across 8 shards.",
+  "prompt": "Pick the partition key that keeps a celebrity's fan-out from hammering one shard.",
+  "keys": [
+   {
+    "id": "author_id",
+    "label": "author_id",
+    "shards": [
+     900,
+     30,
+     25,
+     20,
+     28,
+     22,
+     26,
+     24
+    ],
+    "note": "A celebrity author is one key — the whole fan-out lands on a single shard."
+   },
+   {
+    "id": "hash_author_id",
+    "label": "hash(author_id)",
+    "shards": [
+     900,
+     30,
+     25,
+     22,
+     27,
+     23,
+     25,
+     23
+    ],
+    "note": "Hashing the author still maps one author to one shard; the whale is unmoved."
+   },
+   {
+    "id": "hash_follower_id",
+    "label": "hash(follower_id)",
+    "shards": [
+     138,
+     136,
+     140,
+     137,
+     139,
+     135,
+     141,
+     139
+    ],
+    "note": "Partitioning by the fan-out target scatters the millions of writes across all shards."
+   }
+  ],
+  "best": "hash_follower_id",
+  "explanation": "Fan-out writes are keyed by their target, not their source. Partitioning by follower_id spreads one celebrity's millions of writes evenly; any author-based key concentrates them on a single shard."
+ },
+ {
+  "title": "arch-bake-11",
+  "topic": "scaling",
+  "difficulty": 3,
+  "scenario": "A metrics platform ingests time-series points across 8 shards. Writes are almost entirely for the current hour; older hours are read-only.",
+  "prompt": "Pick the partition key that avoids a moving write hotspot.",
+  "keys": [
+   {
+    "id": "timestamp_hour",
+    "label": "timestamp_hour",
+    "shards": [
+     980,
+     5,
+     4,
+     3,
+     4,
+     2,
+     1,
+     1
+    ],
+    "note": "All current writes hit one shard; the hotspot marches to a new shard each hour."
+   },
+   {
+    "id": "metric_name",
+    "label": "metric_name",
+    "shards": [
+     520,
+     60,
+     240,
+     50,
+     55,
+     48,
+     40,
+     187
+    ],
+    "note": "A couple of dominant metrics create persistent hot shards."
+   },
+   {
+    "id": "hash_series_id",
+    "label": "hash(series_id)",
+    "shards": [
+     128,
+     126,
+     130,
+     127,
+     129,
+     124,
+     131,
+     105
+    ],
+    "note": "Hashing the series id spreads current-hour writes across every shard."
+   }
+  ],
+  "best": "hash_series_id",
+  "explanation": "A time-based key sends all current writes to one shard and drags the hotspot to a new shard every hour. Hashing a high-cardinality series id spreads the live write load evenly and keeps each shard busy."
+ },
+ {
+  "title": "arch-bake-12",
+  "topic": "scaling",
+  "difficulty": 3,
+  "scenario": "An IoT fleet streams sensor readings across 8 shards. One firmware bug makes 55% of all readings come from a single misbehaving device model.",
+  "prompt": "Pick the partition key that survives one device model dominating the stream.",
+  "keys": [
+   {
+    "id": "device_model",
+    "label": "device_model",
+    "shards": [
+     770,
+     60,
+     50,
+     55,
+     45,
+     58,
+     52,
+     50
+    ],
+    "note": "The buggy model is one key — its flood lands entirely on one shard."
+   },
+   {
+    "id": "device_id",
+    "label": "device_id",
+    "shards": [
+     300,
+     150,
+     160,
+     145,
+     155,
+     148,
+     152,
+     130
+    ],
+    "note": "Many devices of the buggy model still cluster; better, but uneven."
+   },
+   {
+    "id": "hash_reading_id",
+    "label": "hash(reading_id)",
+    "shards": [
+     172,
+     168,
+     170,
+     169,
+     171,
+     167,
+     173,
+     160
+    ],
+    "note": "A per-reading id scatters even the buggy model's flood across all shards."
+   }
+  ],
+  "best": "hash_reading_id",
+  "explanation": "Keying by a dominant attribute concentrates its traffic; even device_id clusters if the buggy model has few units. Hashing a per-reading id ignores the skew entirely and spreads every reading evenly."
+ }
 ]

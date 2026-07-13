@@ -1,324 +1,782 @@
 [
-  {
-    "title": "stats-sampling-01",
-    "topic": "sampling",
-    "difficulty": 1,
-    "scenario": "A fictional streaming app, Streamly, emails a satisfaction survey to all users. It gets 4,000 responses out of 100,000 users and reports a stellar average rating of 4.7 out of 5.",
-    "prompt": "What is the biggest reason to be cautious about reading this 4.7 as the typical user's satisfaction?",
-    "choices": [
-      { "text": "Only 4% of users responded, and people who bother to reply often feel more strongly (frequently more positively) than the silent majority.", "correct": true, "rationale": "Non-response bias: the 96,000 who ignored the survey may differ systematically from responders, so the sample isn't representative of all users." },
-      { "text": "4,000 responses is too few to estimate an average with any precision.", "correct": false, "rationale": "4,000 is actually a large sample; precision is not the problem here. The problem is who chose to respond, not how many did." },
-      { "text": "A 1-to-5 rating scale cannot produce a meaningful average like 4.7.", "correct": false, "rationale": "Averaging ordinal ratings has caveats, but it is common practice and not the core issue; the representativeness of responders is." },
-      { "text": "The result is fine because everyone was given an equal chance to respond.", "correct": false, "rationale": "Equal invitation does not guarantee equal response. Self-selection into who actually replies is exactly what breaks representativeness." }
-    ],
-    "explanation": "A low response rate opens the door to non-response bias: the people who answer can differ systematically from those who don't. Large raw counts don't fix a biased selection process — ask who is missing from the data."
-  },
-  {
-    "title": "stats-sampling-02",
-    "topic": "sampling",
-    "difficulty": 2,
-    "scenario": "An airline analyst studies engines returned for repair to decide where to add armor plating. The returned engines show damage concentrated around the fuel pump, so she proposes armoring the fuel pump area.",
-    "prompt": "What flaw should give her pause before armoring where the damage appears?",
-    "choices": [
-      { "text": "The sample only includes engines that survived to be returned; hits to truly critical spots may have destroyed engines that never came back.", "correct": true, "rationale": "This is survivorship bias: the most damaging hit locations are underrepresented precisely because those units didn't survive to enter the data." },
-      { "text": "Repaired engines are inspected more carefully, inflating the damage counts near the fuel pump.", "correct": false, "rationale": "Inspection intensity isn't the issue and wouldn't concentrate damage at one location; the missing failures are what mislead her." },
-      { "text": "Fuel pumps are simply the most common component, so of course they show the most damage.", "correct": false, "rationale": "Commonality of a part doesn't explain the pattern, and it ignores the real problem: catastrophic hits are absent from the returned set." },
-      { "text": "The sample is too small unless she inspects every engine in the fleet.", "correct": false, "rationale": "Even a census of returned engines would carry the same bias. Adding more survivors doesn't reveal the destroyed ones." }
-    ],
-    "explanation": "Survivorship bias arises when your data only contains the cases that 'made it,' hiding the failures that dropped out. Armor belongs where returned engines are undamaged — because hits there were fatal. Always ask what's systematically absent."
-  },
-  {
-    "title": "stats-sampling-03",
-    "topic": "sampling",
-    "difficulty": 2,
-    "scenario": "A city wants to gauge public support for a new bike lane. A reporter stands outside a downtown bike shop on a Saturday and interviews 200 passersby; 78% support the lane.",
-    "prompt": "Why is 78% likely to overstate citywide support?",
-    "choices": [
-      { "text": "The sampling location (a bike shop) systematically over-includes cyclists, who are more likely to favor bike lanes.", "correct": true, "rationale": "Convenience sampling at a bike-friendly venue skews the pool toward supporters, so the estimate isn't representative of all residents." },
-      { "text": "200 people is far too small a sample to say anything about a whole city.", "correct": false, "rationale": "200 can yield a usable estimate if the sample is representative; the fatal issue is where and who, not the count." },
-      { "text": "Saturday interviews are invalid because opinions change during the week.", "correct": false, "rationale": "Day-of-week is a minor concern compared with the systematic location bias that stacks the sample with cyclists." },
-      { "text": "Face-to-face interviews always make people answer more positively.", "correct": false, "rationale": "Social-desirability effects can exist, but the dominant, structural problem here is the biased sampling frame, not the interview mode." }
-    ],
-    "explanation": "The sampling frame — where and how you recruit — determines representativeness. Sampling at a location correlated with the opinion you're measuring builds bias into the estimate no matter how many people you ask."
-  },
-  {
-    "title": "stats-sampling-04",
-    "topic": "sampling",
-    "difficulty": 3,
-    "scenario": "A B2B software firm surveys its current paying customers about which features matter most, to guide the roadmap. Results heavily favor advanced admin controls used by large enterprises.",
-    "prompt": "What subtle sampling problem most threatens using this to grow revenue?",
-    "choices": [
-      { "text": "The survey excludes prospects who evaluated the product but didn't buy — possibly because it lacked features current customers never needed.", "correct": true, "rationale": "Surveying only converts (a form of survivorship/selection bias) hides the reasons non-buyers churned out, which is exactly the growth signal you want." },
-      { "text": "Paying customers have no incentive to answer honestly about features.", "correct": false, "rationale": "Incentive to lie isn't the core flaw; the missing population of lost prospects is what biases the roadmap toward the already-satisfied." },
-      { "text": "Feature preferences can't be ranked meaningfully in a survey.", "correct": false, "rationale": "Preferences are routinely and usefully ranked; the issue is who you asked, not the ranking format." },
-      { "text": "The sample is biased only if fewer than half of customers respond.", "correct": false, "rationale": "Even a 100% response rate from current customers would still omit the non-buyers entirely. Response rate isn't the mechanism here." }
-    ],
-    "explanation": "The population you sample defines the questions you can answer. To learn why you lose deals, you must include the people who left or never joined — optimizing only for existing customers can quietly entrench a niche and stall growth."
-  },
-  {
-    "title": "stats-variation-01",
-    "topic": "variation",
-    "difficulty": 1,
-    "scenario": "A retailer tracks daily online sales. On Tuesday sales jumped 22% above the weekly average; on Wednesday they fell back near the average. A manager wants to know 'what we did right on Tuesday.'",
-    "prompt": "What is the most likely explanation for the Tuesday spike?",
-    "choices": [
-      { "text": "Ordinary day-to-day random fluctuation (noise); a single high day near an average often reverts the next day with no special cause.", "correct": true, "rationale": "Daily sales naturally vary; one point above average followed by a return toward average is the signature of noise, not a discovered lever." },
-      { "text": "A specific successful action on Tuesday that the team failed to repeat Wednesday.", "correct": false, "rationale": "This assumes a cause behind a single noisy point. Chasing an explanation for normal variation invents lessons that don't generalize." },
-      { "text": "A tracking error that must have inflated Tuesday's number.", "correct": false, "rationale": "There's no evidence of a bug; a 22% up-day is well within normal daily swings for many retailers." },
-      { "text": "The start of an upward trend in sales.", "correct": false, "rationale": "A single point can't establish a trend, and Wednesday already reverted. One observation is not a direction." }
-    ],
-    "explanation": "Distinguish signal from noise. Single-day extremes in a naturally variable series usually reflect random variation and tend to revert. Before hunting for a cause, ask whether the swing is larger than the metric's normal day-to-day range."
-  },
-  {
-    "title": "stats-variation-02",
-    "topic": "variation",
-    "difficulty": 2,
-    "scenario": "A national chain ranks its 500 stores by conversion rate each month. The top store one month is often nowhere near the top the next month, and the worst store usually improves.",
-    "prompt": "Which explanation best accounts for this pattern?",
-    "choices": [
-      { "text": "Regression to the mean: extreme rankings are partly luck, and luck doesn't persist, so extremes drift back toward average next period.", "correct": true, "rationale": "When results mix skill and chance, the most extreme cases owe part of their extremeness to chance, which is not repeated, pulling them back toward the middle." },
-      { "text": "Top stores get complacent and worst stores try harder, causing the reshuffle.", "correct": false, "rationale": "A behavioral story is tempting, but regression to the mean produces this pattern even with zero change in effort — you don't need it." },
-      { "text": "The ranking method is broken and should be discarded.", "correct": false, "rationale": "The ranking isn't broken; the movement of extremes is exactly what statistics predicts when outcomes contain noise." },
-      { "text": "Only a store's true quality determines its rank, so ranks should be stable.", "correct": false, "rationale": "This ignores the chance component in any single month's rate; pure-quality models can't explain why extremes reliably revert." }
-    ],
-    "explanation": "Regression to the mean: whenever a measurement combines a stable component and random noise, selecting the most extreme cases selects for extreme luck too — which won't recur. Reversion of top and bottom performers is expected, not a story about effort or intervention."
-  },
-  {
-    "title": "stats-variation-03",
-    "topic": "variation",
-    "difficulty": 2,
-    "scenario": "A dashboard shows conversion rates by traffic source. A tiny source with 20 visitors shows a 40% conversion rate; the main source with 50,000 visitors shows 8%. A marketer wants to shift budget to the 40% source.",
-    "prompt": "What is the strongest caution here?",
-    "choices": [
-      { "text": "A rate from only 20 visitors is extremely volatile — 8 conversions vs 6 swings it from 40% to 30% — so the 40% is not a reliable estimate.", "correct": true, "rationale": "Small denominators make rates jumpy; a couple of conversions move the percentage wildly, so 40% carries huge uncertainty compared with the 50,000-visitor figure." },
-      { "text": "The 40% source is clearly better and budget should move immediately.", "correct": false, "rationale": "This treats a noisy small-sample rate as if it were as trustworthy as a large-sample one, ignoring the wide margin of error on 20 visitors." },
-      { "text": "Conversion rates can't be compared across different sources at all.", "correct": false, "rationale": "They can be compared; the issue is the reliability of one estimate, not the legitimacy of comparison." },
-      { "text": "The main source must be underperforming since 8% is far below 40%.", "correct": false, "rationale": "The 8% comes from 50,000 visitors and is stable; the gap is likely small-sample noise in the tiny source, not weakness in the large one." }
-    ],
-    "explanation": "Small samples produce high-variance rates. The fewer the observations behind a percentage, the wider its true range could be. Weight your confidence by sample size before acting on an eye-catching rate from a small denominator."
-  },
-  {
-    "title": "stats-variation-04",
-    "topic": "variation",
-    "difficulty": 3,
-    "scenario": "A fictional health authority maps kidney-cancer rates by county. The counties with the LOWEST rates are overwhelmingly small, rural, sparsely populated counties. An official concludes rural living is protective.",
-    "prompt": "Why is this conclusion premature?",
-    "choices": [
-      { "text": "Small-population counties have the most volatile rates, so they dominate BOTH the lowest and the highest lists purely from small-sample variation.", "correct": true, "rationale": "With few residents, a county's rate swings widely by chance; such counties cluster at both extremes, so 'lowest' being rural says more about population size than about rural life." },
-      { "text": "Rural counties simply have healthier lifestyles that lower cancer risk.", "correct": false, "rationale": "This accepts the pattern at face value; checking the highest-rate list would likely show small rural counties there too, undercutting the causal story." },
-      { "text": "Cancer registries undercount cases in rural areas, faking low rates.", "correct": false, "rationale": "Undercounting is speculative; the statistical explanation — extreme rates from tiny denominators — accounts for the pattern without assuming data errors." },
-      { "text": "Rural counties are older, and age lowers cancer rates.", "correct": false, "rationale": "Older populations would if anything raise cancer rates, and this ignores the real driver: variance is largest where the population is smallest." }
-    ],
-    "explanation": "Rates from small populations are inherently noisy, so the smallest units dominate both extremes of any ranking. Before interpreting who is at the top or bottom, ask whether extremeness is being driven by small sample size rather than a real effect."
-  },
-  {
-    "title": "stats-association-01",
-    "topic": "association",
-    "difficulty": 1,
-    "scenario": "An analyst notes that across cities, months with higher ice-cream sales also have more drowning deaths. The correlation is strong and positive.",
-    "prompt": "What is the most reasonable interpretation?",
-    "choices": [
-      { "text": "A third variable — hot weather — drives both ice-cream sales and swimming (hence drownings); the two are associated but not causally linked.", "correct": true, "rationale": "This is a classic confounder: summer heat independently raises both quantities, producing correlation without one causing the other." },
-      { "text": "Eating ice cream impairs swimming ability, increasing drownings.", "correct": false, "rationale": "This invents a direct cause where a shared driver (heat) fully explains the link. Correlation alone doesn't license a causal mechanism." },
-      { "text": "Drownings drive people to buy ice cream in grief.", "correct": false, "rationale": "Reverse causation is implausible here and again ignores the obvious common cause of warm weather." },
-      { "text": "The correlation must be a coincidence with no explanation.", "correct": false, "rationale": "It's not coincidence; there's a clear confounder. Dismissing it as random misses the identifiable third variable." }
-    ],
-    "explanation": "Correlation does not imply causation. When two things move together, look for a confounder — a third variable that influences both. A shared cause can create a strong association with no direct link between the two measured quantities."
-  },
-  {
-    "title": "stats-association-02",
-    "topic": "association",
-    "difficulty": 2,
-    "scenario": "A company finds that employees who attended an optional leadership workshop were later promoted at twice the rate of those who didn't attend. Leadership wants to make the workshop mandatory to boost promotions.",
-    "prompt": "What is the key threat to concluding the workshop causes promotions?",
-    "choices": [
-      { "text": "Attendance was optional, so already-ambitious, high-performing employees likely self-selected in — and they'd be promoted more anyway.", "correct": true, "rationale": "Selection bias/confounding by motivation: the same drive that led people to attend also drives promotions, so the workshop's own effect is entangled with who chose to attend." },
-      { "text": "Twice the rate is too small a difference to matter.", "correct": false, "rationale": "A 2x difference is large; the problem is attributing it to the workshop rather than to who selected into it." },
-      { "text": "Promotions are subjective, so the comparison is meaningless.", "correct": false, "rationale": "Subjectivity isn't the core issue; even objective promotions would be confounded by self-selection into the optional workshop." },
-      { "text": "The workshop clearly works and should be mandatory immediately.", "correct": false, "rationale": "This ignores confounding entirely. Making it mandatory removes the selection effect that may be doing all the work." }
-    ],
-    "explanation": "Self-selection creates confounding: people who opt into a treatment often differ in ways that also affect the outcome. A randomized comparison — assigning the workshop regardless of ambition — is what would isolate the workshop's true causal effect."
-  },
-  {
-    "title": "stats-association-03",
-    "topic": "association",
-    "difficulty": 2,
-    "scenario": "A product team runs a proper randomized A/B test: half of users get a redesigned checkout, half get the old one, assigned at random. The new design shows a 5% higher purchase rate.",
-    "prompt": "What does the randomization primarily let the team conclude that a plain correlation could not?",
-    "choices": [
-      { "text": "Because assignment was random, the two groups are on average alike except for the design, so the 5% lift can be attributed causally to the redesign.", "correct": true, "rationale": "Randomization balances confounders (known and unknown) across groups, so a difference in outcomes can be credited to the treatment itself." },
-      { "text": "That the redesign will lift purchases by exactly 5% for every user going forward.", "correct": false, "rationale": "A test estimates an average effect with uncertainty; it doesn't guarantee an identical, permanent per-user lift. Causal claim, yes; exact universal number, no." },
-      { "text": "That the old design was causing users to abandon checkout.", "correct": false, "rationale": "The test measures the relative effect of the new design, not that the old one 'caused' abandonment in any absolute sense." },
-      { "text": "Nothing more than a correlation would — random assignment doesn't change interpretation.", "correct": false, "rationale": "This misses the entire point of experiments: randomization is exactly what upgrades an association into a causal claim." }
-    ],
-    "explanation": "Randomized assignment is what buys you causation. By making the groups comparable except for the treatment, it removes confounding on average, so an observed difference can be attributed to the intervention — something no observational correlation can deliver on its own."
-  },
-  {
-    "title": "stats-association-04",
-    "topic": "association",
-    "difficulty": 3,
-    "scenario": "A study reports that patients who take a certain sleep medication have higher mortality over five years than those who don't. A headline claims the drug is deadly.",
-    "prompt": "Beyond ordinary confounding, which specific concern most complicates the causal claim?",
-    "choices": [
-      { "text": "Reverse causation and confounding by indication: people are prescribed sleep meds because they're already sicker (pain, anxiety, illness), and that underlying poor health raises mortality.", "correct": true, "rationale": "The condition that leads to the prescription (the 'indication') independently worsens outcomes, so the drug is associated with death without necessarily causing it." },
-      { "text": "The sample size must be too small to detect a real effect.", "correct": false, "rationale": "The problem isn't sample size — a large study would show the same association. The issue is why sicker people take the drug." },
-      { "text": "Mortality over five years is too long a window to be meaningful.", "correct": false, "rationale": "A five-year window is reasonable; the causal ambiguity comes from who gets prescribed the drug, not the timeframe." },
-      { "text": "Correlation and causation are the same thing in medical studies.", "correct": false, "rationale": "They are not; this statement is simply false and would license exactly the mistaken headline." }
-    ],
-    "explanation": "Confounding by indication is a trap in observational medical data: the reason someone receives a treatment is often tied to their prognosis. Combined with possible reverse causation, this can manufacture an association that mimics harm. Only careful design (or randomization) can separate the drug's effect from the sickness that prompted it."
-  },
-  {
-    "title": "stats-base_rates-01",
-    "topic": "base_rates",
-    "difficulty": 1,
-    "scenario": "A fictional rare disease affects 1 in 1,000 people. A screening test correctly flags 99% of people who have it and gives a false positive for 5% of people who don't. Amir tests positive.",
-    "prompt": "Roughly how likely is it that Amir actually has the disease?",
-    "choices": [
-      { "text": "Around 2% — because the disease is rare, most positive results come from the large pool of healthy people getting false positives.", "correct": true, "rationale": "Of 1,000 people: ~1 true positive but ~50 false positives (5% of 999). So true positives are about 1 of ~51 positives, roughly 2%." },
-      { "text": "About 99%, because the test catches 99% of real cases.", "correct": false, "rationale": "This confuses the test's sensitivity with the chance of disease given a positive; it ignores the tiny base rate that makes false positives dominate." },
-      { "text": "About 95%, since the false-positive rate is only 5%.", "correct": false, "rationale": "The 5% applies to the huge healthy population, producing many false positives; it does not mean a positive is 95% reliable." },
-      { "text": "About 50%, since Amir either has it or doesn't.", "correct": false, "rationale": "'Either/or' is not a probability. The base rate and error rates, not a coin-flip framing, determine the answer." }
-    ],
-    "explanation": "The false-positive paradox: when a condition is rare, even an accurate test yields mostly false positives, because the healthy group is so much larger. Always combine the base rate with the test's error rates before trusting a positive result."
-  },
-  {
-    "title": "stats-base_rates-02",
-    "topic": "base_rates",
-    "difficulty": 2,
-    "scenario": "A fraud model flags transactions as fraudulent. Fraud occurs in 0.2% of transactions. The model catches 90% of real fraud and falsely flags 2% of legitimate transactions. An analyst sees a flagged transaction.",
-    "prompt": "About what fraction of flagged transactions are actually fraudulent?",
-    "choices": [
-      { "text": "Roughly 8% — false alarms from the huge legitimate pool vastly outnumber the caught frauds.", "correct": true, "rationale": "Per 100,000: ~200 frauds, ~180 caught; ~99,800 legit, ~1,996 false flags. True/(true+false) ≈ 180/2,176 ≈ 8%." },
-      { "text": "About 90%, matching the model's catch rate for real fraud.", "correct": false, "rationale": "Catch rate (sensitivity) is not the same as the chance a flag is correct; the low base rate of fraud makes false flags dominate." },
-      { "text": "About 98%, since only 2% of legit transactions are flagged.", "correct": false, "rationale": "That 2% applies to an enormous legitimate population, generating far more false flags than there are true frauds." },
-      { "text": "About 45%, roughly halfway between the error rates.", "correct": false, "rationale": "Averaging the rates ignores the base rate entirely; the rarity of fraud pushes precision far below 50%." }
-    ],
-    "explanation": "The probability that a flag is correct (precision) depends heavily on the base rate, not just the detector's accuracy. When the target event is rare, a small false-positive rate applied to a large negative population swamps the true positives. Compute with counts, not with the accuracy figure alone."
-  },
-  {
-    "title": "stats-base_rates-03",
-    "topic": "base_rates",
-    "difficulty": 2,
-    "scenario": "A hospital improves its rare-disease test so the false-positive rate drops from 5% to 1%, while sensitivity stays at 99%. The disease still affects 1 in 1,000 people.",
-    "prompt": "What is the main effect of this improvement on a positive result's meaning?",
-    "choices": [
-      { "text": "The chance that a positive is a true case rises substantially (from about 2% to about 9%), because far fewer false positives are generated.", "correct": true, "rationale": "Per 1,000: ~1 true positive and now ~10 false positives (1% of 999), so true/(true+false) ≈ 1/11 ≈ 9%, up from ~2%." },
-      { "text": "A positive result now essentially confirms the disease.", "correct": false, "rationale": "Even at 9%, most positives are still false because the disease is so rare; the base rate keeps precision low despite the improvement." },
-      { "text": "It has almost no effect, since sensitivity didn't change.", "correct": false, "rationale": "Cutting the false-positive rate fivefold sharply reduces false positives, which strongly changes what a positive means." },
-      { "text": "It makes the test worse by catching fewer real cases.", "correct": false, "rationale": "Sensitivity stayed at 99%, so real cases are still caught; only false positives dropped, which is an improvement." }
-    ],
-    "explanation": "With rare conditions, the false-positive rate — not just sensitivity — dominates a test's predictive value. Reducing false positives can multiply the reliability of a positive result, yet the low base rate can still keep most positives false. Interpret positives relative to prevalence."
-  },
-  {
-    "title": "stats-base_rates-04",
-    "topic": "base_rates",
-    "difficulty": 3,
-    "scenario": "A recruiter uses a 'top-talent' screening signal that 80% of eventual star hires had, but only 10% of ordinary hires had. In the applicant pool, roughly 1 in 50 applicants turns out to be a star. An applicant shows the signal.",
-    "prompt": "How should the recruiter interpret the signal for this applicant?",
-    "choices": [
-      { "text": "It raises the odds of being a star from 2% to about 14%, so it's informative but most signal-holders are still not stars.", "correct": true, "rationale": "Per 5,000 applicants: 100 stars, 80 with signal; 4,900 ordinary, 490 with signal. True/(true+false) = 80/570 ≈ 14%." },
-      { "text": "The applicant is very likely a star, since 80% of stars have the signal.", "correct": false, "rationale": "80% is P(signal | star), not P(star | signal). The low base rate of stars means signal-holders are mostly ordinary hires." },
-      { "text": "The signal is useless because most people who have it aren't stars.", "correct": false, "rationale": "It's not useless — it lifts the probability sevenfold (2% to 14%); low absolute precision doesn't mean zero information." },
-      { "text": "About 80% likely, because that's the signal's hit rate among stars.", "correct": false, "rationale": "This again inverts the conditional probability and ignores the base rate, overstating the applicant's chances." }
-    ],
-    "explanation": "Don't confuse P(evidence | trait) with P(trait | evidence). A signal common among a rare group can still be dominated by the much larger common group. A useful signal shifts the odds without necessarily making the trait likely in absolute terms — update from the base rate, don't replace it."
-  },
-  {
-    "title": "stats-uncertainty-01",
-    "topic": "uncertainty",
-    "difficulty": 1,
-    "scenario": "A survey estimates that 52% of customers prefer a new logo, with a 95% confidence interval of 48% to 56%.",
-    "prompt": "What does the 95% confidence interval most accurately tell us?",
-    "choices": [
-      { "text": "It gives a plausible range for the true preference; because that range includes 50%, we can't be confident a majority actually prefers the new logo.", "correct": true, "rationale": "The interval spans 48–56%, so values at or below 50% are plausible — the data don't establish a real majority preference." },
-      { "text": "There is a 95% probability that exactly 52% of all customers prefer the new logo.", "correct": false, "rationale": "The interval is a range, not a claim that the point estimate is 95% certain; and 52% is just the sample estimate, not a probability about the truth." },
-      { "text": "95% of customers fall between 48% and 56% on some preference scale.", "correct": false, "rationale": "A CI describes uncertainty about the estimated proportion, not the spread of individual customers." },
-      { "text": "The true value is definitely between 48% and 56%.", "correct": false, "rationale": "'Definitely' overstates it; a 95% CI still allows a 5% chance the true value lies outside, and the interval reflects one procedure's coverage." }
-    ],
-    "explanation": "A confidence interval expresses uncertainty about an estimate, giving a range of plausible true values. If a meaningful threshold (like 50%) falls inside the interval, the data don't clearly rule out the other side. Read the whole interval, not just the point estimate."
-  },
-  {
-    "title": "stats-uncertainty-02",
-    "topic": "uncertainty",
-    "difficulty": 2,
-    "scenario": "An A/B test on a checkout button finds version B increases conversion by 0.3 percentage points. With millions of users, the result is 'statistically significant' at p < 0.01.",
-    "prompt": "What is the right takeaway?",
-    "choices": [
-      { "text": "The effect is likely real but small; statistical significance doesn't mean the 0.3-point lift is practically or economically worth shipping.", "correct": true, "rationale": "Huge samples make tiny effects significant; significance addresses whether an effect exists, not whether it's large enough to matter for the business." },
-      { "text": "A p < 0.01 result proves version B is substantially better.", "correct": false, "rationale": "Significance says the effect is unlikely to be zero, not that it's substantial; 0.3 points may be trivial in practice." },
-      { "text": "The low p-value means there's a 99% chance B beats A by a meaningful amount.", "correct": false, "rationale": "A p-value isn't the probability the hypothesis is true, and it says nothing about the size or importance of the effect." },
-      { "text": "Because the effect is tiny, the result must be a fluke.", "correct": false, "rationale": "With millions of users the estimate is precise; the effect is probably real — it's just small, which is different from being a fluke." }
-    ],
-    "explanation": "Statistical significance and practical significance are different questions. Large samples can make trivial differences significant. Always ask about effect size and cost/benefit — 'is it real?' is not the same as 'is it big enough to act on?'"
-  },
-  {
-    "title": "stats-uncertainty-03",
-    "topic": "uncertainty",
-    "difficulty": 3,
-    "scenario": "Two marketing channels report average revenue per user. Channel A: $12.00 (95% CI $10.50–$13.50). Channel B: $10.20 (95% CI $9.00–$11.40). The intervals overlap slightly. A manager concludes there is definitely no real difference.",
-    "prompt": "Is 'overlapping intervals means no significant difference' a safe conclusion here?",
-    "choices": [
-      { "text": "No — overlapping 95% confidence intervals do not reliably imply the difference is non-significant; a direct test of the difference can still be significant.", "correct": true, "rationale": "The rule of thumb is flawed: two CIs can overlap modestly while a proper test of the gap between them still rejects 'no difference.' You must test the difference directly." },
-      { "text": "Yes — if the intervals overlap at all, the groups are statistically indistinguishable.", "correct": false, "rationale": "This common shortcut is unreliable; moderate overlap is fully compatible with a statistically significant difference." },
-      { "text": "Yes — overlapping intervals prove the true means are equal.", "correct": false, "rationale": "No interval comparison proves equality; failing to detect a difference is not evidence that none exists." },
-      { "text": "No — overlapping intervals always mean the difference IS significant.", "correct": false, "rationale": "Equally wrong in the other direction; overlap alone determines nothing. Only a direct test of the difference settles it." }
-    ],
-    "explanation": "Judging significance by whether two confidence intervals overlap is unreliable and usually too conservative. To compare two estimates, test the difference itself (which has its own, narrower uncertainty). Don't let side-by-side error bars stand in for a real comparison."
-  },
-  {
-    "title": "stats-aggregation-01",
-    "topic": "aggregation",
-    "difficulty": 1,
-    "scenario": "At a fictional startup, 9 employees earn about $60,000 and the founder earns $2,000,000. A recruiter reports the 'average salary' is $254,000 to attract candidates.",
-    "prompt": "Why is the median a more honest summary of a typical salary here?",
-    "choices": [
-      { "text": "The single $2M salary is an extreme outlier that pulls the mean far above what almost everyone earns; the median ($60,000) reflects the typical employee.", "correct": true, "rationale": "Means are sensitive to skew and outliers; with one huge value, the median better represents the central, typical case." },
-      { "text": "The median is always the correct measure of central tendency.", "correct": false, "rationale": "The median isn't universally 'correct'; it's preferable here specifically because the data are heavily skewed by an outlier." },
-      { "text": "The mean was calculated incorrectly.", "correct": false, "rationale": "The mean is arithmetically right ($254,000); the issue is that it's misleading for skewed data, not that it's miscomputed." },
-      { "text": "Medians can't be affected by outliers, so they're always safer for any dataset.", "correct": false, "rationale": "Robustness to outliers is real, but 'always safer' overstates it; for symmetric data the mean is fine and uses more information." }
-    ],
-    "explanation": "On skewed data, the mean and median tell different stories. A few extreme values drag the mean away from the typical case, while the median stays near the center. Choose the summary that matches the distribution's shape, and be suspicious of a lone 'average' on skewed data."
-  },
-  {
-    "title": "stats-aggregation-02",
-    "topic": "aggregation",
-    "difficulty": 3,
-    "scenario": "A fictional university is accused of gender bias in admissions: overall, men are admitted at a higher rate than women. Yet within every individual department, women are admitted at an equal or higher rate than men.",
-    "prompt": "How can both statements be true at once?",
-    "choices": [
-      { "text": "Women applied more to highly competitive departments with low admit rates, so the overall average is dragged down even though they do as well or better within each department — Simpson's paradox.", "correct": true, "rationale": "Aggregating across departments with very different admit rates and application mixes reverses the direction seen within each group; the confounder is which departments each group applied to." },
-      { "text": "One of the two claims must be a calculation error; they can't both hold.", "correct": false, "rationale": "They can both hold — Simpson's paradox is exactly when a within-group pattern reverses in the aggregate. No error is required." },
-      { "text": "The overall rate is the only figure that matters, so bias against women is proven.", "correct": false, "rationale": "The aggregate hides that within every department women fare equally or better; the overall gap is driven by application patterns, not per-department bias." },
-      { "text": "The department-level rates are irrelevant once you have the overall numbers.", "correct": false, "rationale": "The department level is precisely where the fair comparison lives; ignoring it produces the misleading aggregate." }
-    ],
-    "explanation": "Simpson's paradox: a trend within every subgroup can reverse when the groups are combined, because of how the groups are weighted. Before trusting an aggregate comparison, disaggregate — a lurking grouping variable can flip the conclusion entirely."
-  },
-  {
-    "title": "stats-aggregation-03",
-    "topic": "aggregation",
-    "difficulty": 2,
-    "scenario": "A call center reports that Team X resolved 90% of tickets and Team Y resolved 70%, so a manager averages them to '(90+70)/2 = 80%' resolution across the two teams. Team X handled 100 tickets; Team Y handled 900.",
-    "prompt": "What is the actual combined resolution rate, and what mistake did the manager make?",
-    "choices": [
-      { "text": "About 72% — you must weight by ticket volume (90 + 630 resolved out of 1,000), not average the two percentages equally.", "correct": true, "rationale": "Team X resolved 90 of 100, Team Y 630 of 900; (90+630)/1000 = 72%. Simple averaging ignores that Team Y handled 9x the volume." },
-      { "text": "Exactly 80%, since averaging the two rates is the correct method.", "correct": false, "rationale": "Averaging rates equally is only valid when the denominators match; here Team Y's larger volume must carry more weight." },
-      { "text": "About 88%, since the larger team's rate should dominate almost entirely.", "correct": false, "rationale": "The larger team's rate (70%) dominates, pulling the true figure toward 72%, not up toward 88%." },
-      { "text": "You can't combine the rates without knowing customer satisfaction scores.", "correct": false, "rationale": "The volumes are all you need; the combined rate is well-defined once you weight by ticket counts." }
-    ],
-    "explanation": "Averaging rates requires weighting by their denominators. Taking a plain mean of two percentages silently assumes equal group sizes. When groups differ in size, compute a weighted average (or pool the raw counts) to avoid a badly distorted total."
-  },
-  {
-    "title": "stats-aggregation-04",
-    "topic": "aggregation",
-    "difficulty": 2,
-    "scenario": "A logistics dashboard shows a truck averaged 60 mph over a route: it drove the first 30 miles at 30 mph and the next 30 miles at 90 mph, and someone averaged (30+90)/2 = 60 mph.",
-    "prompt": "What was the truck's actual average speed for the whole trip?",
-    "choices": [
-      { "text": "45 mph — the first leg took 1 hour and the second took 20 minutes, so 60 miles in 1 hour 20 minutes is 45 mph; you can't average speeds over equal distances.", "correct": true, "rationale": "Time on each leg differs (1h vs 1/3h), so the slow leg dominates; total distance over total time gives 60 / (4/3) = 45 mph." },
-      { "text": "60 mph, since the two speeds average to 60.", "correct": false, "rationale": "Averaging speeds over equal distances is wrong because the slower leg consumes more time; the correct method uses total distance over total time." },
-      { "text": "50 mph, splitting the difference toward the slower leg.", "correct": false, "rationale": "The right answer does lean toward the slow leg, but the precise value from time-weighting is 45 mph, not a rough guess." },
-      { "text": "Cannot be determined without knowing the truck's stops.", "correct": false, "rationale": "No extra information is needed; distances and speeds fully determine the times and thus the true average of 45 mph." }
-    ],
-    "explanation": "Average speed is total distance divided by total time, not the mean of the speeds. When rates are combined, the quantity you average over (here, time) does the weighting — averaging over equal distances overweights the fast segment. Match the average to the right base."
-  }
+ {
+  "title": "stats-sampling-01",
+  "topic": "sampling",
+  "difficulty": 1,
+  "scenario": "A fictional streaming app, Streamly, emails a satisfaction survey to all users. It gets 4,000 responses out of 100,000 users and reports a stellar average rating of 4.7 out of 5.",
+  "prompt": "What is the biggest reason to be cautious about reading this 4.7 as the typical user's satisfaction?",
+  "choices": [
+   {
+    "text": "Only 4% of users responded, and people who bother to reply often feel more strongly (frequently more positively) than the silent majority.",
+    "correct": true,
+    "rationale": "Non-response bias: the 96,000 who ignored the survey may differ systematically from responders, so the sample isn't representative of all users."
+   },
+   {
+    "text": "4,000 responses is too few to estimate an average with any precision.",
+    "correct": false,
+    "rationale": "4,000 is actually a large sample; precision is not the problem here. The problem is who chose to respond, not how many did."
+   },
+   {
+    "text": "A 1-to-5 rating scale cannot produce a meaningful average like 4.7.",
+    "correct": false,
+    "rationale": "Averaging ordinal ratings has caveats, but it is common practice and not the core issue; the representativeness of responders is."
+   },
+   {
+    "text": "The result is fine because everyone was given an equal chance to respond.",
+    "correct": false,
+    "rationale": "Equal invitation does not guarantee equal response. Self-selection into who actually replies is exactly what breaks representativeness."
+   }
+  ],
+  "explanation": "A low response rate opens the door to non-response bias: the people who answer can differ systematically from those who don't. Large raw counts don't fix a biased selection process — ask who is missing from the data."
+ },
+ {
+  "title": "stats-sampling-02",
+  "topic": "sampling",
+  "difficulty": 2,
+  "scenario": "An airline analyst studies engines returned for repair to decide where to add armor plating. The returned engines show damage concentrated around the fuel pump, so she proposes armoring the fuel pump area.",
+  "prompt": "What flaw should give her pause before armoring where the damage appears?",
+  "choices": [
+   {
+    "text": "The sample only includes engines that survived to be returned; hits to truly critical spots may have destroyed engines that never came back.",
+    "correct": true,
+    "rationale": "This is survivorship bias: the most damaging hit locations are underrepresented precisely because those units didn't survive to enter the data."
+   },
+   {
+    "text": "Repaired engines are inspected more carefully, inflating the damage counts near the fuel pump.",
+    "correct": false,
+    "rationale": "Inspection intensity isn't the issue and wouldn't concentrate damage at one location; the missing failures are what mislead her."
+   },
+   {
+    "text": "Fuel pumps are simply the most common component, so of course they show the most damage.",
+    "correct": false,
+    "rationale": "Commonality of a part doesn't explain the pattern, and it ignores the real problem: catastrophic hits are absent from the returned set."
+   },
+   {
+    "text": "The sample is too small unless she inspects every engine in the fleet.",
+    "correct": false,
+    "rationale": "Even a census of returned engines would carry the same bias. Adding more survivors doesn't reveal the destroyed ones."
+   }
+  ],
+  "explanation": "Survivorship bias arises when your data only contains the cases that 'made it,' hiding the failures that dropped out. Armor belongs where returned engines are undamaged — because hits there were fatal. Always ask what's systematically absent."
+ },
+ {
+  "title": "stats-sampling-03",
+  "topic": "sampling",
+  "difficulty": 2,
+  "scenario": "A city wants to gauge public support for a new bike lane. A reporter stands outside a downtown bike shop on a Saturday and interviews 200 passersby; 78% support the lane.",
+  "prompt": "Why is 78% likely to overstate citywide support?",
+  "choices": [
+   {
+    "text": "The sampling location (a bike shop) systematically over-includes cyclists, who are more likely to favor bike lanes.",
+    "correct": true,
+    "rationale": "Convenience sampling at a bike-friendly venue skews the pool toward supporters, so the estimate isn't representative of all residents."
+   },
+   {
+    "text": "200 people is far too small a sample to say anything about a whole city.",
+    "correct": false,
+    "rationale": "200 can yield a usable estimate if the sample is representative; the fatal issue is where and who, not the count."
+   },
+   {
+    "text": "Saturday interviews are invalid because opinions change during the week.",
+    "correct": false,
+    "rationale": "Day-of-week is a minor concern compared with the systematic location bias that stacks the sample with cyclists."
+   },
+   {
+    "text": "Face-to-face interviews always make people answer more positively.",
+    "correct": false,
+    "rationale": "Social-desirability effects can exist, but the dominant, structural problem here is the biased sampling frame, not the interview mode."
+   }
+  ],
+  "explanation": "The sampling frame — where and how you recruit — determines representativeness. Sampling at a location correlated with the opinion you're measuring builds bias into the estimate no matter how many people you ask."
+ },
+ {
+  "title": "stats-sampling-04",
+  "topic": "sampling",
+  "difficulty": 3,
+  "scenario": "A B2B software firm surveys its current paying customers about which features matter most, to guide the roadmap. Results heavily favor advanced admin controls used by large enterprises.",
+  "prompt": "What subtle sampling problem most threatens using this to grow revenue?",
+  "choices": [
+   {
+    "text": "The survey excludes prospects who evaluated the product but didn't buy — possibly because it lacked features current customers never needed.",
+    "correct": true,
+    "rationale": "Surveying only converts (a form of survivorship/selection bias) hides the reasons non-buyers churned out, which is exactly the growth signal you want."
+   },
+   {
+    "text": "Paying customers have no incentive to answer honestly about features.",
+    "correct": false,
+    "rationale": "Incentive to lie isn't the core flaw; the missing population of lost prospects is what biases the roadmap toward the already-satisfied."
+   },
+   {
+    "text": "Feature preferences can't be ranked meaningfully in a survey.",
+    "correct": false,
+    "rationale": "Preferences are routinely and usefully ranked; the issue is who you asked, not the ranking format."
+   },
+   {
+    "text": "The sample is biased only if fewer than half of customers respond.",
+    "correct": false,
+    "rationale": "Even a 100% response rate from current customers would still omit the non-buyers entirely. Response rate isn't the mechanism here."
+   }
+  ],
+  "explanation": "The population you sample defines the questions you can answer. To learn why you lose deals, you must include the people who left or never joined — optimizing only for existing customers can quietly entrench a niche and stall growth."
+ },
+ {
+  "title": "stats-variation-01",
+  "topic": "variation",
+  "difficulty": 1,
+  "scenario": "A retailer tracks daily online sales. On Tuesday sales jumped 22% above the weekly average; on Wednesday they fell back near the average. A manager wants to know 'what we did right on Tuesday.'",
+  "prompt": "What is the most likely explanation for the Tuesday spike?",
+  "choices": [
+   {
+    "text": "Ordinary day-to-day random fluctuation (noise); a single high day near an average often reverts the next day with no special cause.",
+    "correct": true,
+    "rationale": "Daily sales naturally vary; one point above average followed by a return toward average is the signature of noise, not a discovered lever."
+   },
+   {
+    "text": "A specific successful action on Tuesday that the team failed to repeat Wednesday.",
+    "correct": false,
+    "rationale": "This assumes a cause behind a single noisy point. Chasing an explanation for normal variation invents lessons that don't generalize."
+   },
+   {
+    "text": "A tracking error that must have inflated Tuesday's number.",
+    "correct": false,
+    "rationale": "There's no evidence of a bug; a 22% up-day is well within normal daily swings for many retailers."
+   },
+   {
+    "text": "The start of an upward trend in sales.",
+    "correct": false,
+    "rationale": "A single point can't establish a trend, and Wednesday already reverted. One observation is not a direction."
+   }
+  ],
+  "explanation": "Distinguish signal from noise. Single-day extremes in a naturally variable series usually reflect random variation and tend to revert. Before hunting for a cause, ask whether the swing is larger than the metric's normal day-to-day range."
+ },
+ {
+  "title": "stats-variation-02",
+  "topic": "variation",
+  "difficulty": 2,
+  "scenario": "A national chain ranks its 500 stores by conversion rate each month. The top store one month is often nowhere near the top the next month, and the worst store usually improves.",
+  "prompt": "Which explanation best accounts for this pattern?",
+  "choices": [
+   {
+    "text": "Regression to the mean: extreme rankings are partly luck, and luck doesn't persist, so extremes drift back toward average next period.",
+    "correct": true,
+    "rationale": "When results mix skill and chance, the most extreme cases owe part of their extremeness to chance, which is not repeated, pulling them back toward the middle."
+   },
+   {
+    "text": "Top stores get complacent and worst stores try harder, causing the reshuffle.",
+    "correct": false,
+    "rationale": "A behavioral story is tempting, but regression to the mean produces this pattern even with zero change in effort — you don't need it."
+   },
+   {
+    "text": "The ranking method is broken and should be discarded.",
+    "correct": false,
+    "rationale": "The ranking isn't broken; the movement of extremes is exactly what statistics predicts when outcomes contain noise."
+   },
+   {
+    "text": "Only a store's true quality determines its rank, so ranks should be stable.",
+    "correct": false,
+    "rationale": "This ignores the chance component in any single month's rate; pure-quality models can't explain why extremes reliably revert."
+   }
+  ],
+  "explanation": "Regression to the mean: whenever a measurement combines a stable component and random noise, selecting the most extreme cases selects for extreme luck too — which won't recur. Reversion of top and bottom performers is expected, not a story about effort or intervention."
+ },
+ {
+  "title": "stats-variation-03",
+  "topic": "variation",
+  "difficulty": 2,
+  "scenario": "A dashboard shows conversion rates by traffic source. A tiny source with 20 visitors shows a 40% conversion rate; the main source with 50,000 visitors shows 8%. A marketer wants to shift budget to the 40% source.",
+  "prompt": "What is the strongest caution here?",
+  "choices": [
+   {
+    "text": "A rate from only 20 visitors is extremely volatile — 8 conversions vs 6 swings it from 40% to 30% — so the 40% is not a reliable estimate.",
+    "correct": true,
+    "rationale": "Small denominators make rates jumpy; a couple of conversions move the percentage wildly, so 40% carries huge uncertainty compared with the 50,000-visitor figure."
+   },
+   {
+    "text": "The 40% source is clearly better and budget should move immediately.",
+    "correct": false,
+    "rationale": "This treats a noisy small-sample rate as if it were as trustworthy as a large-sample one, ignoring the wide margin of error on 20 visitors."
+   },
+   {
+    "text": "Conversion rates can't be compared across different sources at all.",
+    "correct": false,
+    "rationale": "They can be compared; the issue is the reliability of one estimate, not the legitimacy of comparison."
+   },
+   {
+    "text": "The main source must be underperforming since 8% is far below 40%.",
+    "correct": false,
+    "rationale": "The 8% comes from 50,000 visitors and is stable; the gap is likely small-sample noise in the tiny source, not weakness in the large one."
+   }
+  ],
+  "explanation": "Small samples produce high-variance rates. The fewer the observations behind a percentage, the wider its true range could be. Weight your confidence by sample size before acting on an eye-catching rate from a small denominator."
+ },
+ {
+  "title": "stats-variation-04",
+  "topic": "variation",
+  "difficulty": 3,
+  "scenario": "A fictional health authority maps kidney-cancer rates by county. The counties with the LOWEST rates are overwhelmingly small, rural, sparsely populated counties. An official concludes rural living is protective.",
+  "prompt": "Why is this conclusion premature?",
+  "choices": [
+   {
+    "text": "Small-population counties have the most volatile rates, so they dominate BOTH the lowest and the highest lists purely from small-sample variation.",
+    "correct": true,
+    "rationale": "With few residents, a county's rate swings widely by chance; such counties cluster at both extremes, so 'lowest' being rural says more about population size than about rural life."
+   },
+   {
+    "text": "Rural counties simply have healthier lifestyles that lower cancer risk.",
+    "correct": false,
+    "rationale": "This accepts the pattern at face value; checking the highest-rate list would likely show small rural counties there too, undercutting the causal story."
+   },
+   {
+    "text": "Cancer registries undercount cases in rural areas, faking low rates.",
+    "correct": false,
+    "rationale": "Undercounting is speculative; the statistical explanation — extreme rates from tiny denominators — accounts for the pattern without assuming data errors."
+   },
+   {
+    "text": "Rural counties are older, and age lowers cancer rates.",
+    "correct": false,
+    "rationale": "Older populations would if anything raise cancer rates, and this ignores the real driver: variance is largest where the population is smallest."
+   }
+  ],
+  "explanation": "Rates from small populations are inherently noisy, so the smallest units dominate both extremes of any ranking. Before interpreting who is at the top or bottom, ask whether extremeness is being driven by small sample size rather than a real effect."
+ },
+ {
+  "title": "stats-association-01",
+  "topic": "association",
+  "difficulty": 1,
+  "scenario": "An analyst notes that across cities, months with higher ice-cream sales also have more drowning deaths. The correlation is strong and positive.",
+  "prompt": "What is the most reasonable interpretation?",
+  "choices": [
+   {
+    "text": "A third variable — hot weather — drives both ice-cream sales and swimming (hence drownings); the two are associated but not causally linked.",
+    "correct": true,
+    "rationale": "This is a classic confounder: summer heat independently raises both quantities, producing correlation without one causing the other."
+   },
+   {
+    "text": "Eating ice cream impairs swimming ability, increasing drownings.",
+    "correct": false,
+    "rationale": "This invents a direct cause where a shared driver (heat) fully explains the link. Correlation alone doesn't license a causal mechanism."
+   },
+   {
+    "text": "Drownings drive people to buy ice cream in grief.",
+    "correct": false,
+    "rationale": "Reverse causation is implausible here and again ignores the obvious common cause of warm weather."
+   },
+   {
+    "text": "The correlation must be a coincidence with no explanation.",
+    "correct": false,
+    "rationale": "It's not coincidence; there's a clear confounder. Dismissing it as random misses the identifiable third variable."
+   }
+  ],
+  "explanation": "Correlation does not imply causation. When two things move together, look for a confounder — a third variable that influences both. A shared cause can create a strong association with no direct link between the two measured quantities."
+ },
+ {
+  "title": "stats-association-02",
+  "topic": "association",
+  "difficulty": 2,
+  "scenario": "A company finds that employees who attended an optional leadership workshop were later promoted at twice the rate of those who didn't attend. Leadership wants to make the workshop mandatory to boost promotions.",
+  "prompt": "What is the key threat to concluding the workshop causes promotions?",
+  "choices": [
+   {
+    "text": "Attendance was optional, so already-ambitious, high-performing employees likely self-selected in — and they'd be promoted more anyway.",
+    "correct": true,
+    "rationale": "Selection bias/confounding by motivation: the same drive that led people to attend also drives promotions, so the workshop's own effect is entangled with who chose to attend."
+   },
+   {
+    "text": "Twice the rate is too small a difference to matter.",
+    "correct": false,
+    "rationale": "A 2x difference is large; the problem is attributing it to the workshop rather than to who selected into it."
+   },
+   {
+    "text": "Promotions are subjective, so the comparison is meaningless.",
+    "correct": false,
+    "rationale": "Subjectivity isn't the core issue; even objective promotions would be confounded by self-selection into the optional workshop."
+   },
+   {
+    "text": "The workshop clearly works and should be mandatory immediately.",
+    "correct": false,
+    "rationale": "This ignores confounding entirely. Making it mandatory removes the selection effect that may be doing all the work."
+   }
+  ],
+  "explanation": "Self-selection creates confounding: people who opt into a treatment often differ in ways that also affect the outcome. A randomized comparison — assigning the workshop regardless of ambition — is what would isolate the workshop's true causal effect."
+ },
+ {
+  "title": "stats-association-03",
+  "topic": "association",
+  "difficulty": 2,
+  "scenario": "A product team runs a proper randomized A/B test: half of users get a redesigned checkout, half get the old one, assigned at random. The new design shows a 5% higher purchase rate.",
+  "prompt": "What does the randomization primarily let the team conclude that a plain correlation could not?",
+  "choices": [
+   {
+    "text": "Because assignment was random, the two groups are on average alike except for the design, so the 5% lift can be attributed causally to the redesign.",
+    "correct": true,
+    "rationale": "Randomization balances confounders (known and unknown) across groups, so a difference in outcomes can be credited to the treatment itself."
+   },
+   {
+    "text": "That the redesign will lift purchases by exactly 5% for every user going forward.",
+    "correct": false,
+    "rationale": "A test estimates an average effect with uncertainty; it doesn't guarantee an identical, permanent per-user lift. Causal claim, yes; exact universal number, no."
+   },
+   {
+    "text": "That the old design was causing users to abandon checkout.",
+    "correct": false,
+    "rationale": "The test measures the relative effect of the new design, not that the old one 'caused' abandonment in any absolute sense."
+   },
+   {
+    "text": "Nothing more than a correlation would — random assignment doesn't change interpretation.",
+    "correct": false,
+    "rationale": "This misses the entire point of experiments: randomization is exactly what upgrades an association into a causal claim."
+   }
+  ],
+  "explanation": "Randomized assignment is what buys you causation. By making the groups comparable except for the treatment, it removes confounding on average, so an observed difference can be attributed to the intervention — something no observational correlation can deliver on its own."
+ },
+ {
+  "title": "stats-association-04",
+  "topic": "association",
+  "difficulty": 3,
+  "scenario": "A study reports that patients who take a certain sleep medication have higher mortality over five years than those who don't. A headline claims the drug is deadly.",
+  "prompt": "Beyond ordinary confounding, which specific concern most complicates the causal claim?",
+  "choices": [
+   {
+    "text": "Reverse causation and confounding by indication: people are prescribed sleep meds because they're already sicker (pain, anxiety, illness), and that underlying poor health raises mortality.",
+    "correct": true,
+    "rationale": "The condition that leads to the prescription (the 'indication') independently worsens outcomes, so the drug is associated with death without necessarily causing it."
+   },
+   {
+    "text": "The sample size must be too small to detect a real effect.",
+    "correct": false,
+    "rationale": "The problem isn't sample size — a large study would show the same association. The issue is why sicker people take the drug."
+   },
+   {
+    "text": "Mortality over five years is too long a window to be meaningful.",
+    "correct": false,
+    "rationale": "A five-year window is reasonable; the causal ambiguity comes from who gets prescribed the drug, not the timeframe."
+   },
+   {
+    "text": "Correlation and causation are the same thing in medical studies.",
+    "correct": false,
+    "rationale": "They are not; this statement is simply false and would license exactly the mistaken headline."
+   }
+  ],
+  "explanation": "Confounding by indication is a trap in observational medical data: the reason someone receives a treatment is often tied to their prognosis. Combined with possible reverse causation, this can manufacture an association that mimics harm. Only careful design (or randomization) can separate the drug's effect from the sickness that prompted it."
+ },
+ {
+  "title": "stats-base_rates-01",
+  "topic": "base_rates",
+  "difficulty": 1,
+  "scenario": "A fictional rare disease affects 1 in 1,000 people. A screening test correctly flags 99% of people who have it and gives a false positive for 5% of people who don't. Amir tests positive.",
+  "prompt": "Roughly how likely is it that Amir actually has the disease?",
+  "choices": [
+   {
+    "text": "Around 2% — because the disease is rare, most positive results come from the large pool of healthy people getting false positives.",
+    "correct": true,
+    "rationale": "Of 1,000 people: ~1 true positive but ~50 false positives (5% of 999). So true positives are about 1 of ~51 positives, roughly 2%."
+   },
+   {
+    "text": "About 99%, because the test catches 99% of real cases.",
+    "correct": false,
+    "rationale": "This confuses the test's sensitivity with the chance of disease given a positive; it ignores the tiny base rate that makes false positives dominate."
+   },
+   {
+    "text": "About 95%, since the false-positive rate is only 5%.",
+    "correct": false,
+    "rationale": "The 5% applies to the huge healthy population, producing many false positives; it does not mean a positive is 95% reliable."
+   },
+   {
+    "text": "About 50%, since Amir either has it or doesn't.",
+    "correct": false,
+    "rationale": "'Either/or' is not a probability. The base rate and error rates, not a coin-flip framing, determine the answer."
+   }
+  ],
+  "explanation": "The false-positive paradox: when a condition is rare, even an accurate test yields mostly false positives, because the healthy group is so much larger. Always combine the base rate with the test's error rates before trusting a positive result."
+ },
+ {
+  "title": "stats-base_rates-02",
+  "topic": "base_rates",
+  "difficulty": 2,
+  "scenario": "A fraud model flags transactions as fraudulent. Fraud occurs in 0.2% of transactions. The model catches 90% of real fraud and falsely flags 2% of legitimate transactions. An analyst sees a flagged transaction.",
+  "prompt": "About what fraction of flagged transactions are actually fraudulent?",
+  "choices": [
+   {
+    "text": "Roughly 8% — false alarms from the huge legitimate pool vastly outnumber the caught frauds.",
+    "correct": true,
+    "rationale": "Per 100,000: ~200 frauds, ~180 caught; ~99,800 legit, ~1,996 false flags. True/(true+false) ≈ 180/2,176 ≈ 8%."
+   },
+   {
+    "text": "About 90%, matching the model's catch rate for real fraud.",
+    "correct": false,
+    "rationale": "Catch rate (sensitivity) is not the same as the chance a flag is correct; the low base rate of fraud makes false flags dominate."
+   },
+   {
+    "text": "About 98%, since only 2% of legit transactions are flagged.",
+    "correct": false,
+    "rationale": "That 2% applies to an enormous legitimate population, generating far more false flags than there are true frauds."
+   },
+   {
+    "text": "About 45%, roughly halfway between the error rates.",
+    "correct": false,
+    "rationale": "Averaging the rates ignores the base rate entirely; the rarity of fraud pushes precision far below 50%."
+   }
+  ],
+  "explanation": "The probability that a flag is correct (precision) depends heavily on the base rate, not just the detector's accuracy. When the target event is rare, a small false-positive rate applied to a large negative population swamps the true positives. Compute with counts, not with the accuracy figure alone."
+ },
+ {
+  "title": "stats-base_rates-03",
+  "topic": "base_rates",
+  "difficulty": 2,
+  "scenario": "A hospital improves its rare-disease test so the false-positive rate drops from 5% to 1%, while sensitivity stays at 99%. The disease still affects 1 in 1,000 people.",
+  "prompt": "What is the main effect of this improvement on a positive result's meaning?",
+  "choices": [
+   {
+    "text": "The chance that a positive is a true case rises substantially (from about 2% to about 9%), because far fewer false positives are generated.",
+    "correct": true,
+    "rationale": "Per 1,000: ~1 true positive and now ~10 false positives (1% of 999), so true/(true+false) ≈ 1/11 ≈ 9%, up from ~2%."
+   },
+   {
+    "text": "A positive result now essentially confirms the disease.",
+    "correct": false,
+    "rationale": "Even at 9%, most positives are still false because the disease is so rare; the base rate keeps precision low despite the improvement."
+   },
+   {
+    "text": "It has almost no effect, since sensitivity didn't change.",
+    "correct": false,
+    "rationale": "Cutting the false-positive rate fivefold sharply reduces false positives, which strongly changes what a positive means."
+   },
+   {
+    "text": "It makes the test worse by catching fewer real cases.",
+    "correct": false,
+    "rationale": "Sensitivity stayed at 99%, so real cases are still caught; only false positives dropped, which is an improvement."
+   }
+  ],
+  "explanation": "With rare conditions, the false-positive rate — not just sensitivity — dominates a test's predictive value. Reducing false positives can multiply the reliability of a positive result, yet the low base rate can still keep most positives false. Interpret positives relative to prevalence."
+ },
+ {
+  "title": "stats-base_rates-04",
+  "topic": "base_rates",
+  "difficulty": 3,
+  "scenario": "A recruiter uses a 'top-talent' screening signal that 80% of eventual star hires had, but only 10% of ordinary hires had. In the applicant pool, roughly 1 in 50 applicants turns out to be a star. An applicant shows the signal.",
+  "prompt": "How should the recruiter interpret the signal for this applicant?",
+  "choices": [
+   {
+    "text": "It raises the odds of being a star from 2% to about 14%, so it's informative but most signal-holders are still not stars.",
+    "correct": true,
+    "rationale": "Per 5,000 applicants: 100 stars, 80 with signal; 4,900 ordinary, 490 with signal. True/(true+false) = 80/570 ≈ 14%."
+   },
+   {
+    "text": "The applicant is very likely a star, since 80% of stars have the signal.",
+    "correct": false,
+    "rationale": "80% is P(signal | star), not P(star | signal). The low base rate of stars means signal-holders are mostly ordinary hires."
+   },
+   {
+    "text": "The signal is useless because most people who have it aren't stars.",
+    "correct": false,
+    "rationale": "It's not useless — it lifts the probability sevenfold (2% to 14%); low absolute precision doesn't mean zero information."
+   },
+   {
+    "text": "About 80% likely, because that's the signal's hit rate among stars.",
+    "correct": false,
+    "rationale": "This again inverts the conditional probability and ignores the base rate, overstating the applicant's chances."
+   }
+  ],
+  "explanation": "Don't confuse P(evidence | trait) with P(trait | evidence). A signal common among a rare group can still be dominated by the much larger common group. A useful signal shifts the odds without necessarily making the trait likely in absolute terms — update from the base rate, don't replace it."
+ },
+ {
+  "title": "stats-uncertainty-01",
+  "topic": "uncertainty",
+  "difficulty": 1,
+  "scenario": "A survey estimates that 52% of customers prefer a new logo, with a 95% confidence interval of 48% to 56%.",
+  "prompt": "What does the 95% confidence interval most accurately tell us?",
+  "choices": [
+   {
+    "text": "It gives a plausible range for the true preference; because that range includes 50%, we can't be confident a majority actually prefers the new logo.",
+    "correct": true,
+    "rationale": "The interval spans 48–56%, so values at or below 50% are plausible — the data don't establish a real majority preference."
+   },
+   {
+    "text": "There is a 95% probability that exactly 52% of all customers prefer the new logo.",
+    "correct": false,
+    "rationale": "The interval is a range, not a claim that the point estimate is 95% certain; and 52% is just the sample estimate, not a probability about the truth."
+   },
+   {
+    "text": "95% of customers fall between 48% and 56% on some preference scale.",
+    "correct": false,
+    "rationale": "A CI describes uncertainty about the estimated proportion, not the spread of individual customers."
+   },
+   {
+    "text": "The true value is definitely between 48% and 56%.",
+    "correct": false,
+    "rationale": "'Definitely' overstates it; a 95% CI still allows a 5% chance the true value lies outside, and the interval reflects one procedure's coverage."
+   }
+  ],
+  "explanation": "A confidence interval expresses uncertainty about an estimate, giving a range of plausible true values. If a meaningful threshold (like 50%) falls inside the interval, the data don't clearly rule out the other side. Read the whole interval, not just the point estimate."
+ },
+ {
+  "title": "stats-uncertainty-02",
+  "topic": "uncertainty",
+  "difficulty": 2,
+  "scenario": "An A/B test on a checkout button finds version B increases conversion by 0.3 percentage points. With millions of users, the result is 'statistically significant' at p < 0.01.",
+  "prompt": "What is the right takeaway?",
+  "choices": [
+   {
+    "text": "The effect is likely real but small; statistical significance doesn't mean the 0.3-point lift is practically or economically worth shipping.",
+    "correct": true,
+    "rationale": "Huge samples make tiny effects significant; significance addresses whether an effect exists, not whether it's large enough to matter for the business."
+   },
+   {
+    "text": "A p < 0.01 result proves version B is substantially better.",
+    "correct": false,
+    "rationale": "Significance says the effect is unlikely to be zero, not that it's substantial; 0.3 points may be trivial in practice."
+   },
+   {
+    "text": "The low p-value means there's a 99% chance B beats A by a meaningful amount.",
+    "correct": false,
+    "rationale": "A p-value isn't the probability the hypothesis is true, and it says nothing about the size or importance of the effect."
+   },
+   {
+    "text": "Because the effect is tiny, the result must be a fluke.",
+    "correct": false,
+    "rationale": "With millions of users the estimate is precise; the effect is probably real — it's just small, which is different from being a fluke."
+   }
+  ],
+  "explanation": "Statistical significance and practical significance are different questions. Large samples can make trivial differences significant. Always ask about effect size and cost/benefit — 'is it real?' is not the same as 'is it big enough to act on?'"
+ },
+ {
+  "title": "stats-uncertainty-03",
+  "topic": "uncertainty",
+  "difficulty": 3,
+  "scenario": "Two marketing channels report average revenue per user. Channel A: $12.00 (95% CI $10.50–$13.50). Channel B: $10.20 (95% CI $9.00–$11.40). The intervals overlap slightly. A manager concludes there is definitely no real difference.",
+  "prompt": "Is 'overlapping intervals means no significant difference' a safe conclusion here?",
+  "choices": [
+   {
+    "text": "No — overlapping 95% confidence intervals do not reliably imply the difference is non-significant; a direct test of the difference can still be significant.",
+    "correct": true,
+    "rationale": "The rule of thumb is flawed: two CIs can overlap modestly while a proper test of the gap between them still rejects 'no difference.' You must test the difference directly."
+   },
+   {
+    "text": "Yes — if the intervals overlap at all, the groups are statistically indistinguishable.",
+    "correct": false,
+    "rationale": "This common shortcut is unreliable; moderate overlap is fully compatible with a statistically significant difference."
+   },
+   {
+    "text": "Yes — overlapping intervals prove the true means are equal.",
+    "correct": false,
+    "rationale": "No interval comparison proves equality; failing to detect a difference is not evidence that none exists."
+   },
+   {
+    "text": "No — overlapping intervals always mean the difference IS significant.",
+    "correct": false,
+    "rationale": "Equally wrong in the other direction; overlap alone determines nothing. Only a direct test of the difference settles it."
+   }
+  ],
+  "explanation": "Judging significance by whether two confidence intervals overlap is unreliable and usually too conservative. To compare two estimates, test the difference itself (which has its own, narrower uncertainty). Don't let side-by-side error bars stand in for a real comparison."
+ },
+ {
+  "title": "stats-aggregation-01",
+  "topic": "aggregation",
+  "difficulty": 1,
+  "scenario": "At a fictional startup, 9 employees earn about $60,000 and the founder earns $2,000,000. A recruiter reports the 'average salary' is $254,000 to attract candidates.",
+  "prompt": "Why is the median a more honest summary of a typical salary here?",
+  "choices": [
+   {
+    "text": "The single $2M salary is an extreme outlier that pulls the mean far above what almost everyone earns; the median ($60,000) reflects the typical employee.",
+    "correct": true,
+    "rationale": "Means are sensitive to skew and outliers; with one huge value, the median better represents the central, typical case."
+   },
+   {
+    "text": "The median is always the correct measure of central tendency.",
+    "correct": false,
+    "rationale": "The median isn't universally 'correct'; it's preferable here specifically because the data are heavily skewed by an outlier."
+   },
+   {
+    "text": "The mean was calculated incorrectly.",
+    "correct": false,
+    "rationale": "The mean is arithmetically right ($254,000); the issue is that it's misleading for skewed data, not that it's miscomputed."
+   },
+   {
+    "text": "Medians can't be affected by outliers, so they're always safer for any dataset.",
+    "correct": false,
+    "rationale": "Robustness to outliers is real, but 'always safer' overstates it; for symmetric data the mean is fine and uses more information."
+   }
+  ],
+  "explanation": "On skewed data, the mean and median tell different stories. A few extreme values drag the mean away from the typical case, while the median stays near the center. Choose the summary that matches the distribution's shape, and be suspicious of a lone 'average' on skewed data."
+ },
+ {
+  "title": "stats-aggregation-02",
+  "topic": "aggregation",
+  "difficulty": 3,
+  "scenario": "A fictional university is accused of gender bias in admissions: overall, men are admitted at a higher rate than women. Yet within every individual department, women are admitted at an equal or higher rate than men.",
+  "prompt": "How can both statements be true at once?",
+  "choices": [
+   {
+    "text": "Women applied more to highly competitive departments with low admit rates, so the overall average is dragged down even though they do as well or better within each department — Simpson's paradox.",
+    "correct": true,
+    "rationale": "Aggregating across departments with very different admit rates and application mixes reverses the direction seen within each group; the confounder is which departments each group applied to."
+   },
+   {
+    "text": "One of the two claims must be a calculation error; they can't both hold.",
+    "correct": false,
+    "rationale": "They can both hold — Simpson's paradox is exactly when a within-group pattern reverses in the aggregate. No error is required."
+   },
+   {
+    "text": "The overall rate is the only figure that matters, so bias against women is proven.",
+    "correct": false,
+    "rationale": "The aggregate hides that within every department women fare equally or better; the overall gap is driven by application patterns, not per-department bias."
+   },
+   {
+    "text": "The department-level rates are irrelevant once you have the overall numbers.",
+    "correct": false,
+    "rationale": "The department level is precisely where the fair comparison lives; ignoring it produces the misleading aggregate."
+   }
+  ],
+  "explanation": "Simpson's paradox: a trend within every subgroup can reverse when the groups are combined, because of how the groups are weighted. Before trusting an aggregate comparison, disaggregate — a lurking grouping variable can flip the conclusion entirely."
+ },
+ {
+  "title": "stats-aggregation-03",
+  "topic": "aggregation",
+  "difficulty": 2,
+  "scenario": "A call center reports that Team X resolved 90% of tickets and Team Y resolved 70%, so a manager averages them to '(90+70)/2 = 80%' resolution across the two teams. Team X handled 100 tickets; Team Y handled 900.",
+  "prompt": "What is the actual combined resolution rate, and what mistake did the manager make?",
+  "choices": [
+   {
+    "text": "About 72% — you must weight by ticket volume (90 + 630 resolved out of 1,000), not average the two percentages equally.",
+    "correct": true,
+    "rationale": "Team X resolved 90 of 100, Team Y 630 of 900; (90+630)/1000 = 72%. Simple averaging ignores that Team Y handled 9x the volume."
+   },
+   {
+    "text": "Exactly 80%, since averaging the two rates is the correct method.",
+    "correct": false,
+    "rationale": "Averaging rates equally is only valid when the denominators match; here Team Y's larger volume must carry more weight."
+   },
+   {
+    "text": "About 88%, since the larger team's rate should dominate almost entirely.",
+    "correct": false,
+    "rationale": "The larger team's rate (70%) dominates, pulling the true figure toward 72%, not up toward 88%."
+   },
+   {
+    "text": "You can't combine the rates without knowing customer satisfaction scores.",
+    "correct": false,
+    "rationale": "The volumes are all you need; the combined rate is well-defined once you weight by ticket counts."
+   }
+  ],
+  "explanation": "Averaging rates requires weighting by their denominators. Taking a plain mean of two percentages silently assumes equal group sizes. When groups differ in size, compute a weighted average (or pool the raw counts) to avoid a badly distorted total."
+ },
+ {
+  "title": "stats-aggregation-04",
+  "topic": "aggregation",
+  "difficulty": 2,
+  "scenario": "A logistics dashboard shows a truck averaged 60 mph over a route: it drove the first 30 miles at 30 mph and the next 30 miles at 90 mph, and someone averaged (30+90)/2 = 60 mph.",
+  "prompt": "What was the truck's actual average speed for the whole trip?",
+  "choices": [
+   {
+    "text": "45 mph — the first leg took 1 hour and the second took 20 minutes, so 60 miles in 1 hour 20 minutes is 45 mph; you can't average speeds over equal distances.",
+    "correct": true,
+    "rationale": "Time on each leg differs (1h vs 1/3h), so the slow leg dominates; total distance over total time gives 60 / (4/3) = 45 mph."
+   },
+   {
+    "text": "60 mph, since the two speeds average to 60.",
+    "correct": false,
+    "rationale": "Averaging speeds over equal distances is wrong because the slower leg consumes more time; the correct method uses total distance over total time."
+   },
+   {
+    "text": "50 mph, splitting the difference toward the slower leg.",
+    "correct": false,
+    "rationale": "The right answer does lean toward the slow leg, but the precise value from time-weighting is 45 mph, not a rough guess."
+   },
+   {
+    "text": "Cannot be determined without knowing the truck's stops.",
+    "correct": false,
+    "rationale": "No extra information is needed; distances and speeds fully determine the times and thus the true average of 45 mph."
+   }
+  ],
+  "explanation": "Average speed is total distance divided by total time, not the mean of the speeds. When rates are combined, the quantity you average over (here, time) does the weighting — averaging over equal distances overweights the fast segment. Match the average to the right base."
+ },
+ {
+  "title": "stats-uncertainty-04",
+  "topic": "uncertainty",
+  "difficulty": 2,
+  "scenario": "A study reports that a new drug reduced symptoms more than placebo, p = 0.04.",
+  "prompt": "What does p = 0.04 actually tell you?",
+  "choices": [
+   {
+    "text": "If the drug truly had no effect, data at least this extreme would occur about 4% of the time.",
+    "correct": true,
+    "rationale": "That's the definition of a p-value: the probability of the observed (or more extreme) data under the null hypothesis of no effect."
+   },
+   {
+    "text": "There's a 96% chance the drug works.",
+    "correct": false,
+    "rationale": "A p-value is not the probability the hypothesis is true; it says nothing directly about P(effect is real)."
+   },
+   {
+    "text": "The effect is large and clinically important.",
+    "correct": false,
+    "rationale": "Significance is about ruling out chance, not about effect size or clinical importance — a tiny effect can be significant with enough data."
+   },
+   {
+    "text": "There's a 4% chance the result was a fluke.",
+    "correct": false,
+    "rationale": "The p-value assumes the null is true; it isn't the probability that this particular result is a false positive."
+   }
+  ],
+  "explanation": "A p-value measures how surprising the data would be if there were no effect — not the probability the effect is real, and not its size. Small p rules out chance as an easy explanation; it doesn't prove importance."
+ },
+ {
+  "title": "stats-association-05",
+  "topic": "association",
+  "difficulty": 1,
+  "scenario": "Across cities, monthly ice-cream sales correlate strongly with monthly drowning deaths.",
+  "prompt": "What most likely explains this correlation?",
+  "choices": [
+   {
+    "text": "A lurking variable — hot weather — drives both swimming (hence drownings) and ice-cream sales.",
+    "correct": true,
+    "rationale": "A common cause produces correlation between two effects with no causal link between them."
+   },
+   {
+    "text": "Eating ice cream impairs swimming ability and causes drownings.",
+    "correct": false,
+    "rationale": "This invents a direct causal story where a confounder (season/temperature) is the parsimonious explanation."
+   },
+   {
+    "text": "Drownings drive grieving families to buy more ice cream.",
+    "correct": false,
+    "rationale": "Reverse causation is implausible and unsupported; the shared driver is temperature."
+   },
+   {
+    "text": "The correlation must be a coincidence with no explanation.",
+    "correct": false,
+    "rationale": "A strong, repeatable seasonal pattern isn't coincidence — it points to a common cause."
+   }
+  ],
+  "explanation": "Correlation between two effects of a common cause is classic confounding. Before believing X causes Y, ask what third variable could drive both — here, warm weather."
+ },
+ {
+  "title": "stats-variation-05",
+  "topic": "variation",
+  "difficulty": 2,
+  "scenario": "Rookies who win 'Player of the Year' often perform worse the next season — the so-called sophomore slump. Commentators blame complacency and pressure.",
+  "prompt": "What's the simplest statistical explanation?",
+  "choices": [
+   {
+    "text": "Regression to the mean: an award-winning season is partly luck, and luck doesn't repeat, so the next year drifts back toward their true level.",
+    "correct": true,
+    "rationale": "Extreme outcomes are inflated by favorable noise; subsequent performance regresses toward the underlying mean."
+   },
+   {
+    "text": "Winning an award causally makes athletes lazy.",
+    "correct": false,
+    "rationale": "A behavioral story isn't needed; the pattern follows from selecting on an extreme year."
+   },
+   {
+    "text": "Sophomores face tougher schedules by rule.",
+    "correct": false,
+    "rationale": "No such rule exists; this is an ad hoc explanation for a purely statistical effect."
+   },
+   {
+    "text": "The award voters were simply wrong about the rookies.",
+    "correct": false,
+    "rationale": "The players really were best that year; regression explains the decline without impugning the vote."
+   }
+  ],
+  "explanation": "Whenever you select the extreme (best rookie season), the next measurement tends to move back toward average because the extreme was partly luck. No motivational story required."
+ }
 ]
