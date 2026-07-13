@@ -71,7 +71,8 @@ export type QuizRow = {
   topic: string;
   difficulty: number;
   correct: boolean;
-  confidence: number | null; // 50..99 conviction staked; null = pre-calibration row
+  confidence: number | null; // 25..99 conviction staked (mcq/duel); null = estimate/legacy
+  captured: boolean | null; // estimate calls: truth fell in the 90% band? null otherwise
   ratingAfter: number | null;
   createdAt: Date;
 };
@@ -523,6 +524,8 @@ export type Calibration = {
   brierRef: number; // Brier of an always-predict-base-rate forecaster (the reference)
   skill: number; // Brier skill score 1 - brier/brierRef (higher is better; can be < 0)
   ece: number; // expected calibration error — a DIAGNOSTIC only, not the grade
+  reliability: number; // Murphy decomposition: Σ w_b (conf_b − acc_b)^2 (lower is better)
+  resolution: number; // Murphy decomposition: Σ w_b (acc_b − acc)^2 (HIGHER is better — sharpness)
   accuracy: number; // overall accuracy over staked calls, 0..1
   meanConf: number; // overall mean confidence, 0..1
   tendency: "overconfident" | "underconfident" | "sharp" | "unrated";
@@ -530,6 +533,22 @@ export type Calibration = {
   gap: number; // signed meanConf - accuracy (positive = overconfident), 0..1
   bins: CalBin[]; // for the reliability diagram + No-Bluff diagnostic
 };
+
+// Interval calibration — the purest calibration signal, from Estimate-with-a-band
+// calls. A well-calibrated 90% interval should capture the truth ~90% of the time.
+export type IntervalCoverage = {
+  n: number; // estimate calls made
+  captured: number; // how many caught the truth
+  rate: number; // captured / n, 0..1
+  nominal: number; // the target coverage (0.90)
+};
+
+export function intervalCoverage(rows: QuizRow[]): IntervalCoverage {
+  const est = rows.filter((r) => r.captured != null);
+  const n = est.length;
+  const captured = est.filter((r) => r.captured).length;
+  return { n, captured, rate: n ? captured / n : 0, nominal: 0.9 };
+}
 
 // Bins span the FULL usable conviction range. Chance on a 4-option MCQ is 25%,
 // so the reliability diagram and the No-Bluff diagnostic start at 25, not 50 —
@@ -565,7 +584,7 @@ export function calibration(rows: QuizRow[]): Calibration {
     };
   });
   if (n === 0) {
-    return { n: 0, brier: 0, brierRef: 0, skill: 0, ece: 0, accuracy: 0, meanConf: 0, tendency: "unrated", score: null, gap: 0, bins };
+    return { n: 0, brier: 0, brierRef: 0, skill: 0, ece: 0, reliability: 0, resolution: 0, accuracy: 0, meanConf: 0, tendency: "unrated", score: null, gap: 0, bins };
   }
   const accuracy = staked.filter((r) => r.correct).length / n;
   const meanConf = staked.reduce((s, r) => s + (r.confidence as number), 0) / n / 100;
@@ -580,9 +599,14 @@ export function calibration(rows: QuizRow[]): Calibration {
   // game it by hedging toward your base rate (that only matches the reference).
   const skill = brierRef > 0 ? 1 - brier / brierRef : brier === 0 ? 1 : 0;
   const ece = bins.reduce((s, b) => s + (b.count / n) * Math.abs(b.meanConf - b.accuracy), 0);
+  // Murphy decomposition (Brier = reliability − resolution + uncertainty): teaches
+  // that being calibrated (reliability↓) isn't enough — you must also be sharp
+  // (resolution↑, telling hard from easy) rather than staking one flat number.
+  const reliability = bins.reduce((s, b) => s + (b.count / n) * (b.meanConf - b.accuracy) ** 2, 0);
+  const resolution = bins.reduce((s, b) => s + (b.count / n) * (b.accuracy - accuracy) ** 2, 0);
   const gap = meanConf - accuracy;
   const tendency: Calibration["tendency"] =
     n < RATE_MIN_N ? "unrated" : gap > 0.07 ? "overconfident" : gap < -0.07 ? "underconfident" : "sharp";
   const score = n < SCORE_MIN_N ? null : Math.max(0, Math.min(100, Math.round(100 * skill)));
-  return { n, brier, brierRef, skill, ece, accuracy, meanConf, tendency, score, gap, bins };
+  return { n, brier, brierRef, skill, ece, reliability, resolution, accuracy, meanConf, tendency, score, gap, bins };
 }

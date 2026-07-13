@@ -35,11 +35,13 @@ import {
   badgeConferrals,
   topicProgress,
   calibration,
+  intervalCoverage,
   type QuizRow,
   type LevelStanding,
   type Conferral as QuizConferral,
   type TopicProgress,
   type Calibration,
+  type IntervalCoverage,
 } from "./train-tracks";
 
 export type { Finding, Variant, Comparison, Session };
@@ -1066,6 +1068,7 @@ async function quizRows(sessionId: string, track: string): Promise<QuizRow[]> {
       difficulty: true,
       correct: true,
       confidence: true,
+      captured: true,
       ratingAfter: true,
       createdAt: true,
     },
@@ -1143,6 +1146,7 @@ export async function recordQuizAttempt(input: {
   correct: boolean;
   choiceIndex: number;
   confidence: number | null;
+  captured: boolean | null;
   latencyMs: number;
 }): Promise<{ liveRating: number; ratingDelta: number; count: number }> {
   return withTxRetry(() =>
@@ -1165,6 +1169,7 @@ export async function recordQuizAttempt(input: {
           correct: input.correct,
           choiceIndex: input.choiceIndex,
           confidence: input.confidence,
+          captured: input.captured,
           latencyMs: input.latencyMs,
           ratingAfter: next.session,
         },
@@ -1188,6 +1193,7 @@ export type QuizStanding = {
   badges: QuizConferral[];
   topics: TopicProgress[];
   calibration: Calibration;
+  coverage: IntervalCoverage;
 };
 
 /** The Record for a track — level, badges, topic map, calibration — a pure fold. */
@@ -1202,6 +1208,7 @@ export async function getQuizStanding(sessionId: string, track: string): Promise
     badges: badgeConferrals(t, rows),
     topics: topicProgress(t, rows),
     calibration: calibration(rows),
+    coverage: intervalCoverage(rows),
   };
 }
 

@@ -6,27 +6,31 @@ import { getOrCreateSessionId, nowMs } from "@/lib/session-client";
 import { TRACKS, TRACK_IDS, topicOf, type TrackId, type Track } from "@/lib/train-tracks";
 
 // The client experience for one Training Room track (10x). A three-phase
-// machine: dashboard → run → recap. The run serves three interaction kinds —
-// an MCQ, an Estimate-with-a-band, and a Design Duel — and every call carries a
-// CONVICTION (50–99%). Conviction feeds the calibration track (are you as right
-// as you feel?), the room's headline 10x metric. Separate world from the study.
+// machine: dashboard → run → recap. The run serves four interaction kinds —
+// an MCQ, an Estimate-with-a-band, a Design Duel, and a Partition-Key Bake-Off —
+// and pick-based calls carry a CONVICTION (floored at chance, 1/k). Conviction
+// feeds the calibration track (are you as right as you feel?), the room's
+// headline 10x metric. Separate world from the study.
 
 const RUN_LENGTH = 8;
 
 // ---- DTOs -------------------------------------------------------------------
 type ServedChoice = { i: number; text: string };
 type DuelDesign = { name: string; sketch: string; bullets: string[] };
+type BakeKeyLite = { id: string; label: string };
+type BakeKeyFull = { id: string; label: string; shards: number[]; note: string };
 type ItemDto = {
   id: string;
   track: string;
   topic: string;
-  kind: "mcq" | "estimate" | "duel";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff";
   difficulty: number;
   scenario: string;
   prompt: string;
   choices?: ServedChoice[];
   estimate?: { unit: string; min: number; max: number };
   duel?: { constraint: string; designA: DuelDesign; designB: DuelDesign };
+  bakeoff?: { keys: BakeKeyLite[] };
 };
 type LevelDto = { n: number; roman: string; title: string; floor: number | null; gate: string };
 type CalBinDto = { lo: number; hi: number; meanConf: number; accuracy: number; count: number };
@@ -34,6 +38,8 @@ type CalibrationDto = {
   n: number;
   brier: number;
   ece: number;
+  reliability: number;
+  resolution: number;
   accuracy: number;
   meanConf: number;
   tendency: "overconfident" | "underconfident" | "sharp" | "unrated";
@@ -41,6 +47,7 @@ type CalibrationDto = {
   gap: number;
   bins: CalBinDto[];
 };
+type CoverageDto = { n: number; captured: number; rate: number; nominal: number };
 type StandingDto = {
   liveRating: number;
   count: number;
@@ -53,12 +60,13 @@ type StandingDto = {
   badges: { code: string; name: string; tier: "competence" | "exploration" | "calibration"; criterion: string; earnedAt: string | null }[];
   topics: { id: string; faced: number; correct: number; hardFaced: number; hardCorrect: number }[];
   calibration: CalibrationDto;
+  coverage: CoverageDto;
 };
 type GetDto = { item: ItemDto | null; remaining: number; liveRating: number; count: number; standing: StandingDto | null };
 type RevealChoice = { i: number; text: string; correct: boolean; rationale: string };
 type PostDto = {
   correct: boolean;
-  kind: "mcq" | "estimate" | "duel";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff";
   topic: string;
   confidence: number | null;
   // mcq
@@ -77,7 +85,12 @@ type PostDto = {
   better?: "A" | "B";
   deskRationale?: string;
   failureMode?: string;
+  alsoFits?: string | null;
   room?: { a: number; b: number; total: number };
+  // bakeoff
+  keys?: BakeKeyFull[];
+  best?: string;
+  pickedKeyId?: string;
   liveRating: number;
   ratingDelta: number;
   count: number;
@@ -212,7 +225,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
   );
 
   const submit = useCallback(
-    async (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number }, confidence: number | null) => {
+    async (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string }, confidence: number | null) => {
       if (!item || submitting || reveal) return;
       setSubmitting(true);
       try {
@@ -368,7 +381,7 @@ function GateChip({ label, have, need }: { label: string; have: number; need: nu
 // ============================================================ Calibration
 // A reliability diagram: your stated confidence (x) vs. how often you were right
 // (y). The diagonal is perfect calibration; dots below it are overconfidence.
-function CalibrationCard({ cal }: { cal: CalibrationDto }) {
+function CalibrationCard({ cal, coverage }: { cal: CalibrationDto; coverage: CoverageDto }) {
   const W = 260, H = 180, pad = 28;
   const AXMIN = 0.25; // chance on a 4-option call is 25%
   const x = (conf: number) => pad + (Math.max(AXMIN, conf) - AXMIN) * ((W - 2 * pad) / (1 - AXMIN));
@@ -415,6 +428,15 @@ function CalibrationCard({ cal }: { cal: CalibrationDto }) {
           {cal.n > 0 && (
             <p className="mt-2 font-mono text-[0.65rem] text-muted">{cal.n} staked · accuracy {Math.round(cal.accuracy * 100)}% · avg conviction {Math.round(cal.meanConf * 100)}%</p>
           )}
+          {cal.n >= 8 && cal.resolution < 0.02 && (
+            <p className="mt-1 font-mono text-[0.6rem] text-muted/70">Low sharpness — you&apos;re staking one flat number. Vary conviction: be bolder when you know, humbler when you don&apos;t.</p>
+          )}
+          {coverage.n >= 3 && (
+            <p className="mt-2 border-t border-card-border pt-2 font-mono text-[0.65rem] text-muted">
+              Your 90% bands caught the truth in {Math.round(coverage.rate * 100)}% of {coverage.n} estimates —{" "}
+              <span className={Math.abs(coverage.rate - 0.9) <= 0.15 ? "text-accent" : "text-muted/70"}>aim for ~90%{coverage.rate < 0.75 ? " (draw them wider)" : coverage.rate > 0.98 ? " (you can tighten)" : ""}</span>.
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -439,7 +461,7 @@ function Dashboard({ track, standing, rating, otherId, onStart }: {
 
       {/* calibration */}
       <div className="mt-8">
-        <CalibrationCard cal={standing.calibration} />
+        <CalibrationCard cal={standing.calibration} coverage={standing.coverage} />
       </div>
 
       <p className="mx-auto mt-6 max-w-md text-center text-sm leading-relaxed text-muted">{track.blurb}</p>
@@ -533,11 +555,11 @@ function BadgeLedger({ badges }: { badges: StandingDto["badges"] }) {
 function Run({ track, item, reveal, submitting, rating, position, total, levelRoman, firstEver, onSubmit, onNext }: {
   track: Track; item: ItemDto; reveal: PostDto | null; submitting: boolean; rating: number;
   position: number; total: number; levelRoman: string; firstEver: boolean;
-  onSubmit: (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number }, confidence: number | null) => void;
+  onSubmit: (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string }, confidence: number | null) => void;
   onNext: () => void;
 }) {
   const topic = topicOf(track, item.topic);
-  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : "CALL";
+  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : "CALL";
   const [hintOpen, setHintOpen] = useState(true);
   return (
     <div className="mt-6">
@@ -547,7 +569,7 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
             <p className="text-sm leading-relaxed text-foreground">
               <span className="font-semibold text-ink-strong">New here?</span>{" "}
               Answer, then stake how sure you are. Being right isn&apos;t the whole game — being{" "}
-              <em>calibrated</em> is. The calibration card shows whether your confidence matches how often
+              <em>calibrated</em>{" "}is. The calibration card shows whether your confidence matches how often
               you&apos;re actually right.
             </p>
             <button onClick={() => setHintOpen(false)} aria-label="dismiss" className="shrink-0 font-mono text-xs text-muted hover:text-foreground">✕</button>
@@ -565,6 +587,7 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
       {item.kind === "mcq" && <McqCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} onNext={onNext} last={position >= total} />}
       {item.kind === "estimate" && <EstimateCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} onNext={onNext} last={position >= total} />}
       {item.kind === "duel" && <DuelCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} onNext={onNext} last={position >= total} />}
+      {item.kind === "bakeoff" && <BakeoffCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} onNext={onNext} last={position >= total} />}
     </div>
   );
 }
@@ -867,6 +890,11 @@ function DuelCall({ item, reveal, submitting, onSubmit, onNext, last }: {
             <VerdictRow label="The Desk" value={`Design ${reveal.better} — ${reveal.failureMode}`} tone="ink" />
           </dl>
           <p className="mt-3 border-t border-card-border pt-3 text-sm leading-relaxed text-foreground">{reveal.deskRationale}</p>
+          {reveal.alsoFits && (
+            <p className="mt-2 text-xs leading-relaxed text-muted">
+              <span className="font-mono uppercase tracking-[0.12em] text-muted/70">Also defensible · </span>{reveal.alsoFits}
+            </p>
+          )}
           <NextButton last={last} onNext={onNext} />
         </div>
       )}
@@ -880,6 +908,90 @@ function VerdictRow({ label, value, tone }: { label: string; value: string; tone
       <dt className="font-mono text-[0.65rem] uppercase tracking-[0.16em] text-muted">{label}</dt>
       <dd className={`text-right font-mono text-xs ${c}`}>{value}</dd>
     </div>
+  );
+}
+
+// ---- PARTITION-KEY BAKE-OFF (pick a shard key; reveal the load histograms) ---
+function ShardHisto({ shards, globalMax, tone }: { shards: number[]; globalMax: number; tone: "accent" | "danger" | "muted" }) {
+  const W = 120, H = 34, n = shards.length, gap = 2;
+  const bw = (W - gap * (n - 1)) / n;
+  const hotIdx = shards.indexOf(Math.max(...shards));
+  const barCls = tone === "accent" ? "fill-accent" : tone === "danger" ? "fill-danger" : "fill-rule-strong";
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-9 w-full max-w-[160px]" role="img" aria-label="shard load histogram">
+      {shards.map((s, i) => {
+        const h = globalMax > 0 ? (s / globalMax) * (H - 2) : 0;
+        const isHot = i === hotIdx && tone !== "accent";
+        return <rect key={i} x={i * (bw + gap)} y={H - h} width={bw} height={h} className={isHot ? "fill-danger" : barCls} rx={0.5} />;
+      })}
+    </svg>
+  );
+}
+function BakeoffCall({ item, reveal, submitting, onSubmit, onNext, last }: {
+  item: ItemDto; reveal: PostDto | null; submitting: boolean;
+  onSubmit: (a: { keyId: string }, c: number | null) => void; onNext: () => void; last: boolean;
+}) {
+  const keys = item.bakeoff!.keys;
+  const [selected, setSelected] = useState<string | null>(null);
+  const [conviction, setConviction] = useState<number | null>(null);
+  const floor = Math.round(100 / Math.max(2, keys.length));
+  const globalMax = reveal?.keys ? Math.max(...reveal.keys.flatMap((k) => k.shards)) : 1;
+  const maxShare = (k: BakeKeyFull) => Math.round((Math.max(...k.shards) / k.shards.reduce((a, b) => a + b, 0)) * 100);
+  return (
+    <>
+      <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The workload</p>
+        <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
+      </div>
+      <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
+      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">The key decides your hot shards. Predict which spreads load evenly — then see the histograms.</p>
+
+      {!reveal ? (
+        <ul className="mt-4 space-y-2">
+          {keys.map((k) => (
+            <li key={k.id}>
+              <button disabled={submitting} onClick={() => setSelected(k.id)} aria-pressed={selected === k.id}
+                className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left font-mono text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${selected === k.id ? "border-accent bg-accent/10 text-ink-strong" : "border-card-border bg-card text-foreground hover:border-rule-strong"}`}>
+                {k.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul className="mt-4 space-y-2">
+          {reveal.keys!.map((k) => {
+            const isBest = k.id === reveal.best;
+            const isPicked = k.id === reveal.pickedKeyId;
+            const tone: "accent" | "danger" | "muted" = isBest ? "accent" : isPicked ? "danger" : "muted";
+            return (
+              <li key={k.id} className={`rounded-lg border px-4 py-3 ${isBest ? "border-accent bg-accent/10" : isPicked ? "border-danger bg-danger/10" : "border-card-border bg-card"}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-mono text-sm text-ink-strong">{k.label}</span>
+                  <span className={`shrink-0 font-mono text-[0.6rem] uppercase tracking-[0.12em] ${isBest ? "text-accent" : isPicked ? "text-danger" : "text-muted/70"}`}>
+                    {isBest ? "the fit" : isPicked ? "your call" : ""} · hot shard {maxShare(k)}%
+                  </span>
+                </div>
+                <div className="mt-2 flex items-end gap-3">
+                  <ShardHisto shards={k.shards} globalMax={globalMax} tone={tone} />
+                  <span className="text-xs leading-snug text-muted">{k.note}</span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {!reveal && selected != null && (
+        <ConvictionBar floor={floor} conviction={conviction} setConviction={setConviction} submitting={submitting} onCommit={() => onSubmit({ keyId: selected }, conviction)} />
+      )}
+      {reveal && (
+        <div className="verdict-card-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+          <RevealHeader correct={reveal.correct} delta={reveal.ratingDelta} rating={reveal.liveRating} />
+          <p className="mt-2 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
+          <NextButton last={last} onNext={onNext} />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -904,7 +1016,7 @@ function Recap({ track, standing, runCorrect, runAnswered, ratingDelta, leveledU
         </div>
       )}
 
-      <div className="mt-6"><CalibrationCard cal={standing.calibration} /></div>
+      <div className="mt-6"><CalibrationCard cal={standing.calibration} coverage={standing.coverage} /></div>
 
       {newBadges.length > 0 && (
         <div className="mt-6">

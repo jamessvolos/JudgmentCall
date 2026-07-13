@@ -11,6 +11,7 @@ import {
   badgeConferrals,
   topicProgress,
   calibration,
+  intervalCoverage,
   type QuizRow,
 } from "../src/lib/train-tracks";
 
@@ -24,11 +25,15 @@ const eq = (name: string, got: unknown, want: unknown) => {
 const T0 = new Date("2026-01-01T00:00:00Z").getTime();
 let seq = 0;
 function row(topic: string, difficulty: number, correct: boolean, ratingAfter: number | null, confidence: number | null = null): QuizRow {
-  return { quizItemId: `q${seq}`, topic, difficulty, correct, confidence, ratingAfter, createdAt: new Date(T0 + seq++ * 1000) };
+  return { quizItemId: `q${seq}`, topic, difficulty, correct, confidence, captured: null, ratingAfter, createdAt: new Date(T0 + seq++ * 1000) };
 }
 // a staked row (confidence set) at a fixed rating, for calibration tests
 function staked(correct: boolean, confidence: number): QuizRow {
-  return { quizItemId: `q${seq}`, topic: "sampling", difficulty: 1, correct, confidence, ratingAfter: 1210, createdAt: new Date(T0 + seq++ * 1000) };
+  return { quizItemId: `q${seq}`, topic: "sampling", difficulty: 1, correct, confidence, captured: null, ratingAfter: 1210, createdAt: new Date(T0 + seq++ * 1000) };
+}
+// an estimate row (captured set, no confidence) for interval-coverage tests
+function estimate(captured: boolean): QuizRow {
+  return { quizItemId: `q${seq}`, topic: "sampling", difficulty: 1, correct: captured, confidence: null, captured, ratingAfter: 1210, createdAt: new Date(T0 + seq++ * 1000) };
 }
 
 const stats = TRACKS.statistics;
@@ -193,6 +198,20 @@ const knowsRows = Array.from({ length: 10 }, (_, i) => staked(i !== 0, 95));
 eq("badge knows_knows: 10 locked calls at 90% accuracy earns it", badge(knowsRows, "knows_knows"), true);
 seq = 0;
 eq("badge knows_knows: not earned with only easy hedges", badge(Array.from({ length: 10 }, () => staked(true, 70)), "knows_knows"), false);
+
+// --- interval coverage ------------------------------------------------------
+seq = 0;
+eq("coverage: empty ledger is 0/0", intervalCoverage([]).n, 0);
+seq = 0;
+// 9 of 10 estimate bands caught the truth → rate 0.9 (well-calibrated 90% bands)
+const cov = intervalCoverage([...Array.from({ length: 9 }, () => estimate(true)), estimate(false)]);
+eq("coverage: 9/10 captured → n=10", cov.n, 10);
+eq("coverage: rate is 0.9", cov.rate, 0.9);
+seq = 0;
+// staked (mcq/duel) rows are ignored by coverage; estimate rows ignored by calibration
+const mixed = [staked(true, 90), estimate(true), estimate(false)];
+eq("coverage: ignores staked rows (n=2 estimates)", intervalCoverage(mixed).n, 2);
+eq("calibration: ignores estimate rows (n=1 staked)", calibration(mixed).n, 1);
 
 console.log(`\n  (${failures === 0 ? "ALL PASS" : `${failures} FAILURES`})`);
 if (failures > 0) process.exit(1);

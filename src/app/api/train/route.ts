@@ -48,7 +48,10 @@ type DuelPayload = {
   better: "A" | "B";
   deskRationale: string;
   failureMode: string;
+  alsoFits?: string;
 };
+type BakeKey = { id: string; label: string; shards: number[]; note: string };
+type BakeoffPayload = { keys: BakeKey[]; best: string; explanation: string };
 
 // GET /api/train?sessionId=...&track=...&topic=... — next item + The Record.
 async function getHandler(request: Request) {
@@ -88,8 +91,14 @@ async function getHandler(request: Request) {
     item = { ...base, estimate: { unit: p.unit, min: p.min, max: p.max } };
   } else if (it.kind === "duel") {
     const p = JSON.parse(it.payload ?? "{}") as DuelPayload;
-    // send both designs + the constraint — never `better`/rationale/failureMode
+    // send both designs + the constraint — never `better`/rationale/failureMode/alsoFits
     item = { ...base, duel: { constraint: p.constraint, designA: p.designA, designB: p.designB } };
+  } else if (it.kind === "bakeoff") {
+    const p = JSON.parse(it.payload ?? "{}") as BakeoffPayload;
+    // send only the candidate key LABELS (shuffled) — never the shard loads,
+    // the notes, or which key balances. The learner predicts, then the reveal
+    // shows the histograms.
+    item = { ...base, bakeoff: { keys: shuffled(p.keys.map((k) => ({ id: k.id, label: k.label }))) } };
   } else {
     const choices = parseChoices(it.choices).map((c, i) => ({ i, text: c.text }));
     item = { ...base, choices: shuffled(choices) };
@@ -121,14 +130,19 @@ async function postHandler(request: Request) {
   if (await hasAttemptedQuiz(sessionId, quizId)) {
     return NextResponse.json({ error: "already attempted" }, { status: 409 });
   }
-  // per-item conviction floor = chance level (1/k for MCQ, 50% for a binary duel)
-  const nChoices = item.kind === "mcq" ? Math.max(2, parseChoices(item.choices).length) : 2;
+  // per-item conviction floor = chance level (1/k). Estimate takes no conviction.
+  const bakePayload = item.kind === "bakeoff" ? (JSON.parse(item.payload ?? "{}") as BakeoffPayload) : null;
+  const nChoices =
+    item.kind === "mcq" ? Math.max(2, parseChoices(item.choices).length)
+    : item.kind === "bakeoff" ? Math.max(2, bakePayload!.keys.length)
+    : 2;
   const confFloor = Math.round(100 / nChoices);
   const confidence = clampConfidence(body?.confidence, confFloor);
   const latency = Number.isFinite(latencyMs) ? Math.max(0, Math.round(latencyMs)) : 0;
 
   let correct: boolean;
   let choiceIndex = -1;
+  let capturedFlag: boolean | null = null; // estimate coverage; null for other kinds
   let reveal: Record<string, unknown>;
 
   if (item.kind === "estimate") {
@@ -145,6 +159,7 @@ async function postHandler(request: Request) {
     // correct = you captured the truth AND your band wasn't lazily wide
     const notLazy = userWidth <= goodWidth * 1.8;
     correct = captured && notLazy;
+    capturedFlag = captured; // pure coverage for the interval-calibration track
     reveal = {
       truth: p.truth,
       good: p.good,
@@ -162,7 +177,20 @@ async function postHandler(request: Request) {
     }
     choiceIndex = pickedIndex;
     correct = (p.better === "A" && pickedIndex === 0) || (p.better === "B" && pickedIndex === 1);
-    reveal = { better: p.better, deskRationale: p.deskRationale, failureMode: p.failureMode, pickedIndex };
+    reveal = { better: p.better, deskRationale: p.deskRationale, failureMode: p.failureMode, alsoFits: p.alsoFits ?? null, pickedIndex };
+  } else if (item.kind === "bakeoff") {
+    const p = bakePayload!;
+    const keyId = typeof body?.keyId === "string" ? body.keyId : "";
+    const idx = p.keys.findIndex((k) => k.id === keyId);
+    if (idx < 0) return NextResponse.json({ error: "invalid key" }, { status: 400 });
+    choiceIndex = idx;
+    correct = keyId === p.best;
+    reveal = {
+      keys: p.keys, // full: id, label, shards, note — safe now the pick is committed
+      best: p.best,
+      pickedKeyId: keyId,
+      explanation: item.explanation,
+    };
   } else {
     const choices = parseChoices(item.choices);
     const pickedIndex = Number(body?.pickedIndex);
@@ -188,6 +216,7 @@ async function postHandler(request: Request) {
     correct,
     choiceIndex,
     confidence,
+    captured: capturedFlag,
     latencyMs: latency,
   });
 

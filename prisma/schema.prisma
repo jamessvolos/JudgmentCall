@@ -222,7 +222,8 @@ model QuizAttempt {
   difficulty  Int      @default(1) // denormalized for badge folds
   correct     Boolean
   choiceIndex Int      @default(-1) // the picked original index (audit; grading re-checks server-side)
-  confidence  Int? // conviction 50..99 the learner staked on this call; null = pre-calibration rows
+  confidence  Int? // conviction 25..99 the learner staked (mcq/duel); null = estimate/legacy
+  captured    Boolean? // estimate calls only: did the truth fall in the stated 90% band? null otherwise
   latencyMs   Int      @default(0)
   ratingAfter Float? // per-track session rating after this attempt settled
   createdAt   DateTime @default(now())

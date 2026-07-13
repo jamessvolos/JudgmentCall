@@ -95,6 +95,27 @@ career-switcher, and a calibration scientist). Their findings, prioritised:
 8. Estimate band: bigger touch handles + a value label above the dragged handle.
 
 **Shipped in v2:** 1, 2, 4, 5, 6, 7, 8.
-**Backlog (v3):** duel content-hardening (3), interval-coverage calibration track
-(fold Estimate bands via empirical-vs-nominal coverage + Winkler score), Brier
-decomposition viz with bootstrap bands, the Descent roguelike, more manipulables.
+
+## v3 — shipped
+
+- **Duel content-hardening (roadmap #3):** all 12 duels re-authored so both
+  designs satisfy the headline constraint and a secondary pressure decides; each
+  carries an "also defensible when…" line, shown on the reveal. The keyword-match
+  strawmen are gone.
+- **Interval-coverage calibration:** Estimate bands now feed a coverage track —
+  a stored `captured` flag folds into "your 90% bands caught the truth X% of the
+  time," the purest calibration signal (previously discarded).
+- **Brier decomposition:** the calibration card now nudges on low *resolution*
+  ("you're staking one flat number — vary your conviction"), teaching calibrated
+  AND sharp, not just calibrated.
+- **Partition-Key Bake-Off (new interaction, Fault Line):** a fourth call kind —
+  pick a shard key under a stated access pattern, then load histograms reveal the
+  hot shard for each candidate. The invisible tradeoff (skew) made visible; the
+  key never leaks its shard loads before you commit. 8 items.
+
+## v4 backlog
+
+Brier decomposition *viz* with bootstrap bands; adaptive (equal-mass) ECE bins;
+the Descent roguelike (bank/push, Composure, boss, Daily Gauntlet + leaderboard);
+more Observable-Field manipulables (Base-Rate Flood, Simpson's Rotor); the
+verifiable credential OG card; Attack-Surface + Constraint-Flip architecture modes.

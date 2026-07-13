@@ -7,7 +7,7 @@
 import type { PrismaClient } from "@prisma/client";
 
 export type QuizChoice = { text: string; correct: boolean; rationale: string };
-export type QuizKind = "mcq" | "estimate" | "duel";
+export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff";
 export type QuizSeed = {
   track: "statistics" | "architecture";
   title: string; // stable natural key for idempotent sync
@@ -1648,36 +1648,37 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "storage",
     "kind": "duel",
     "difficulty": 1,
-    "scenario": "A session store serving one user profile row per request behind a login flow.",
+    "scenario": "A session store where nearly all traffic is key reads validating logins, writes are modest, and the tail-latency budget is unforgiving.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
-      "constraint": "point lookups by user_id · p99 < 10ms · 50k QPS · single-row reads",
+      "constraint": "single-row point lookups by user_id · p99 < 10ms · read-heavy at 50k QPS · read tail must stay flat (no compaction stalls)",
       "designA": {
-        "name": "Row store (indexed OLTP table)",
-        "sketch": "App → row-store DB (PK index on user_id) → single-row read",
+        "name": "B-tree row store (in-place updates)",
+        "sketch": "App → B-tree PK index → one page seek per user_id",
         "bullets": [
-          "One seek returns the whole row for a user_id",
-          "Tight p99 on point lookups, cache-friendly pages",
-          "Poor at wide aggregate scans over columns",
-          "Cheap single-key writes"
+          "Point read is a bounded, constant-depth B-tree descent",
+          "Read p99 stays flat; no background compaction to stall reads",
+          "In-place updates cost more write I/O and page splits",
+          "Ideal when reads dominate and the tail must be predictable"
         ]
       },
       "designB": {
-        "name": "Columnar analytical store",
-        "sketch": "App → columnar store (Parquet-style, per-column files) → row reassembly",
+        "name": "LSM-tree key-value store",
+        "sketch": "App → memtable + SSTables (bloom filters) → merge on read",
         "bullets": [
-          "Excellent for scanning few columns over many rows",
-          "Heavy compression on repeated column values",
-          "Point lookup must stitch a row from many column segments",
-          "Optimized for throughput, not per-row latency"
+          "Absorbs writes fast via sequential log-structured flushes",
+          "A read may probe several SSTables past bloom filters",
+          "Compaction bursts add read-latency tail spikes",
+          "Shines when write throughput, not read tail, dominates"
         ]
       },
       "better": "A",
-      "deskRationale": "The constraint is single-row point lookups at very low p99, which a PK-indexed row store answers in one seek. B is a fine warehouse engine but reassembling a single row from separate column segments turns a 10ms lookup into many segment reads, so B misses the latency target.",
-      "failureMode": "row stitching blows p99"
+      "deskRationale": "Both serve sub-10ms key lookups, but the workload is read-heavy with an unforgiving tail, and a B-tree's constant-depth descent keeps p99 flat. The LSM store is excellent engineering for write-heavy ingest, yet its multi-SSTable read path and compaction bursts spike the read tail — the one thing this SLA cannot absorb.",
+      "failureMode": "compaction tail spikes",
+      "alsoFits": "Design B is the right call when the workload flips to write-heavy ingest such as high-volume time-series or event capture, where the LSM's sequential-write throughput outweighs its read-tail jitter."
     },
-    "explanation": "The constraint is single-row point lookups at very low p99, which a PK-indexed row store answers in one seek. B is a fine warehouse engine but reassembling a single row from separate column segments turns a 10ms lookup into many segment reads, so B misses the latency target."
+    "explanation": "Both serve sub-10ms key lookups, but the workload is read-heavy with an unforgiving tail, and a B-tree's constant-depth descent keeps p99 flat. The LSM store is excellent engineering for write-heavy ingest, yet its multi-SSTable read path and compaction bursts spike the read tail — the one thing this SLA cannot absorb."
   },
   {
     "track": "architecture",
@@ -1685,36 +1686,37 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "storage",
     "kind": "duel",
     "difficulty": 2,
-    "scenario": "An analyst dashboard aggregating a handful of columns across a very wide events table.",
+    "scenario": "An exploratory analytics layer on a 5 TB wide events table where analysts pick different small column subsets each session and no query shape is fixed.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
-      "constraint": "ad-hoc scans over 3 of 200 columns · 5 TB table · minimize bytes scanned",
+      "constraint": "aggregates over ~3 of 200 columns · minimize bytes scanned · column subset varies query-to-query (ad-hoc, unknown in advance)",
       "designA": {
-        "name": "Denormalized row store",
-        "sketch": "BI → row-store wide table → full-row reads → aggregate",
+        "name": "Pre-projected column-group tables",
+        "sketch": "ETL → many narrow tables (one per known query) → BI reads the matching table",
         "bullets": [
-          "Every query reads full 200-column rows off disk",
-          "Great when most columns are needed together",
-          "No per-column pruning of I/O",
-          "Simple single-copy layout"
+          "A query matching a projection scans the fewest possible bytes",
+          "Each new column combination needs a new table built",
+          "Storage and pipelines multiply with query variety",
+          "Cold, unforeseen column sets have no table to hit"
         ]
       },
       "designB": {
-        "name": "Columnar (Parquet) table",
-        "sketch": "BI → columnar files → read only 3 column chunks → aggregate",
+        "name": "Columnar (Parquet) base table",
+        "sketch": "BI → single columnar table → read only the referenced column chunks",
         "bullets": [
-          "Reads only the columns the query touches",
-          "Column-level compression shrinks scanned bytes",
-          "Cheap wide aggregates over few columns",
-          "Slower for full-row single-record fetches"
+          "Prunes to exactly the columns each query names",
+          "One table serves any ad-hoc column subset",
+          "Column-level compression shrinks scanned bytes further",
+          "Slightly more scan than a purpose-built projection"
         ]
       },
       "better": "B",
-      "deskRationale": "The binding constraint is scanning only 3 of 200 columns while minimizing bytes read, which columnar pruning delivers by skipping the other 197 columns entirely. A's row store must pull whole rows, so it scans roughly 60x the needed bytes and inflates the query.",
-      "failureMode": "reads all columns wastefully"
+      "deskRationale": "Both cut bytes scanned versus a row store, but the column set is ad-hoc and unknowable, so a single columnar table prunes to whatever three columns a query names without pre-building anything. Materialized projections scan even less for their exact query, yet they are fragile here: the combinatorial space of column subsets means most ad-hoc queries hit no projection and pipelines balloon.",
+      "failureMode": "projection explosion, cold misses",
+      "alsoFits": "Design A is the right call when the query set is small, fixed, and latency-critical — a handful of dashboards hitting the same columns — where a purpose-built projection beats scanning a general columnar table."
     },
-    "explanation": "The binding constraint is scanning only 3 of 200 columns while minimizing bytes read, which columnar pruning delivers by skipping the other 197 columns entirely. A's row store must pull whole rows, so it scans roughly 60x the needed bytes and inflates the query."
+    "explanation": "Both cut bytes scanned versus a row store, but the column set is ad-hoc and unknowable, so a single columnar table prunes to whatever three columns a query names without pre-building anything. Materialized projections scan even less for their exact query, yet they are fragile here: the combinatorial space of column subsets means most ad-hoc queries hit no projection and pipelines balloon."
   },
   {
     "track": "architecture",
@@ -1722,36 +1724,37 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "processing",
     "kind": "duel",
     "difficulty": 1,
-    "scenario": "A real-time fraud gate that must block suspicious transactions as they happen.",
+    "scenario": "A fraud gate that must return a block/allow verdict synchronously while the transaction waits, using features updated seconds ago.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
-      "constraint": "fraud flag must reflect events < 30s old · continuous decisions",
+      "constraint": "fraud verdict returned inline in the auth path · consistent per-request latency budget · features seconds-fresh",
       "designA": {
-        "name": "Streaming pipeline",
-        "sketch": "API → Kafka → Flink (stateful) → feature store → decision",
+        "name": "Event-at-a-time stream processor",
+        "sketch": "API → Kafka → Flink stateful ops → feature store → per-event verdict",
         "bullets": [
-          "Sub-minute end-to-end latency",
-          "Continuous stateful feature updates",
-          "More operational complexity to run",
-          "Freshness measured in seconds"
+          "Processes each event as it arrives, sub-second",
+          "Consistent low per-decision latency for inline gating",
+          "Stateful features update continuously",
+          "More moving parts to operate"
         ]
       },
       "designB": {
-        "name": "Nightly batch scoring",
-        "sketch": "Events → daily dump → batch job (nightly) → precomputed flags",
+        "name": "Short-interval micro-batch",
+        "sketch": "API → queue → micro-batch job (~15s) → refreshed flags table → verdict",
         "bullets": [
-          "Simple, cheap, easy to reason about",
-          "Great for backfills and reporting",
-          "Flags are up to 24h stale",
-          "No mid-day recomputation"
+          "Recomputes flags every ~15s, comfortably sub-minute fresh",
+          "Simpler batch mental model and tooling",
+          "Verdict latency jitters with the batch boundary",
+          "Per-event inline decisions wait on the next cycle"
         ]
       },
       "better": "A",
-      "deskRationale": "A sub-30-second freshness requirement forces continuous processing, which streaming provides end to end. B's nightly batch leaves flags up to a day stale, so fraud within the current session is scored on yesterday's state and slips through.",
-      "failureMode": "stale under freshness SLA"
+      "deskRationale": "Both keep features fresh within seconds, but the gate decides inline while the request blocks, and event-at-a-time streaming gives a consistent per-decision latency. Micro-batch is fresh enough as a data cadence, yet coupling a synchronous verdict to a ~15s batch boundary injects latency jitter into the request path — wrong for an inline gate.",
+      "failureMode": "batch-boundary latency jitter",
+      "alsoFits": "Design B is the right call when the fraud signal feeds asynchronous review or alerting rather than an inline block, where a 15-second refresh is ample and the simpler, cheaper batch pipeline wins."
     },
-    "explanation": "A sub-30-second freshness requirement forces continuous processing, which streaming provides end to end. B's nightly batch leaves flags up to a day stale, so fraud within the current session is scored on yesterday's state and slips through."
+    "explanation": "Both keep features fresh within seconds, but the gate decides inline while the request blocks, and event-at-a-time streaming gives a consistent per-decision latency. Micro-batch is fresh enough as a data cadence, yet coupling a synchronous verdict to a ~15s batch boundary injects latency jitter into the request path — wrong for an inline gate."
   },
   {
     "track": "architecture",
@@ -1759,36 +1762,37 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "processing",
     "kind": "duel",
     "difficulty": 2,
-    "scenario": "An internal metrics rollup that leadership reviews a few times a day.",
+    "scenario": "An internal KPI rollup reviewed a few times a day; data arrives in small irregular bursts and the team wants the least machinery to babysit.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
-      "constraint": "hourly refresh is fine · tight compute budget · bursty low-volume events",
+      "constraint": "hourly refresh suffices · bursty low-volume events · minimize ops burden and cost",
       "designA": {
-        "name": "Always-on true streaming",
-        "sketch": "Events → Kafka → Flink cluster (24/7) → live rollups",
+        "name": "Scheduled ephemeral batch",
+        "sketch": "Events → object store → hourly job on spin-up compute → rollup table",
         "bullets": [
-          "Seconds-fresh output at all times",
-          "Standing cluster bills continuously, even when idle",
-          "Overkill when refresh need is hourly",
-          "Complex to operate and tune"
+          "Compute exists only during the hourly run",
+          "Trivial backfills and re-runs on failure",
+          "Latency bounded by the hourly cadence",
+          "Minimal standing infrastructure to operate"
         ]
       },
       "designB": {
-        "name": "Scheduled micro-batch",
-        "sketch": "Events → object store → hourly batch job → rollup table",
+        "name": "Auto-scaling (scale-to-zero) stream",
+        "sketch": "Events → stream → serverless stream processor (scales toward zero when idle) → rollup",
         "bullets": [
-          "Compute spins up hourly, idle otherwise",
-          "Cost scales with actual data, not clock time",
-          "Latency bounded by the hour-long cadence",
-          "Simple to schedule and retry"
+          "Idles down between bursts to limit compute cost",
+          "Always-connected consumers and checkpoints to manage",
+          "Per-record overhead dwarfs the tiny volume",
+          "Freshness far exceeds the hourly need"
         ]
       },
-      "better": "B",
-      "deskRationale": "With an hourly refresh target and a tight compute budget, a scheduled micro-batch pays only when it runs and easily meets the cadence. A's standing streaming cluster burns compute 24/7 for freshness nobody needs, blowing the budget to solve a problem that isn't posed.",
-      "failureMode": "idle cluster burns budget"
+      "better": "A",
+      "deskRationale": "Both can hit an hourly target within budget, but with tiny bursty volume and an ops-minimization goal, a scheduled ephemeral job carries almost no standing machinery and makes backfills a re-run. The scale-to-zero stream is legitimately cost-aware, yet its checkpointing, consumer lifecycle, and per-record overhead are ongoing operational weight bought to deliver freshness the requirement never asked for.",
+      "failureMode": "ops weight, unused freshness",
+      "alsoFits": "Design B is the right call when freshness tightens toward seconds or volume becomes steady and high, where continuous processing amortizes its overhead and the hourly batch would be too stale."
     },
-    "explanation": "With an hourly refresh target and a tight compute budget, a scheduled micro-batch pays only when it runs and easily meets the cadence. A's standing streaming cluster burns compute 24/7 for freshness nobody needs, blowing the budget to solve a problem that isn't posed."
+    "explanation": "Both can hit an hourly target within budget, but with tiny bursty volume and an ops-minimization goal, a scheduled ephemeral job carries almost no standing machinery and makes backfills a re-run. The scale-to-zero stream is legitimately cost-aware, yet its checkpointing, consumer lifecycle, and per-record overhead are ongoing operational weight bought to deliver freshness the requirement never asked for."
   },
   {
     "track": "architecture",
@@ -1796,36 +1800,37 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "modeling",
     "kind": "duel",
     "difficulty": 2,
-    "scenario": "A customer dimension where address and tier must be queryable as they stood on any past date.",
+    "scenario": "A customer dimension of tens of millions of rows where tier and address change rarely, any past-date value must be reconstructable, and storage cost is watched.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
-      "constraint": "auditors need as-of-date attribute history · dimensions change over time",
+      "constraint": "auditors query attributes as-of any past date · changes are infrequent · large dimension · control storage growth",
       "designA": {
-        "name": "Overwrite-in-place dimension (Type 1)",
-        "sketch": "CDC → upsert dim row (latest only) → fact joins to current",
+        "name": "Daily full-snapshot dimension",
+        "sketch": "CDC/dump → full copy of the dim per day → as-of = pick the day's snapshot",
         "bullets": [
-          "Always reflects the current attribute value",
-          "Compact, one row per entity",
-          "No record of prior values",
-          "Simple joins, minimal storage"
+          "Every day's complete state is trivially queryable",
+          "Dead-simple as-of logic: filter to a snapshot date",
+          "Copies unchanged rows every single day",
+          "Storage grows with rows × days, not with change"
         ]
       },
       "designB": {
-        "name": "SCD Type 2 dimension",
-        "sketch": "CDC → new versioned row (valid_from/valid_to) → as-of joins",
+        "name": "SCD Type 2 (effective-dated versions)",
+        "sketch": "CDC → new versioned row on change (valid_from/valid_to) → as-of join on date",
         "bullets": [
-          "Keeps every historical version with effective dates",
-          "Facts join to the version valid at event time",
-          "More rows and surrogate-key management",
-          "Enables point-in-time and audit queries"
+          "Writes a row only when an attribute actually changes",
+          "Compact when changes are infrequent",
+          "As-of join selects the version valid at the queried date",
+          "Needs surrogate-key and validity bookkeeping"
         ]
       },
       "better": "B",
-      "deskRationale": "Auditors requiring as-of-date history make attribute versioning mandatory, which SCD Type 2 provides via effective-dated rows. A's overwrite keeps only the current value, so any question about what a customer's tier was last quarter is unanswerable — the history was destroyed on update.",
-      "failureMode": "overwrite erases history"
+      "deskRationale": "Both answer as-of-date queries correctly, so the decider is storage against a large, rarely-changing dimension. SCD Type 2 stores a row only on an actual change and stays compact, whereas daily snapshots recopy tens of millions of unchanged rows every day — correct, but a storage bill that scales with time rather than with change.",
+      "failureMode": "snapshot storage blowup",
+      "alsoFits": "Design A is the right call when change rates are high or the priority is bulletproof simplicity and reproducibility — full daily snapshots are easy to audit and trivial to rebuild, and storage is cheap relative to that assurance."
     },
-    "explanation": "Auditors requiring as-of-date history make attribute versioning mandatory, which SCD Type 2 provides via effective-dated rows. A's overwrite keeps only the current value, so any question about what a customer's tier was last quarter is unanswerable — the history was destroyed on update."
+    "explanation": "Both answer as-of-date queries correctly, so the decider is storage against a large, rarely-changing dimension. SCD Type 2 stores a row only on an actual change and stays compact, whereas daily snapshots recopy tens of millions of unchanged rows every day — correct, but a storage bill that scales with time rather than with change."
   },
   {
     "track": "architecture",
@@ -1833,36 +1838,37 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "modeling",
     "kind": "duel",
     "difficulty": 3,
-    "scenario": "A finance BI layer where analysts slice revenue, cost, and headcount by shared date/org/product dimensions.",
+    "scenario": "A finance BI layer where analysts slice revenue, cost, and headcount by shared date/org/product, and a metric's definition must match across every subject area.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
-      "constraint": "self-serve BI · non-technical analysts · many conformed dimensions reused across facts",
+      "constraint": "self-serve BI · non-technical analysts · dimensions reused across many facts · metric definitions must stay consistent across subject areas",
       "designA": {
-        "name": "Star schema (conformed dims)",
+        "name": "Star schema (conformed dimensions)",
         "sketch": "fact tables → shared date/org/product dims → BI joins on keys",
         "bullets": [
-          "Dimensions defined once, reused across facts",
-          "Predictable joins that BI tools model natively",
-          "Consistent filters across subject areas",
-          "Requires modeling discipline up front"
+          "Each dimension defined once, reused across facts",
+          "Consistent filters and labels across subject areas",
+          "BI tools model star joins natively for self-serve",
+          "Needs modeling discipline up front"
         ]
       },
       "designB": {
         "name": "One big table per subject",
-        "sketch": "ETL → flatten all attributes into one wide fact table → BI",
+        "sketch": "ETL → flatten dims into each wide fact table → BI single-table scan",
         "bullets": [
-          "No joins at query time, fast single-table scans",
-          "Attribute definitions get duplicated per table",
-          "Great for a single well-known query shape",
-          "Dimension changes must be re-applied everywhere"
+          "No joins at query time; fast single-table reads",
+          "Simple for one well-known query shape",
+          "Dimension attributes duplicated into every table",
+          "A definition change must be re-applied everywhere"
         ]
       },
       "better": "A",
-      "deskRationale": "Self-serve analysts reusing conformed dimensions across many facts need one consistent definition of date/org/product, which the star schema centralizes. B's one-big-table duplicates those attributes per subject, so a definition drift or org restructure yields inconsistent slices across tables and breaks cross-fact comparisons.",
-      "failureMode": "duplicated dims drift apart"
+      "deskRationale": "Both let non-technical analysts self-serve, but the binding pressure is cross-fact consistency of reused dimensions, which a star schema guarantees by defining each dimension once. One-big-table is faster to scan and fine for a single shape, yet duplicating org/product into every table lets definitions drift, so the same metric slices differently across subject areas.",
+      "failureMode": "duplicated dims drift",
+      "alsoFits": "Design B is the right call for a single high-traffic dashboard with one fixed query shape, where denormalizing into one wide table removes joins and maximizes scan speed and there is no cross-fact consistency to protect."
     },
-    "explanation": "Self-serve analysts reusing conformed dimensions across many facts need one consistent definition of date/org/product, which the star schema centralizes. B's one-big-table duplicates those attributes per subject, so a definition drift or org restructure yields inconsistent slices across tables and breaks cross-fact comparisons."
+    "explanation": "Both let non-technical analysts self-serve, but the binding pressure is cross-fact consistency of reused dimensions, which a star schema guarantees by defining each dimension once. One-big-table is faster to scan and fine for a single shape, yet duplicating org/product into every table lets definitions drift, so the same metric slices differently across subject areas."
   },
   {
     "track": "architecture",
@@ -1870,36 +1876,37 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "scaling",
     "kind": "duel",
     "difficulty": 3,
-    "scenario": "A social feed keyed by author where a few mega-accounts dominate reads and writes.",
+    "scenario": "A social feed keyed by author where a handful of mega-accounts dominate, while the remaining key space sees fairly uniform popularity.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
-      "constraint": "one celebrity key = 40% of traffic · even load across shards required",
+      "constraint": "one celebrity key = 40% of traffic · even load across shards required · rest of key space is uniformly popular",
       "designA": {
-        "name": "Range partition on author_id",
-        "sketch": "requests → range-partitioned by author_id → contiguous key ranges",
+        "name": "Hash partition on author_id",
+        "sketch": "requests → hash(author_id) → N shards",
         "bullets": [
-          "Efficient range scans over adjacent keys",
-          "Contiguous keys land on the same partition",
-          "A single hot key pins load to one partition",
-          "Good for ordered/time-range access"
+          "Spreads the many normal keys evenly across shards",
+          "Simple, stateless routing with no scatter-gather",
+          "A single hot key still maps to exactly one shard",
+          "That one shard saturates while others idle"
         ]
       },
       "designB": {
-        "name": "Hash partition (with key salting)",
-        "sketch": "requests → hash(author_id[+salt]) → spread across N shards",
+        "name": "Hash + hot-key salting (fan-out)",
+        "sketch": "requests → hash(author_id + salt bucket) → key spread over M sub-shards",
         "bullets": [
-          "Distributes keys uniformly across shards",
-          "Salting fans a hot key over multiple partitions",
-          "Loses cheap contiguous range scans",
-          "Balances load under skewed access"
+          "Fans the celebrity key across multiple shards",
+          "No single partition absorbs the 40% key alone",
+          "Reads of a salted key must gather from M buckets",
+          "Adds routing/merge complexity for hot keys"
         ]
       },
       "better": "B",
-      "deskRationale": "With one key carrying 40% of traffic and a hard even-load requirement, hashing plus salting fans that hot key across shards so no single partition is pinned. A's range partition places the celebrity's contiguous keys on one partition, creating a hot shard that saturates while others idle.",
-      "failureMode": "hot-shard skew"
+      "deskRationale": "Plain hashing already balances the uniform tail, so both look even for ordinary keys — but the constraint is a single key at 40% of traffic, and only salting fans that key across shards. Plain hashing routes the entire celebrity load to one shard no matter how many shards exist, saturating it while the rest idle; salting trades a read fan-out for the required balance.",
+      "failureMode": "single hot shard",
+      "alsoFits": "Design A is the right call when no single key dominates — a uniformly popular key space — where plain hashing balances perfectly and salting would only add needless scatter-gather on every read."
     },
-    "explanation": "With one key carrying 40% of traffic and a hard even-load requirement, hashing plus salting fans that hot key across shards so no single partition is pinned. A's range partition places the celebrity's contiguous keys on one partition, creating a hot shard that saturates while others idle."
+    "explanation": "Plain hashing already balances the uniform tail, so both look even for ordinary keys — but the constraint is a single key at 40% of traffic, and only salting fans that key across shards. Plain hashing routes the entire celebrity load to one shard no matter how many shards exist, saturating it while the rest idle; salting trades a read fan-out for the required balance."
   },
   {
     "track": "architecture",
@@ -1907,36 +1914,37 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "scaling",
     "kind": "duel",
     "difficulty": 3,
-    "scenario": "A shopping-cart service for a global storefront that cannot reject adds during cross-region link failures.",
+    "scenario": "A global shopping cart where the same user may add items from two regions during a split, and briefly stale reads are fine but a dropped add is not.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
-      "constraint": "must stay writable during network partitions · brief staleness tolerable",
+      "constraint": "must stay writable during network partitions · concurrent cross-region edits to the same cart · no add may be silently lost on reconvergence",
       "designA": {
-        "name": "Strongly consistent (quorum/linearizable)",
-        "sketch": "writes → synchronous quorum across regions → linearizable reads",
+        "name": "Eventually consistent, last-write-wins",
+        "sketch": "writes → local accept → async replicate → newest timestamp wins on converge",
         "bullets": [
-          "Every read sees the latest committed write",
-          "Rejects writes when quorum is unreachable",
-          "Simple correctness, no merge logic",
-          "Availability drops during partitions"
+          "Accepts writes in every region during a split",
+          "Convergence rule is simple: latest timestamp wins",
+          "Concurrent edits discard the loser's write",
+          "Cheap, no per-item merge state"
         ]
       },
       "designB": {
-        "name": "Eventually consistent (AP, conflict merge)",
-        "sketch": "writes → local region accept → async replicate → converge/merge",
+        "name": "Eventually consistent, conflict-merge (CRDT)",
+        "sketch": "writes → local accept → async replicate → semantic merge (union of adds) on converge",
         "bullets": [
-          "Accepts writes even when regions are split",
-          "Reads may briefly return stale state",
-          "Needs conflict resolution on converge",
-          "High availability under partitions"
+          "Also accepts writes in every region during a split",
+          "Merges concurrent carts by union, not overwrite",
+          "Preserves adds made on both sides of the partition",
+          "More per-item state and merge logic to maintain"
         ]
       },
       "better": "B",
-      "deskRationale": "The constraint demands writability during partitions while tolerating brief staleness, which is exactly the AP tradeoff eventual consistency makes. A's quorum model must reject writes when regions can't reach consensus, so a link failure makes carts read-only and drops adds — unacceptable here.",
-      "failureMode": "rejects writes on partition"
+      "deskRationale": "Both are AP designs that stay writable through a partition, so availability alone doesn't separate them — the decider is what happens to concurrent edits on reconvergence. Last-write-wins silently drops one region's adds, violating the no-lost-item rule, whereas a CRDT merges both carts by union; LWW is fine engineering, just not when concurrent writes to one key must all survive.",
+      "failureMode": "LWW drops concurrent adds",
+      "alsoFits": "Design A is the right call for single-owner, idempotent state such as a user's last-known profile field or device status, where the newest write is authoritative and CRDT merge state would be needless overhead."
     },
-    "explanation": "The constraint demands writability during partitions while tolerating brief staleness, which is exactly the AP tradeoff eventual consistency makes. A's quorum model must reject writes when regions can't reach consensus, so a link failure makes carts read-only and drops adds — unacceptable here."
+    "explanation": "Both are AP designs that stay writable through a partition, so availability alone doesn't separate them — the decider is what happens to concurrent edits on reconvergence. Last-write-wins silently drops one region's adds, violating the no-lost-item rule, whereas a CRDT merges both carts by union; LWW is fine engineering, just not when concurrent writes to one key must all survive."
   },
   {
     "track": "architecture",
@@ -1944,36 +1952,37 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "reliability",
     "kind": "duel",
     "difficulty": 2,
-    "scenario": "A payments ledger writer consuming a transaction stream that can redeliver messages.",
+    "scenario": "A payments ledger writer on a stream that can redeliver, where the ledger sink can upsert by txn_id and the team wants the least coordination machinery.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
-      "constraint": "no double-charge · retries expected · sink supports keyed upsert",
+      "constraint": "no double-charge · retries/redelivery expected · sink supports keyed upsert · minimize latency and coordination overhead",
       "designA": {
         "name": "At-least-once + idempotent upsert",
-        "sketch": "Kafka → consumer → upsert by txn_id (dedupe key) → ledger",
+        "sketch": "Kafka → consumer → upsert by txn_id → ledger",
         "bullets": [
-          "Redeliveries collapse onto the same txn_id key",
-          "Simple, well-supported delivery mode",
+          "Redeliveries collapse onto the same txn_id",
           "Correctness lives in the idempotent sink",
-          "Retries are safe by construction"
+          "No cross-system transaction to coordinate",
+          "Low latency, few failure modes"
         ]
       },
       "designB": {
-        "name": "End-to-end exactly-once framework",
-        "sketch": "Kafka → txn coordinator (2PC across broker+sink) → ledger",
+        "name": "End-to-end exactly-once (transactional)",
+        "sketch": "Kafka → txn coordinator (2PC across broker + sink) → ledger",
         "bullets": [
-          "Framework-level exactly-once semantics",
-          "Requires transactional sinks and coordination",
-          "Higher latency and operational fragility",
-          "Correct, but heavy for an upsertable sink"
+          "Framework guarantees exactly-once end to end",
+          "Also prevents double-charges, by construction",
+          "Two-phase commit adds latency and coordination",
+          "More failure surface and operational fragility"
         ]
       },
       "better": "A",
-      "deskRationale": "The sink already supports keyed upsert, so at-least-once delivery with idempotent upsert on txn_id makes retries free of duplicates with minimal machinery. B chases full exactly-once via distributed transactions the workload doesn't need, adding 2PC coordination that raises latency and failure surface for no correctness gain here.",
-      "failureMode": "needless 2PC overhead"
+      "deskRationale": "Both prevent double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require — real latency and operational tax for no added correctness here.",
+      "failureMode": "needless 2PC overhead",
+      "alsoFits": "Design B is the right call when the sink cannot dedupe — a non-idempotent target or multi-row side effects per message — where transactional exactly-once is the only way to avoid partial or duplicated writes."
     },
-    "explanation": "The sink already supports keyed upsert, so at-least-once delivery with idempotent upsert on txn_id makes retries free of duplicates with minimal machinery. B chases full exactly-once via distributed transactions the workload doesn't need, adding 2PC coordination that raises latency and failure surface for no correctness gain here."
+    "explanation": "Both prevent double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require — real latency and operational tax for no added correctness here."
   },
   {
     "track": "architecture",
@@ -1981,36 +1990,37 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "reliability",
     "kind": "duel",
     "difficulty": 3,
-    "scenario": "A metrics aggregator counting events per minute from mobile clients on flaky networks.",
+    "scenario": "A live metrics aggregator counting events per minute from mobile clients on flaky networks, feeding an operations dashboard that must stay current.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
-      "constraint": "events arrive up to 10 min late · per-minute windowed counts must be correct",
+      "constraint": "events arrive up to 10 min late · per-minute counts must be correct · counts needed promptly and continuously on a live view",
       "designA": {
-        "name": "Watermarked event-time windows",
+        "name": "Event-time windows + watermark",
         "sketch": "Kafka → Flink event-time windows + watermark(10m) + allowed lateness",
         "bullets": [
-          "Assigns events to windows by event timestamp",
-          "Watermark holds windows open for late arrivals",
-          "Correct counts despite out-of-order delivery",
-          "Adds bounded latency before window close"
+          "Buckets each event by its own timestamp",
+          "Watermark holds windows for late arrivals, then emits",
+          "One correct, timely emission per minute-window",
+          "Adds bounded delay before a window finalizes"
         ]
       },
       "designB": {
-        "name": "Naive processing-time windows",
-        "sketch": "Kafka → tumbling windows on arrival time → immediate counts",
+        "name": "Periodic batch recompute on event_time",
+        "sketch": "Kafka → raw store → scheduled batch recomputes minute buckets by event_time",
         "bullets": [
-          "Buckets events by when they arrive, not occur",
-          "Lowest latency, no waiting",
-          "Late events fall into the wrong minute",
-          "Simple with no watermark bookkeeping"
+          "Also groups by event timestamp, so counts are correct",
+          "Re-scans the window each run to absorb late data",
+          "Correct result lands only after the next batch",
+          "Simple; reuses existing warehouse/batch tooling"
         ]
       },
       "better": "A",
-      "deskRationale": "With events up to 10 minutes late and a requirement that per-minute counts be correct, event-time windows with a matching watermark assign each event to its true minute and wait for stragglers. B's processing-time windows bucket late events into whatever minute they land in, systematically undercounting the correct window and overcounting later ones.",
-      "failureMode": "late events misbucketed"
+      "deskRationale": "Both key on event time, so both ultimately count correctly — the decider is delivering correct counts promptly and continuously to a live dashboard. Event-time streaming with a 10-minute watermark emits each window once, correct and bounded, whereas batch recompute is correct but coarse and lagging, re-scanning history on a schedule rather than settling each minute as its lateness window expires.",
+      "failureMode": "lagging coarse corrections",
+      "alsoFits": "Design B is the right call when the counts feed daily reporting rather than a live view, where a warehouse batch that reprocesses late data on a schedule is simpler and the streaming watermark machinery isn't worth operating."
     },
-    "explanation": "With events up to 10 minutes late and a requirement that per-minute counts be correct, event-time windows with a matching watermark assign each event to its true minute and wait for stragglers. B's processing-time windows bucket late events into whatever minute they land in, systematically undercounting the correct window and overcounting later ones."
+    "explanation": "Both key on event time, so both ultimately count correctly — the decider is delivering correct counts promptly and continuously to a live dashboard. Event-time streaming with a 10-minute watermark emits each window once, correct and bounded, whereas batch recompute is correct but coarse and lagging, re-scanning history on a schedule rather than settling each minute as its lateness window expires."
   },
   {
     "track": "architecture",
@@ -2018,36 +2028,37 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "cost",
     "kind": "duel",
     "difficulty": 2,
-    "scenario": "A usage-analytics table where nearly every query restricts to a small date range but the table spans years.",
+    "scenario": "A usage-analytics table spanning years where most queries restrict by date but many also filter by tenant, and past over-partitioning caused small-file problems.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
-      "constraint": "queries filter on event_date · scan bill is the cost driver · huge historical table",
+      "constraint": "queries filter on event_date and often a second dimension · scan bytes drive the bill · avoid tiny-file overhead",
       "designA": {
-        "name": "Unpartitioned full-scan table",
-        "sketch": "query(date filter) → engine scans entire table → filter after read",
+        "name": "Physical date partitioning",
+        "sketch": "query → prune to matching date partitions → scan those",
         "bullets": [
-          "Single flat layout, no partition upkeep",
-          "Every query reads the full history",
-          "Scan cost independent of the filter range",
-          "Fine when queries touch most data anyway"
+          "Date-filtered queries skip non-matching partitions",
+          "Simple, predictable pruning on the partition key",
+          "Only the partition column prunes; others scan fully",
+          "Fine-grained dates risk many tiny files"
         ]
       },
       "designB": {
-        "name": "Date-partitioned + pruned scans",
-        "sketch": "query(date filter) → prune to matching partitions → scan only those",
+        "name": "Clustered layout + min/max data skipping",
+        "sketch": "query → skip files via per-file min/max stats on date & tenant → scan survivors",
         "bullets": [
-          "Partition pruning reads only relevant dates",
-          "Scan bytes scale with the queried range",
-          "Needs partition-key discipline on write",
-          "Dramatically lower cost for narrow ranges"
+          "Skips files by date and by a second column",
+          "Prunes on multiple predicates without hard partitions",
+          "Avoids the small-file blowup of fine partitions",
+          "Depends on a clustered/sorted write layout"
         ]
       },
       "better": "B",
-      "deskRationale": "When scan volume is the cost driver and queries filter on event_date, partition pruning reads only the matching dates and cuts bytes scanned to the query's range. A's unpartitioned table scans years of history on every narrow query, so the scan bill explodes even though 99% of the data is discarded by the filter.",
-      "failureMode": "scan bill explodes"
+      "deskRationale": "Both cut scan bytes for date-filtered queries, so cost alone doesn't separate them — the decider is the mixed predicate plus the small-file history. Clustering with min/max data skipping prunes on both date and tenant and keeps file sizes healthy, whereas date partitioning prunes only the date and, if made granular enough to help, recreates the tiny-file problem the team already hit.",
+      "failureMode": "single-column prune, tiny files",
+      "alsoFits": "Design A is the right call when queries filter on date alone and each day is a healthy file size — plain date partitioning is the simplest, most predictable pruning and needs no clustering discipline on write."
     },
-    "explanation": "When scan volume is the cost driver and queries filter on event_date, partition pruning reads only the matching dates and cuts bytes scanned to the query's range. A's unpartitioned table scans years of history on every narrow query, so the scan bill explodes even though 99% of the data is discarded by the filter."
+    "explanation": "Both cut scan bytes for date-filtered queries, so cost alone doesn't separate them — the decider is the mixed predicate plus the small-file history. Clustering with min/max data skipping prunes on both date and tenant and keeps file sizes healthy, whereas date partitioning prunes only the date and, if made granular enough to help, recreates the tiny-file problem the team already hit."
   },
   {
     "track": "architecture",
@@ -2055,36 +2066,533 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "cost",
     "kind": "duel",
     "difficulty": 2,
-    "scenario": "A data platform where the dataset balloons monthly but heavy queries run only during business hours.",
+    "scenario": "A data platform whose dataset balloons monthly while heavy queries run in short bursts during business hours and the rest of the day is idle.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
-      "constraint": "storage grows fast · compute is spiky and mostly idle · pay for what you use",
+      "constraint": "storage grows fast · compute is spiky and mostly idle · pay only for compute actually used",
       "designA": {
-        "name": "Coupled storage+compute cluster",
-        "sketch": "provisioned nodes hold data + run queries → scale both together",
+        "name": "Separated storage + always-on autoscaled cluster",
+        "sketch": "object store (data) ← right-sized cluster (autoscales, min baseline) → results",
         "bullets": [
-          "Data local to compute, low query latency",
-          "Adding storage forces adding compute nodes",
-          "Idle nodes still bill around the clock",
-          "Scaling one resource drags the other"
+          "Storage already decoupled and grows cheaply",
+          "Warm nodes give consistent low query latency",
+          "A minimum baseline keeps billing even when idle",
+          "Autoscale reacts, but the floor never reaches zero"
         ]
       },
       "designB": {
-        "name": "Separated storage + elastic compute",
-        "sketch": "object store (data) ← elastic compute (spin up on demand) → results",
+        "name": "Separated storage + on-demand serverless compute",
+        "sketch": "object store (data) ← serverless compute spun up per query → results",
         "bullets": [
-          "Storage scales independently and cheaply",
-          "Compute spins up for spikes, down when idle",
-          "Small remote-read overhead per query",
-          "Pay compute only while queries run"
+          "Storage decoupled and grows cheaply",
+          "Compute materializes per query, nothing when idle",
+          "Billing tracks actual query seconds, no idle floor",
+          "Cold starts add small per-query latency"
         ]
       },
       "better": "B",
-      "deskRationale": "With fast-growing storage and spiky, mostly-idle compute, separating the two lets storage grow on cheap object stores while compute bills only during the business-hours spikes. A's coupled cluster forces you to buy compute nodes just to hold the growing data, paying for idle CPUs 24/7 to satisfy a storage need.",
-      "failureMode": "pays idle coupled compute"
+      "deskRationale": "Both separate storage from compute, so both let storage grow cheaply — the decider is the spiky, mostly-idle compute profile against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use.",
+      "failureMode": "idle baseline cost",
+      "alsoFits": "Design A is the right call when compute is steady and high-utilization or latency-sensitive, where a warm cluster's consistent performance beats paying serverless per-query premiums and enduring cold starts all day."
     },
-    "explanation": "With fast-growing storage and spiky, mostly-idle compute, separating the two lets storage grow on cheap object stores while compute bills only during the business-hours spikes. A's coupled cluster forces you to buy compute nodes just to hold the growing data, paying for idle CPUs 24/7 to satisfy a storage need."
+    "explanation": "Both separate storage from compute, so both let storage grow cheaply — the decider is the spiky, mostly-idle compute profile against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-bake-01",
+    "topic": "scaling",
+    "kind": "bakeoff",
+    "difficulty": 2,
+    "scenario": "A multi-tenant analytics SaaS ingests ~50k events/sec across 4,000 customer tenants, but three enterprise whales generate 80% of all events. Events are stored across 8 shards and mostly written, then batch-aggregated per tenant nightly.",
+    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+    "choices": [],
+    "payload": {
+      "keys": [
+        {
+          "id": "tenant_id",
+          "label": "tenant_id",
+          "shards": [
+            820,
+            40,
+            35,
+            30,
+            45,
+            38,
+            42,
+            50
+          ],
+          "note": "A whale tenant maps to one shard and swamps it; most shards idle."
+        },
+        {
+          "id": "hash_tenant_id",
+          "label": "hash(tenant_id)",
+          "shards": [
+            300,
+            88,
+            92,
+            85,
+            95,
+            90,
+            84,
+            96
+          ],
+          "note": "Hashing scatters tenants, but a single whale is still one key -> one hot shard."
+        },
+        {
+          "id": "hash_event_id",
+          "label": "hash(event_id)",
+          "shards": [
+            124,
+            126,
+            123,
+            125,
+            124,
+            127,
+            123,
+            125
+          ],
+          "note": "Per-event high-cardinality hash spreads each whale's events across all shards."
+        }
+      ],
+      "best": "hash_event_id",
+      "explanation": "When a few whale entities dominate, any key with tenant granularity (even hashed) concentrates that entity on one shard. Hashing a high-cardinality per-event id splits a single whale's traffic evenly. The tradeoff: you lose per-tenant locality, so nightly per-tenant aggregation must scatter-gather across all shards."
+    },
+    "explanation": "When a few whale entities dominate, any key with tenant granularity (even hashed) concentrates that entity on one shard. Hashing a high-cardinality per-event id splits a single whale's traffic evenly. The tradeoff: you lose per-tenant locality, so nightly per-tenant aggregation must scatter-gather across all shards."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-bake-02",
+    "topic": "scaling",
+    "kind": "bakeoff",
+    "difficulty": 1,
+    "scenario": "A clickstream pipeline appends ~20k rows/sec to 8 shards. Almost all writes are for the current day, and reporting reads are ad-hoc across arbitrary date ranges.",
+    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+    "choices": [],
+    "payload": {
+      "keys": [
+        {
+          "id": "event_date",
+          "label": "event_date",
+          "shards": [
+            10,
+            12,
+            15,
+            20,
+            30,
+            50,
+            90,
+            700
+          ],
+          "note": "All of 'today' lands on one shard -> a moving write hotspot."
+        },
+        {
+          "id": "hash_event_id",
+          "label": "hash(event_id)",
+          "shards": [
+            100,
+            98,
+            102,
+            99,
+            101,
+            100,
+            97,
+            103
+          ],
+          "note": "High-cardinality hash spreads today's writes across every shard."
+        },
+        {
+          "id": "hour_of_day",
+          "label": "hour_of_day",
+          "shards": [
+            40,
+            55,
+            70,
+            30,
+            20,
+            610,
+            120,
+            90
+          ],
+          "note": "Only 24 values, and peak hours pile onto a few shards."
+        }
+      ],
+      "best": "hash_event_id",
+      "explanation": "Time-ordered keys create a hot 'now' shard because writes are time-skewed toward the present. A high-cardinality hash decouples placement from time and balances the write load. The cost is lost range-scan locality: a date-range report must fan out to all shards."
+    },
+    "explanation": "Time-ordered keys create a hot 'now' shard because writes are time-skewed toward the present. A high-cardinality hash decouples placement from time and balances the write load. The cost is lost range-scan locality: a date-range report must fan out to all shards."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-bake-03",
+    "topic": "scaling",
+    "kind": "bakeoff",
+    "difficulty": 1,
+    "scenario": "An e-commerce orders table on 8 shards serves a marketplace where 70% of orders originate in one country and the rest are spread thin across a handful of others. Reads look up individual orders by id.",
+    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+    "choices": [],
+    "payload": {
+      "keys": [
+        {
+          "id": "country",
+          "label": "country",
+          "shards": [
+            900,
+            300,
+            50,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "note": "Low cardinality: only a few shards ever fill, and one dominates."
+        },
+        {
+          "id": "hash_order_id",
+          "label": "hash(order_id)",
+          "shards": [
+            126,
+            124,
+            125,
+            127,
+            123,
+            125,
+            124,
+            126
+          ],
+          "note": "High-cardinality unique id spreads orders evenly regardless of geography."
+        },
+        {
+          "id": "customer_id",
+          "label": "customer_id",
+          "shards": [
+            430,
+            130,
+            110,
+            95,
+            100,
+            85,
+            90,
+            80
+          ],
+          "note": "High cardinality, but a few bulk buyers still overheat their shard."
+        }
+      ],
+      "best": "hash_order_id",
+      "explanation": "A low-cardinality key like country can only use as many shards as it has distinct, evenly-sized values -- here most shards sit idle while one is molten, and customer_id inherits skew from a few bulk buyers. Hashing the unique order id gives high cardinality and uniform spread. Since reads are single-order lookups, the lost geographic locality costs nothing."
+    },
+    "explanation": "A low-cardinality key like country can only use as many shards as it has distinct, evenly-sized values -- here most shards sit idle while one is molten, and customer_id inherits skew from a few bulk buyers. Hashing the unique order id gives high cardinality and uniform spread. Since reads are single-order lookups, the lost geographic locality costs nothing."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-bake-04",
+    "topic": "scaling",
+    "kind": "bakeoff",
+    "difficulty": 2,
+    "scenario": "A ledger service assigns strictly increasing order_id values and range-partitions them across 8 shards. Throughput is ~30k inserts/sec, and the id keeps climbing so new rows always fall in the highest range.",
+    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+    "choices": [],
+    "payload": {
+      "keys": [
+        {
+          "id": "order_id_range",
+          "label": "order_id (range)",
+          "shards": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            960
+          ],
+          "note": "Monotonic id + range partitioning -> every insert hits the newest shard."
+        },
+        {
+          "id": "hash_order_id",
+          "label": "hash(order_id)",
+          "shards": [
+            122,
+            125,
+            124,
+            126,
+            123,
+            125,
+            124,
+            126
+          ],
+          "note": "Hashing the same id randomizes placement, killing the append hotspot."
+        },
+        {
+          "id": "created_hour",
+          "label": "created_hour",
+          "shards": [
+            8,
+            10,
+            12,
+            14,
+            20,
+            60,
+            160,
+            700
+          ],
+          "note": "Also monotonic in time, so it too piles writes on the latest shard."
+        }
+      ],
+      "best": "hash_order_id",
+      "explanation": "Monotonically increasing keys under range partitioning always write to the last shard, creating a classic append hotspot no matter how many shards you add. Hashing the id breaks the ordering and distributes inserts uniformly. You forfeit efficient id-range scans, which is usually acceptable for insert-heavy ledgers."
+    },
+    "explanation": "Monotonically increasing keys under range partitioning always write to the last shard, creating a classic append hotspot no matter how many shards you add. Hashing the id breaks the ordering and distributes inserts uniformly. You forfeit efficient id-range scans, which is usually acceptable for insert-heavy ledgers."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-bake-05",
+    "topic": "scaling",
+    "kind": "bakeoff",
+    "difficulty": 2,
+    "scenario": "A billing platform stores usage rows for 100k roughly equal-sized accounts on 8 shards. Load is naturally uniform across accounts, and the dominant query is a per-account range scan of a month of line items.",
+    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+    "choices": [],
+    "payload": {
+      "keys": [
+        {
+          "id": "account_id",
+          "label": "account_id",
+          "shards": [
+            100,
+            101,
+            99,
+            100,
+            102,
+            98,
+            101,
+            99
+          ],
+          "note": "Already high-cardinality and uniform, so it balances AND keeps each account co-located."
+        },
+        {
+          "id": "hash_account_id",
+          "label": "hash(account_id)",
+          "shards": [
+            112,
+            94,
+            106,
+            90,
+            108,
+            96,
+            100,
+            94
+          ],
+          "note": "Hashing an already-uniform key adds no balance and scatters each account's rows."
+        },
+        {
+          "id": "region",
+          "label": "region",
+          "shards": [
+            560,
+            210,
+            120,
+            40,
+            0,
+            0,
+            0,
+            0
+          ],
+          "note": "Low cardinality with an uneven regional mix -> idle shards and one hot one."
+        }
+      ],
+      "best": "account_id",
+      "explanation": "Hashing is not always the answer: when the natural key is already high-cardinality and access is uniform, the raw key balances just as well while preserving locality. Here account_id keeps each account's month of rows on one shard for a cheap range scan, whereas hashing would shatter that scan across shards for no balancing benefit."
+    },
+    "explanation": "Hashing is not always the answer: when the natural key is already high-cardinality and access is uniform, the raw key balances just as well while preserving locality. Here account_id keeps each account's month of rows on one shard for a cheap range scan, whereas hashing would shatter that scan across shards for no balancing benefit."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-bake-06",
+    "topic": "scaling",
+    "kind": "bakeoff",
+    "difficulty": 3,
+    "scenario": "A social feed writes ~80k posts and reactions/sec across 8 shards. A handful of celebrity accounts produce a hugely disproportionate share of writes, and reads fetch individual posts by post id.",
+    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+    "choices": [],
+    "payload": {
+      "keys": [
+        {
+          "id": "author_user_id",
+          "label": "author user_id",
+          "shards": [
+            600,
+            62,
+            55,
+            58,
+            60,
+            50,
+            57,
+            58
+          ],
+          "note": "A celebrity author is one key, so all their writes crush a single shard."
+        },
+        {
+          "id": "hash_user_id",
+          "label": "hash(user_id)",
+          "shards": [
+            300,
+            92,
+            85,
+            95,
+            88,
+            96,
+            90,
+            84
+          ],
+          "note": "Hashing spreads normal users but a celebrity is still one key -> one hot shard."
+        },
+        {
+          "id": "hash_post_id",
+          "label": "hash(post_id)",
+          "shards": [
+            124,
+            126,
+            125,
+            123,
+            127,
+            124,
+            126,
+            125
+          ],
+          "note": "Each post is a distinct key, so even a celebrity's posts scatter across all shards."
+        }
+      ],
+      "best": "hash_post_id",
+      "explanation": "A celebrity is a single high-frequency key, so partitioning by user (raw or hashed) traps all their writes on one shard. Only a per-write high-cardinality key like hash(post_id) splits one hot author across the cluster. The tradeoff is that assembling one author's timeline now requires a fan-out read."
+    },
+    "explanation": "A celebrity is a single high-frequency key, so partitioning by user (raw or hashed) traps all their writes on one shard. Only a per-write high-cardinality key like hash(post_id) splits one hot author across the cluster. The tradeoff is that assembling one author's timeline now requires a fan-out read."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-bake-07",
+    "topic": "scaling",
+    "kind": "bakeoff",
+    "difficulty": 2,
+    "scenario": "A fulfillment system tracks orders on 8 shards where each order has a status field (pending, shipped, delivered, ...). Most live orders sit in 'pending', a few big retail customers place many orders, and reads are single-order lookups by id.",
+    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+    "choices": [],
+    "payload": {
+      "keys": [
+        {
+          "id": "status",
+          "label": "status",
+          "shards": [
+            1200,
+            200,
+            80,
+            20,
+            0,
+            0,
+            0,
+            0
+          ],
+          "note": "A handful of statuses, and 'pending' dwarfs the rest -> extreme skew, idle shards."
+        },
+        {
+          "id": "customer_id",
+          "label": "customer_id",
+          "shards": [
+            520,
+            120,
+            90,
+            70,
+            80,
+            60,
+            75,
+            85
+          ],
+          "note": "Big retail customers are heavy keys, so their shard runs hot."
+        },
+        {
+          "id": "hash_order_id",
+          "label": "hash(order_id)",
+          "shards": [
+            126,
+            124,
+            125,
+            127,
+            123,
+            125,
+            124,
+            126
+          ],
+          "note": "Unique per-order key with high cardinality spreads load flat."
+        }
+      ],
+      "best": "hash_order_id",
+      "explanation": "Status is low-cardinality and its values are wildly uneven, so it can never balance; customer_id inherits skew from whale customers. Hashing the unique order id maximizes cardinality and evens the load. With single-order lookups there is no locality to preserve, so hashing is a clean win."
+    },
+    "explanation": "Status is low-cardinality and its values are wildly uneven, so it can never balance; customer_id inherits skew from whale customers. Hashing the unique order id maximizes cardinality and evens the load. With single-order lookups there is no locality to preserve, so hashing is a clean win."
+  },
+  {
+    "track": "architecture",
+    "title": "arch-bake-08",
+    "topic": "scaling",
+    "kind": "bakeoff",
+    "difficulty": 3,
+    "scenario": "A metrics store ingests ~200k datapoints/sec from 500k time series onto 8 shards. Writes arrive continuously for the current time window, a few very high-frequency series dominate volume, and queries read one series over a time range.",
+    "prompt": "Pick the partition key that spreads load most evenly under this access pattern.",
+    "choices": [],
+    "payload": {
+      "keys": [
+        {
+          "id": "ts_hour",
+          "label": "ts_hour (time bucket)",
+          "shards": [
+            8,
+            10,
+            12,
+            15,
+            40,
+            80,
+            150,
+            600
+          ],
+          "note": "All current-window writes converge on one shard -> a moving time hotspot."
+        },
+        {
+          "id": "series_id_range",
+          "label": "series_id (range)",
+          "shards": [
+            500,
+            90,
+            80,
+            70,
+            85,
+            75,
+            60,
+            90
+          ],
+          "note": "A few chatty series land in one range and overheat that shard."
+        },
+        {
+          "id": "hash_series_id",
+          "label": "hash(series_id)",
+          "shards": [
+            126,
+            124,
+            125,
+            123,
+            127,
+            125,
+            124,
+            126
+          ],
+          "note": "Hashing across 500k series spreads writes flat; each series still stays on one shard for range reads."
+        }
+      ],
+      "best": "hash_series_id",
+      "explanation": "Time-bucket keys hot-spot on the current window, and range-partitioning the series id lets a few chatty series overheat one shard. Hashing the high-cardinality series id balances writes while keeping each series co-located, so a single-series time-range read still hits just one shard. The lost cross-series ordering is rarely needed here."
+    },
+    "explanation": "Time-bucket keys hot-spot on the current window, and range-partitioning the series id lets a few chatty series overheat one shard. Hashing the high-cardinality series id balances writes while keeping each series co-located, so a single-series time-range read still hits just one shard. The lost cross-series ordering is rarely needed here."
   }
 ];
 
