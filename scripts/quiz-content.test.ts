@@ -23,7 +23,7 @@ for (const q of QUIZ_SEEDS) {
   if (!track) continue;
   ok(track.topics.some((t) => t.id === q.topic), `${label}: topic "${q.topic}" exists in ${q.track}`);
   ok([1, 2, 3].includes(q.difficulty), `${label}: difficulty in 1..3`);
-  ok(["mcq", "estimate", "duel", "bakeoff", "flood", "market", "redline"].includes(q.kind), `${label}: kind is mcq|estimate|duel|bakeoff|flood|market|redline`);
+  ok(["mcq", "estimate", "duel", "bakeoff", "flood", "market", "redline", "pool"].includes(q.kind), `${label}: kind is one of the known kinds`);
   ok(!!q.scenario.trim() && !!q.prompt.trim() && !!q.explanation.trim(), `${label}: scenario/prompt/explanation non-empty`);
   if (q.kind === "mcq") {
     ok(q.choices.filter((c) => c.correct).length === 1, `${label}: exactly one correct choice`);
@@ -72,6 +72,15 @@ for (const q of QUIZ_SEEDS) {
     ok(p.min < p.truth && p.truth < p.max, `${label}: redline truth sits inside the slider`);
     ok(Math.abs(p.naive - p.truth) > p.tol, `${label}: redline naive is a genuine trap (outside tolerance)`);
     ok(q.choices.length === 0, `${label}: redline carries no choices`);
+  } else if (q.kind === "pool") {
+    const p = q.payload as { subgroups: { T: { rate: number; n: number }; C: { rate: number; n: number } }[]; truth: number; naive: number; tol: number; min: number; max: number };
+    const pooled = (arm: "T" | "C") => p.subgroups.reduce((s, g) => s + g[arm].rate * g[arm].n, 0) / p.subgroups.reduce((s, g) => s + g[arm].n, 0);
+    const pT = Math.round(pooled("T") * 10) / 10, pC = Math.round(pooled("C") * 10) / 10;
+    ok(p.subgroups.every((g) => g.T.rate > g.C.rate), `${label}: pool — T leads C in every subgroup`);
+    ok(pT < pC, `${label}: pool — genuine reversal (pooled T below pooled C)`);
+    ok(Math.abs(pT - p.truth) <= 0.1, `${label}: pool truth is the size-weighted pooled rate`);
+    ok(Math.abs(p.naive - p.truth) > p.tol, `${label}: pool naive (unweighted mean) is a genuine trap`);
+    ok(q.choices.length === 0, `${label}: pool carries no choices`);
   }
   if (titles.has(q.title)) dupTitles++;
   titles.add(q.title);

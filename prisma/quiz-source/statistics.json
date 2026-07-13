@@ -778,5 +778,65 @@
    }
   ],
   "explanation": "Whenever you select the extreme (best rookie season), the next measurement tends to move back toward average because the extreme was partly luck. No motivational story required."
+ },
+ {
+  "title": "stats-aggregation-05",
+  "topic": "aggregation",
+  "difficulty": 2,
+  "scenario": "A drug beats placebo among mild patients and, separately, among severe patients — but in the combined data the drug looks worse than placebo overall.",
+  "prompt": "What's the safest conclusion?",
+  "choices": [
+   {
+    "text": "Report the stratified (subgroup) effects — the pooled comparison is confounded by which arm got the sicker patients.",
+    "correct": true,
+    "rationale": "When subgroup sizes correlate with severity, the pool is a confounded weighted average; the stratified effect is the honest one."
+   },
+   {
+    "text": "The drug doesn't work — the overall number is what matters.",
+    "correct": false,
+    "rationale": "The pooled number is confounded by case mix; it can reverse the true within-group effect."
+   },
+   {
+    "text": "The subgroup results must be a calculation error, since they contradict the total.",
+    "correct": false,
+    "rationale": "They don't contradict it — Simpson's paradox means a consistent subgroup effect can genuinely reverse when pooled."
+   },
+   {
+    "text": "Average the two subgroup rates to get the real effect.",
+    "correct": false,
+    "rationale": "An unweighted average ignores group sizes; you must weight by n, or better, keep the strata separate."
+   }
+  ],
+  "explanation": "Simpson's paradox: an effect present in every subgroup can flip in the aggregate when group sizes are confounded with the outcome. Stratify — trust the within-group comparison, not the pooled one, unless you've adjusted for the confounder."
+ },
+ {
+  "title": "stats-aggregation-06",
+  "topic": "aggregation",
+  "difficulty": 1,
+  "scenario": "Two subgroups have success rates of 90% (on 100 cases) and 60% (on 900 cases).",
+  "prompt": "What is the overall (pooled) success rate?",
+  "choices": [
+   {
+    "text": "63% — weight by the group sizes: (90·100 + 60·900) / 1000.",
+    "correct": true,
+    "rationale": "The pooled rate is the size-weighted average: (9000 + 54000)/1000 = 63%."
+   },
+   {
+    "text": "75% — the average of 90% and 60%.",
+    "correct": false,
+    "rationale": "That unweighted average ignores that the 60% group is 9× larger; it pulls the pool toward 60%."
+   },
+   {
+    "text": "60% — the larger group decides it entirely.",
+    "correct": false,
+    "rationale": "The small group still counts; the answer is between, but close to 60% because of the weighting."
+   },
+   {
+    "text": "Can't tell without more information.",
+    "correct": false,
+    "rationale": "You have the rates and the sizes, which is exactly what a weighted average needs."
+   }
+  ],
+  "explanation": "A pooled rate is Σ(nᵢ·rateᵢ)/Σnᵢ, not the simple mean of the rates. With a 9×-larger 60% group, the pool (63%) sits far from the midpoint (75%). Ignoring the weights is the single most common aggregation error."
  }
 ]

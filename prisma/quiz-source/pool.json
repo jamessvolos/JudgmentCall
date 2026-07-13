@@ -1,0 +1,254 @@
+[
+ {
+  "title": "stats-pool-01",
+  "topic": "aggregation",
+  "difficulty": 2,
+  "arms": [
+   "Treatment A",
+   "Treatment B"
+  ],
+  "unit": "%",
+  "min": 60,
+  "max": 95,
+  "scenario": "A classic kidney-stone study compares two treatments. Treatment A cured 93% of small stones and 73% of large stones; Treatment B cured 87% of small and 69% of large. A wins on both stone sizes — but the two treatments were used on very different caseloads.",
+  "prompt": "Predict Treatment A's OVERALL (pooled) cure rate across all its patients.",
+  "subgroups": [
+   {
+    "label": "Small stones",
+    "T": {
+     "rate": 93,
+     "n": 87
+    },
+    "C": {
+     "rate": 87,
+     "n": 270
+    }
+   },
+   {
+    "label": "Large stones",
+    "T": {
+     "rate": 73,
+     "n": 263
+    },
+    "C": {
+     "rate": 69,
+     "n": 80
+    }
+   }
+  ],
+  "explanation": "A leads on both stone sizes, yet its pooled rate (~78%) trails B's (~83%). The reason: A was given mostly the hard large-stone cases (263 of 350), while B handled mostly easy small stones. The pooled number is a size-weighted average, so A's heavy load of hard cases drags it down. The unweighted mean of 93 and 73 (=83) ignores that weighting — that's the trap. Always ask what the groups were weighted by before trusting a total.",
+  "truth": 78,
+  "naive": 83,
+  "tol": 2.5
+ },
+ {
+  "title": "stats-pool-02",
+  "topic": "aggregation",
+  "difficulty": 2,
+  "arms": [
+   "Women",
+   "Men"
+  ],
+  "unit": "%",
+  "min": 25,
+  "max": 70,
+  "scenario": "A university is accused of bias. Women were admitted at a higher rate than men in the easy-admit department (82% vs 62%) AND in the hard-admit department (34% vs 24%). Women lead in both departments — but they applied in very different numbers to each.",
+  "prompt": "Predict women's OVERALL (pooled) admission rate across both departments.",
+  "subgroups": [
+   {
+    "label": "Easy dept",
+    "T": {
+     "rate": 82,
+     "n": 100
+    },
+    "C": {
+     "rate": 62,
+     "n": 800
+    }
+   },
+   {
+    "label": "Hard dept",
+    "T": {
+     "rate": 34,
+     "n": 900
+    },
+    "C": {
+     "rate": 24,
+     "n": 200
+    }
+   }
+  ],
+  "explanation": "Women were admitted at a higher rate in EVERY department, yet their pooled rate (~39%) is far below men's (~54%). Women applied overwhelmingly to the hard-admit department (900 of 1000), where everyone's odds are low; men clustered in the easy one. The confounder is the department, not the gender — this is the Berkeley 1973 paradox. Stratify before you accuse.",
+  "truth": 38.8,
+  "naive": 58,
+  "tol": 2.5
+ },
+ {
+  "title": "stats-pool-03",
+  "topic": "aggregation",
+  "difficulty": 3,
+  "arms": [
+   "Player A",
+   "Player B"
+  ],
+  "unit": "%",
+  "min": 15,
+  "max": 45,
+  "scenario": "Two hitters over two seasons. Player A had the higher hit rate in Year 1 (40% vs 35%) and again in Year 2 (25% vs 20%). A beat B both years — but they had very different numbers of at-bats each season.",
+  "prompt": "Predict Player A's OVERALL (pooled) hit rate across both seasons.",
+  "subgroups": [
+   {
+    "label": "Year 1",
+    "T": {
+     "rate": 40,
+     "n": 100
+    },
+    "C": {
+     "rate": 35,
+     "n": 400
+    }
+   },
+   {
+    "label": "Year 2",
+    "T": {
+     "rate": 25,
+     "n": 400
+    },
+    "C": {
+     "rate": 20,
+     "n": 100
+    }
+   }
+  ],
+  "explanation": "A hit better in both seasons, yet A's career rate (~28%) trails B's (~32%). A got most of his at-bats in his worse Year 2 (400 of 500); B got most of hers in her better Year 1. This is the real Simpson's paradox behind famous baseball averages — the pooled rate weights by at-bats, so who batted more in which year decides the total.",
+  "truth": 28,
+  "naive": 32.5,
+  "tol": 2.5
+ },
+ {
+  "title": "stats-pool-04",
+  "topic": "aggregation",
+  "difficulty": 3,
+  "arms": [
+   "Hospital A",
+   "Hospital B"
+  ],
+  "unit": "%",
+  "min": 70,
+  "max": 98,
+  "scenario": "Hospital A has a higher recovery rate than Hospital B among mild-condition patients (96% vs 94%) AND among severe-condition patients (80% vs 78%). A is better for both severities — but A is a specialist center that takes far more severe cases.",
+  "prompt": "Predict Hospital A's OVERALL (pooled) recovery rate across all its patients.",
+  "subgroups": [
+   {
+    "label": "Mild",
+    "T": {
+     "rate": 96,
+     "n": 100
+    },
+    "C": {
+     "rate": 94,
+     "n": 600
+    }
+   },
+   {
+    "label": "Severe",
+    "T": {
+     "rate": 80,
+     "n": 400
+    },
+    "C": {
+     "rate": 78,
+     "n": 100
+    }
+   }
+  ],
+  "explanation": "A recovers more patients at each severity, yet its pooled rate (~83%) looks worse than B's (~92%). A treats mostly severe cases (400 of 500), where recovery is lower for everyone; B sees mostly mild ones. Ranking hospitals on raw pooled recovery punishes the ones that take the hardest patients — a live danger in public report cards.",
+  "truth": 83.2,
+  "naive": 88,
+  "tol": 2.5
+ },
+ {
+  "title": "stats-pool-05",
+  "topic": "aggregation",
+  "difficulty": 3,
+  "arms": [
+   "Campaign A",
+   "Campaign B"
+  ],
+  "unit": "%",
+  "min": 1,
+  "max": 10,
+  "scenario": "Ad Campaign A had a higher click-through rate than Campaign B on mobile (8% vs 6%) AND on desktop (3% vs 2%). A wins on both platforms — but the two campaigns split their spend across platforms very differently.",
+  "prompt": "Predict Campaign A's OVERALL (pooled) click-through rate across both platforms.",
+  "subgroups": [
+   {
+    "label": "Mobile",
+    "T": {
+     "rate": 8,
+     "n": 100
+    },
+    "C": {
+     "rate": 6,
+     "n": 900
+    }
+   },
+   {
+    "label": "Desktop",
+    "T": {
+     "rate": 3,
+     "n": 900
+    },
+    "C": {
+     "rate": 2,
+     "n": 100
+    }
+   }
+  ],
+  "explanation": "A beats B on each platform yet its blended CTR (~3.5%) trails B's (~5.6%). A served 90% of its impressions on low-CTR desktop; B ran mostly on high-CTR mobile. The blended number weights by impressions, so where you spent decides the headline — the reason A/B 'winners' can flip when you pool across segments.",
+  "truth": 3.5,
+  "naive": 5.5,
+  "tol": 0.6
+ },
+ {
+  "title": "stats-pool-06",
+  "topic": "aggregation",
+  "difficulty": 2,
+  "arms": [
+   "Program A",
+   "Program B"
+  ],
+  "unit": "%",
+  "min": 50,
+  "max": 90,
+  "scenario": "Program A graduates a higher share of in-state students than Program B (90% vs 85%) AND a higher share of out-of-state students (60% vs 55%). A is better for both groups — but the two programs enroll very different mixes.",
+  "prompt": "Predict Program A's OVERALL (pooled) graduation rate across all its students.",
+  "subgroups": [
+   {
+    "label": "In-state",
+    "T": {
+     "rate": 90,
+     "n": 200
+    },
+    "C": {
+     "rate": 85,
+     "n": 800
+    }
+   },
+   {
+    "label": "Out-of-state",
+    "T": {
+     "rate": 60,
+     "n": 800
+    },
+    "C": {
+     "rate": 55,
+     "n": 200
+    }
+   }
+  ],
+  "explanation": "A graduates more of each group, yet its overall rate (~66%) trails B's (~79%). A enrolls mostly out-of-state students (800 of 1000), who graduate at lower rates everywhere; B enrolls mostly in-state. The pooled rate is weighted by enrollment mix, so comparing raw totals mistakes the student mix for program quality.",
+  "truth": 66,
+  "naive": 75,
+  "tol": 2.5
+ }
+]

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import Link from "next/link";
 import { getOrCreateSessionId, nowMs } from "@/lib/session-client";
 import { TRACKS, TRACK_IDS, topicOf, type TrackId, type Track } from "@/lib/train-tracks";
@@ -29,7 +29,7 @@ type ItemDto = {
   id: string;
   track: string;
   topic: string;
-  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool";
   difficulty: number;
   scenario: string;
   prompt: string;
@@ -40,7 +40,9 @@ type ItemDto = {
   flood?: { sensitivity: number; specificity: number; min: number; max: number };
   market?: { unit: string; min: number; max: number; lever: "none" | "tax" | "ceiling"; target: "price" | "quantity" };
   redline?: { mu: number; slaMs: number; percentile: number; min: number; max: number };
+  pool?: { arms: [string, string]; unit: string; min: number; max: number; subgroups: PoolSubgroup[] };
 };
+type PoolSubgroup = { label: string; T: { rate: number; n: number }; C: { rate: number; n: number } };
 type LevelDto = { n: number; roman: string; title: string; floor: number | null; gate: string };
 type CalBinDto = { lo: number; hi: number; meanConf: number; accuracy: number; count: number };
 type CalibrationDto = {
@@ -75,7 +77,7 @@ type GetDto = { item: ItemDto | null; remaining: number; liveRating: number; cou
 type RevealChoice = { i: number; text: string; correct: boolean; rationale: string };
 type PostDto = {
   correct: boolean;
-  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool";
   topic: string;
   confidence: number | null;
   // mcq
@@ -120,6 +122,10 @@ type PostDto = {
   mu?: number;
   slaMs?: number;
   percentile?: number;
+  // pool
+  arms?: [string, string];
+  subgroups?: PoolSubgroup[];
+  pooledC?: number;
   liveRating: number;
   ratingDelta: number;
   count: number;
@@ -705,7 +711,7 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
   onNext: () => void; onBank: () => void;
 }) {
   const topic = topicOf(track, item.topic);
-  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : item.kind === "flood" ? "BASE-RATE" : item.kind === "market" ? "MARKET" : item.kind === "redline" ? "REDLINE" : "CALL";
+  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : item.kind === "flood" ? "BASE-RATE" : item.kind === "market" ? "MARKET" : item.kind === "redline" ? "REDLINE" : item.kind === "pool" ? "POOLED" : "CALL";
   const [hintOpen, setHintOpen] = useState(true);
   const descent = runMode === "descent";
   // the post-reveal control: descent shows Bank/Deeper (or Surface on a bust);
@@ -758,6 +764,7 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
       {item.kind === "flood" && <FloodCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
       {item.kind === "market" && <MarketCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
       {item.kind === "redline" && <RedlineCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
+      {item.kind === "pool" && <PoolCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
     </div>
   );
 }
@@ -1522,6 +1529,116 @@ function RedlineCall({ item, reveal, submitting, onSubmit, postReveal }: {
           </div>
           <div className="mt-3 flex justify-center"><RedlineChart reveal={reveal} /></div>
           <p className="mt-2 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
+          {postReveal}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ---- POOL (statistics signature: Simpson's paradox — the arm ahead in every
+// subgroup lands behind when pooled) -----------------------------------------
+// Winner of the statistics 10x competition (Rotor's "Pooling Machine"). The
+// subgroup table is shown so the learner can reason; the task is to weight by
+// size, not take the seductive unweighted average (the naive_trap). On reveal
+// the pooled dot slides from the naive average to its true weighted position.
+function PoolCall({ item, reveal, submitting, onSubmit, postReveal }: {
+  item: ItemDto; reveal: PostDto | null; submitting: boolean;
+  onSubmit: (a: { value: number }, c: number | null) => void; postReveal: ReactNode;
+}) {
+  const pl = item.pool!;
+  const [tName, cName] = pl.arms;
+  const span = pl.max - pl.min;
+  const [value, setValue] = useState(Math.round((pl.min + span / 2) * 10) / 10);
+  const [conviction, setConviction] = useState<number | null>(null);
+  const unit = pl.unit;
+  const fmt = (v: number) => `${Math.round(v * 10) / 10}${unit}`;
+  const cx = (v: number) => `${Math.max(0, Math.min(100, ((v - pl.min) / span) * 100))}%`;
+  const your = reveal?.yourValue ?? 0;
+  const within = reveal ? Math.abs(your - (reveal.truth ?? 0)) <= (reveal.tol ?? 0) : false;
+  // widths for the subgroup mini-bars: scale each arm's rate against the max rate shown
+  const maxRate = Math.max(...pl.subgroups.flatMap((g) => [g.T.rate, g.C.rate]));
+  return (
+    <>
+      <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The breakdown</p>
+        <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
+        {/* subgroup table — the learner needs the rates AND the sizes to weight */}
+        <div className="mt-3 space-y-2.5">
+          {pl.subgroups.map((g, i) => (
+            <div key={i}>
+              <p className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-muted/70">{g.label}</p>
+              {([["T", g.T, tName] as const, ["C", g.C, cName] as const]).map(([k, arm, name]) => (
+                <div key={k} className="mt-1 flex items-center gap-2">
+                  <span className="w-24 shrink-0 truncate font-mono text-[0.65rem] text-ink-strong">{name}</span>
+                  <span className="h-2 rounded-sm bg-accent/50" style={{ width: `${(arm.rate / maxRate) * 45}%` }} />
+                  <span className="font-mono text-[0.65rem] tabular-nums text-foreground">{arm.rate}{unit}</span>
+                  <span className="font-mono text-[0.6rem] tabular-nums text-muted/70">n={arm.n.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
+      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">{tName} leads in every subgroup — but predict the OVERALL rate across all its cases.</p>
+
+      {!reveal ? (
+        <>
+          <div className="mt-4 rounded-lg border border-card-border bg-card px-4 py-4">
+            <div className="flex items-baseline justify-between font-mono text-[0.7rem] text-muted">
+              <span>pooled {tName}</span>
+              <span className="tabular-nums text-ink-strong text-sm">{fmt(value)}</span>
+            </div>
+            <input type="range" min={pl.min} max={pl.max} step={0.5} value={value} onChange={(e) => setValue(Number(e.target.value))} aria-label={`predicted pooled rate for ${tName}`} className="mt-2 w-full accent-[var(--accent)]" />
+            <div className="mt-1 flex justify-between font-mono text-[0.55rem] text-muted/70"><span>{fmt(pl.min)}</span><span>{fmt(pl.max)}</span></div>
+            <div className="mt-3 flex items-center justify-center gap-2 font-mono text-[0.65rem]">
+              <button onClick={() => setValue((v) => Math.max(pl.min, Math.round((v - 0.5) * 10) / 10))} className="rounded border border-card-border px-2 py-0.5 text-accent" aria-label="decrease">−</button>
+              <span className="tabular-nums text-foreground">{fmt(value)}</span>
+              <button onClick={() => setValue((v) => Math.min(pl.max, Math.round((v + 0.5) * 10) / 10))} className="rounded border border-card-border px-2 py-0.5 text-accent" aria-label="increase">+</button>
+            </div>
+          </div>
+          <ConvictionBar floor={50} conviction={conviction} setConviction={setConviction} submitting={submitting} onCommit={() => onSubmit({ value }, conviction)} />
+        </>
+      ) : (
+        <div className="verdict-card-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+          <RevealHeader correct={reveal.correct} delta={reveal.ratingDelta} rating={reveal.liveRating} />
+          {reveal.confidence != null && <ConvictionEcho confidence={reveal.confidence} correct={reveal.correct} />}
+          <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted">
+            You said {fmt(your)} · pooled {tName} is {fmt(reveal.truth ?? 0)} · pooled {cName} is {fmt(reveal.pooledC ?? 0)}
+          </p>
+          {reveal.naiveTrap && (
+            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">You took the simple average — it ignores the group sizes.</p>
+          )}
+          {(reveal.pooledC ?? 0) > (reveal.truth ?? 0) && (
+            <p className="mt-2 rounded-md border border-danger/40 bg-danger/5 px-3 py-2 text-center font-mono text-[0.65rem] uppercase tracking-[0.1em] text-danger">
+              Reversal · {tName} leads every subgroup yet trails {cName} overall
+            </p>
+          )}
+          {/* caliper strip: you · unweighted average · true pooled, with the
+              pooled dot sliding from the average to the size-weighted truth */}
+          <div className="relative mt-4 h-9">
+            <div className="absolute left-0 right-0 top-4 h-px bg-card-border" />
+            <div className={`absolute top-4 h-1 -translate-y-1/2 rounded ${within ? "bg-accent/40" : "bg-danger/40"}`}
+              style={{ left: cx(Math.min(your, reveal.truth ?? 0)), width: `calc(${cx(Math.max(your, reveal.truth ?? 0))} - ${cx(Math.min(your, reveal.truth ?? 0))})` }} />
+            {reveal.naive != null && (
+              <div className="absolute top-4 -translate-x-1/2 -translate-y-1/2" style={{ left: cx(reveal.naive) }}>
+                <span className="block h-2.5 w-px bg-muted/60" />
+                <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem] text-muted/70">simple avg</span>
+              </div>
+            )}
+            <div className={`absolute top-4 -translate-x-1/2 -translate-y-1/2 ${within ? "text-accent" : "text-danger"}`} style={{ left: cx(your) }}>
+              <span className="block h-3 w-0.5 bg-current" />
+              <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">you</span>
+            </div>
+            {/* the size-weighted truth: slides in from the simple-average position */}
+            <div className="pool-slide absolute top-4 -translate-x-1/2 -translate-y-1/2 text-ink-strong"
+              style={{ left: cx(reveal.truth ?? 0), ["--pool-from" as string]: cx(reveal.naive ?? 0), ["--pool-to" as string]: cx(reveal.truth ?? 0) } as CSSProperties}>
+              <span className="block h-3 w-0.5 bg-current" />
+              <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">weighted</span>
+            </div>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
           {postReveal}
         </div>
       )}

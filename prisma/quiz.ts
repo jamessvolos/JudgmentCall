@@ -7,7 +7,7 @@
 import type { PrismaClient } from "@prisma/client";
 
 export type QuizChoice = { text: string; correct: boolean; rationale: string };
-export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline";
+export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool";
 export type QuizSeed = {
   track: "statistics" | "architecture" | "economics";
   title: string; // stable natural key for idempotent sync
@@ -879,6 +879,72 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     ],
     "payload": null,
     "explanation": "Whenever you select the extreme (best rookie season), the next measurement tends to move back toward average because the extreme was partly luck. No motivational story required."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-aggregation-05",
+    "topic": "aggregation",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "A drug beats placebo among mild patients and, separately, among severe patients — but in the combined data the drug looks worse than placebo overall.",
+    "prompt": "What's the safest conclusion?",
+    "choices": [
+      {
+        "text": "Report the stratified (subgroup) effects — the pooled comparison is confounded by which arm got the sicker patients.",
+        "correct": true,
+        "rationale": "When subgroup sizes correlate with severity, the pool is a confounded weighted average; the stratified effect is the honest one."
+      },
+      {
+        "text": "The drug doesn't work — the overall number is what matters.",
+        "correct": false,
+        "rationale": "The pooled number is confounded by case mix; it can reverse the true within-group effect."
+      },
+      {
+        "text": "The subgroup results must be a calculation error, since they contradict the total.",
+        "correct": false,
+        "rationale": "They don't contradict it — Simpson's paradox means a consistent subgroup effect can genuinely reverse when pooled."
+      },
+      {
+        "text": "Average the two subgroup rates to get the real effect.",
+        "correct": false,
+        "rationale": "An unweighted average ignores group sizes; you must weight by n, or better, keep the strata separate."
+      }
+    ],
+    "payload": null,
+    "explanation": "Simpson's paradox: an effect present in every subgroup can flip in the aggregate when group sizes are confounded with the outcome. Stratify — trust the within-group comparison, not the pooled one, unless you've adjusted for the confounder."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-aggregation-06",
+    "topic": "aggregation",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "Two subgroups have success rates of 90% (on 100 cases) and 60% (on 900 cases).",
+    "prompt": "What is the overall (pooled) success rate?",
+    "choices": [
+      {
+        "text": "63% — weight by the group sizes: (90·100 + 60·900) / 1000.",
+        "correct": true,
+        "rationale": "The pooled rate is the size-weighted average: (9000 + 54000)/1000 = 63%."
+      },
+      {
+        "text": "75% — the average of 90% and 60%.",
+        "correct": false,
+        "rationale": "That unweighted average ignores that the 60% group is 9× larger; it pulls the pool toward 60%."
+      },
+      {
+        "text": "60% — the larger group decides it entirely.",
+        "correct": false,
+        "rationale": "The small group still counts; the answer is between, but close to 60% because of the weighting."
+      },
+      {
+        "text": "Can't tell without more information.",
+        "correct": false,
+        "rationale": "You have the rates and the sizes, which is exactly what a weighted average needs."
+      }
+    ],
+    "payload": null,
+    "explanation": "A pooled rate is Σ(nᵢ·rateᵢ)/Σnᵢ, not the simple mean of the rates. With a 9×-larger 60% group, the pool (63%) sits far from the midpoint (75%). Ignoring the weights is the single most common aggregation error."
   },
   {
     "track": "architecture",
@@ -4638,6 +4704,288 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "tol": 6
     },
     "explanation": "ρ* = 1 − ln(100)/(5000·0.005) ≈ 82%. The SLA is 25× the mean service time, so it tolerates fairly high load — but the last ~17 points to '99% full' are still off-limits. Fast service earns headroom; it never earns the whole tank."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-pool-01",
+    "topic": "aggregation",
+    "kind": "pool",
+    "difficulty": 2,
+    "scenario": "A classic kidney-stone study compares two treatments. Treatment A cured 93% of small stones and 73% of large stones; Treatment B cured 87% of small and 69% of large. A wins on both stone sizes — but the two treatments were used on very different caseloads.",
+    "prompt": "Predict Treatment A's OVERALL (pooled) cure rate across all its patients.",
+    "choices": [],
+    "payload": {
+      "arms": [
+        "Treatment A",
+        "Treatment B"
+      ],
+      "subgroups": [
+        {
+          "label": "Small stones",
+          "T": {
+            "rate": 93,
+            "n": 87
+          },
+          "C": {
+            "rate": 87,
+            "n": 270
+          }
+        },
+        {
+          "label": "Large stones",
+          "T": {
+            "rate": 73,
+            "n": 263
+          },
+          "C": {
+            "rate": 69,
+            "n": 80
+          }
+        }
+      ],
+      "unit": "%",
+      "min": 60,
+      "max": 95,
+      "truth": 78,
+      "naive": 83,
+      "tol": 2.5
+    },
+    "explanation": "A leads on both stone sizes, yet its pooled rate (~78%) trails B's (~83%). The reason: A was given mostly the hard large-stone cases (263 of 350), while B handled mostly easy small stones. The pooled number is a size-weighted average, so A's heavy load of hard cases drags it down. The unweighted mean of 93 and 73 (=83) ignores that weighting — that's the trap. Always ask what the groups were weighted by before trusting a total."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-pool-02",
+    "topic": "aggregation",
+    "kind": "pool",
+    "difficulty": 2,
+    "scenario": "A university is accused of bias. Women were admitted at a higher rate than men in the easy-admit department (82% vs 62%) AND in the hard-admit department (34% vs 24%). Women lead in both departments — but they applied in very different numbers to each.",
+    "prompt": "Predict women's OVERALL (pooled) admission rate across both departments.",
+    "choices": [],
+    "payload": {
+      "arms": [
+        "Women",
+        "Men"
+      ],
+      "subgroups": [
+        {
+          "label": "Easy dept",
+          "T": {
+            "rate": 82,
+            "n": 100
+          },
+          "C": {
+            "rate": 62,
+            "n": 800
+          }
+        },
+        {
+          "label": "Hard dept",
+          "T": {
+            "rate": 34,
+            "n": 900
+          },
+          "C": {
+            "rate": 24,
+            "n": 200
+          }
+        }
+      ],
+      "unit": "%",
+      "min": 25,
+      "max": 70,
+      "truth": 38.8,
+      "naive": 58,
+      "tol": 2.5
+    },
+    "explanation": "Women were admitted at a higher rate in EVERY department, yet their pooled rate (~39%) is far below men's (~54%). Women applied overwhelmingly to the hard-admit department (900 of 1000), where everyone's odds are low; men clustered in the easy one. The confounder is the department, not the gender — this is the Berkeley 1973 paradox. Stratify before you accuse."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-pool-03",
+    "topic": "aggregation",
+    "kind": "pool",
+    "difficulty": 3,
+    "scenario": "Two hitters over two seasons. Player A had the higher hit rate in Year 1 (40% vs 35%) and again in Year 2 (25% vs 20%). A beat B both years — but they had very different numbers of at-bats each season.",
+    "prompt": "Predict Player A's OVERALL (pooled) hit rate across both seasons.",
+    "choices": [],
+    "payload": {
+      "arms": [
+        "Player A",
+        "Player B"
+      ],
+      "subgroups": [
+        {
+          "label": "Year 1",
+          "T": {
+            "rate": 40,
+            "n": 100
+          },
+          "C": {
+            "rate": 35,
+            "n": 400
+          }
+        },
+        {
+          "label": "Year 2",
+          "T": {
+            "rate": 25,
+            "n": 400
+          },
+          "C": {
+            "rate": 20,
+            "n": 100
+          }
+        }
+      ],
+      "unit": "%",
+      "min": 15,
+      "max": 45,
+      "truth": 28,
+      "naive": 32.5,
+      "tol": 2.5
+    },
+    "explanation": "A hit better in both seasons, yet A's career rate (~28%) trails B's (~32%). A got most of his at-bats in his worse Year 2 (400 of 500); B got most of hers in her better Year 1. This is the real Simpson's paradox behind famous baseball averages — the pooled rate weights by at-bats, so who batted more in which year decides the total."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-pool-04",
+    "topic": "aggregation",
+    "kind": "pool",
+    "difficulty": 3,
+    "scenario": "Hospital A has a higher recovery rate than Hospital B among mild-condition patients (96% vs 94%) AND among severe-condition patients (80% vs 78%). A is better for both severities — but A is a specialist center that takes far more severe cases.",
+    "prompt": "Predict Hospital A's OVERALL (pooled) recovery rate across all its patients.",
+    "choices": [],
+    "payload": {
+      "arms": [
+        "Hospital A",
+        "Hospital B"
+      ],
+      "subgroups": [
+        {
+          "label": "Mild",
+          "T": {
+            "rate": 96,
+            "n": 100
+          },
+          "C": {
+            "rate": 94,
+            "n": 600
+          }
+        },
+        {
+          "label": "Severe",
+          "T": {
+            "rate": 80,
+            "n": 400
+          },
+          "C": {
+            "rate": 78,
+            "n": 100
+          }
+        }
+      ],
+      "unit": "%",
+      "min": 70,
+      "max": 98,
+      "truth": 83.2,
+      "naive": 88,
+      "tol": 2.5
+    },
+    "explanation": "A recovers more patients at each severity, yet its pooled rate (~83%) looks worse than B's (~92%). A treats mostly severe cases (400 of 500), where recovery is lower for everyone; B sees mostly mild ones. Ranking hospitals on raw pooled recovery punishes the ones that take the hardest patients — a live danger in public report cards."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-pool-05",
+    "topic": "aggregation",
+    "kind": "pool",
+    "difficulty": 3,
+    "scenario": "Ad Campaign A had a higher click-through rate than Campaign B on mobile (8% vs 6%) AND on desktop (3% vs 2%). A wins on both platforms — but the two campaigns split their spend across platforms very differently.",
+    "prompt": "Predict Campaign A's OVERALL (pooled) click-through rate across both platforms.",
+    "choices": [],
+    "payload": {
+      "arms": [
+        "Campaign A",
+        "Campaign B"
+      ],
+      "subgroups": [
+        {
+          "label": "Mobile",
+          "T": {
+            "rate": 8,
+            "n": 100
+          },
+          "C": {
+            "rate": 6,
+            "n": 900
+          }
+        },
+        {
+          "label": "Desktop",
+          "T": {
+            "rate": 3,
+            "n": 900
+          },
+          "C": {
+            "rate": 2,
+            "n": 100
+          }
+        }
+      ],
+      "unit": "%",
+      "min": 1,
+      "max": 10,
+      "truth": 3.5,
+      "naive": 5.5,
+      "tol": 0.6
+    },
+    "explanation": "A beats B on each platform yet its blended CTR (~3.5%) trails B's (~5.6%). A served 90% of its impressions on low-CTR desktop; B ran mostly on high-CTR mobile. The blended number weights by impressions, so where you spent decides the headline — the reason A/B 'winners' can flip when you pool across segments."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-pool-06",
+    "topic": "aggregation",
+    "kind": "pool",
+    "difficulty": 2,
+    "scenario": "Program A graduates a higher share of in-state students than Program B (90% vs 85%) AND a higher share of out-of-state students (60% vs 55%). A is better for both groups — but the two programs enroll very different mixes.",
+    "prompt": "Predict Program A's OVERALL (pooled) graduation rate across all its students.",
+    "choices": [],
+    "payload": {
+      "arms": [
+        "Program A",
+        "Program B"
+      ],
+      "subgroups": [
+        {
+          "label": "In-state",
+          "T": {
+            "rate": 90,
+            "n": 200
+          },
+          "C": {
+            "rate": 85,
+            "n": 800
+          }
+        },
+        {
+          "label": "Out-of-state",
+          "T": {
+            "rate": 60,
+            "n": 800
+          },
+          "C": {
+            "rate": 55,
+            "n": 200
+          }
+        }
+      ],
+      "unit": "%",
+      "min": 50,
+      "max": 90,
+      "truth": 66,
+      "naive": 75,
+      "tol": 2.5
+    },
+    "explanation": "A graduates more of each group, yet its overall rate (~66%) trails B's (~79%). A enrolls mostly out-of-state students (800 of 1000), who graduate at lower rates everywhere; B enrolls mostly in-state. The pooled rate is weighted by enrollment mix, so comparing raw totals mistakes the student mix for program quality."
   }
 ];
 

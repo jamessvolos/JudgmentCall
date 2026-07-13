@@ -63,6 +63,12 @@ type RedlinePayload = {
   mu: number; slaMs: number; percentile: number;
   min: number; max: number; truth: number; naive: number; tol: number;
 };
+type PoolArm = { rate: number; n: number };
+type PoolPayload = {
+  arms: [string, string]; unit: string; min: number; max: number;
+  subgroups: { label: string; T: PoolArm; C: PoolArm }[];
+  truth: number; naive: number; tol: number;
+};
 
 // GET /api/train?sessionId=...&track=...&topic=... — next item + The Record.
 async function getHandler(request: Request) {
@@ -125,6 +131,11 @@ async function getHandler(request: Request) {
     // send the queue's service rate + SLA (the scenario) + slider frame — never
     // the knee (truth) or the naive value. The p99 curve is a REVEAL.
     item = { ...base, redline: { mu: p.mu, slaMs: p.slaMs, percentile: p.percentile, min: p.min, max: p.max } };
+  } else if (it.kind === "pool") {
+    const p = JSON.parse(it.payload ?? "{}") as PoolPayload;
+    // send the full subgroup table (rates + sizes) — the learner needs it to
+    // reason — but never the pooled truth or the unweighted-average trap value.
+    item = { ...base, pool: { arms: p.arms, unit: p.unit, min: p.min, max: p.max, subgroups: p.subgroups } };
   } else {
     const choices = parseChoices(it.choices).map((c, i) => ({ i, text: c.text }));
     item = { ...base, choices: shuffled(choices) };
@@ -251,6 +262,21 @@ async function postHandler(request: Request) {
     reveal = {
       truth: p.truth, naive: p.naive, yourValue: value, naiveTrap, tol: p.tol,
       mu: p.mu, slaMs: p.slaMs, percentile: p.percentile,
+      explanation: item.explanation,
+    };
+  } else if (item.kind === "pool") {
+    const p = JSON.parse(item.payload ?? "{}") as PoolPayload;
+    const value = Number(body?.value);
+    if (!Number.isFinite(value)) return NextResponse.json({ error: "invalid value" }, { status: 400 });
+    correct = Math.abs(value - p.truth) <= p.tol;
+    // naive_trap: landed on the unweighted average of the subgroup rates
+    const naiveTrap = !correct && Math.abs(value - p.naive) <= p.tol;
+    const wsum = (arm: "T" | "C") => p.subgroups.reduce((s, g) => s + g[arm].rate * g[arm].n, 0);
+    const nsum = (arm: "T" | "C") => p.subgroups.reduce((s, g) => s + g[arm].n, 0);
+    const pooledC = Math.round((wsum("C") / nsum("C")) * 10) / 10;
+    reveal = {
+      truth: p.truth, naive: p.naive, yourValue: value, naiveTrap, tol: p.tol,
+      arms: p.arms, unit: p.unit, subgroups: p.subgroups, pooledC,
       explanation: item.explanation,
     };
   } else {

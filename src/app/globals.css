@@ -440,7 +440,19 @@ body:has(main[data-embed]) footer {
   }
 }
 
+/* POOL reveal — the pooled dot slides from the naive (unweighted) average to
+   its true size-weighted position, so you watch the big subgroup drag the
+   aggregate across the reversal line. */
+@keyframes pool-slide {
+  from { left: var(--pool-from); }
+  to { left: var(--pool-to); }
+}
+.pool-slide {
+  animation: pool-slide 800ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .pool-slide,
   .pair-in,
   .poster-in,
   .stamp-in,
