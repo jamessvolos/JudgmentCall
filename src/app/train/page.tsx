@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 export const metadata: Metadata = {
   title: "Training Rooms · Judgment Call",
   description:
-    "Sharpen your judgment across three rooms: spot the overreach, read the statistics, weigh the architecture. Levels, badges, instant feedback.",
+    "How well-calibrated are you? Answer, stake how sure you are, and see whether your confidence matches your accuracy — across statistics, data architecture, and spotting the overreach. ~2 min.",
 };
 
 // The Training Rooms hub — the doorway to all three skills studios. Each room is
@@ -22,18 +22,17 @@ export default function TrainHub() {
         </div>
         <div className="double-rule mt-3" aria-hidden />
 
-        <p className="mx-auto mt-6 max-w-md text-center text-sm leading-relaxed text-muted">
-          Three studios for the judgment behind a good data story. Each keeps its own rating ladder and
-          badges — and every stamp is recomputed from your calls, never granted.
+        <p className="mx-auto mt-6 max-w-lg text-center text-[0.95rem] leading-relaxed text-foreground">
+          <span className="font-semibold text-ink-strong">How well-calibrated are you?</span> Being right
+          matters less than knowing <em>when</em> you&apos;re right. Answer a scenario, stake how sure you
+          are, and each room draws the gap between your confidence and your accuracy.
+        </p>
+        <p className="mx-auto mt-2 max-w-md text-center text-sm leading-relaxed text-muted">
+          Every rating and badge is recomputed from your calls, never granted — your calibration can go
+          down if your confidence outruns your accuracy.
         </p>
 
         <div className="mt-8 space-y-3">
-          <RoomCard
-            href="/drill"
-            kicker="THE ORIGINAL ROOM"
-            title="Spot the overreach"
-            blurb="Catch the telling that outruns its data — the five overclaim moves and five craft flaws. Five modes, case files, a checkpoint exam."
-          />
           {TRACK_IDS.map((id) => {
             const t = TRACKS[id];
             return (
@@ -46,6 +45,12 @@ export default function TrainHub() {
               />
             );
           })}
+          <RoomCard
+            href="/drill"
+            kicker="THE ORIGINAL ROOM"
+            title="Spot the overreach"
+            blurb="Catch the telling that outruns its data — the five overclaim moves and five craft flaws. Five modes, case files, a checkpoint exam."
+          />
         </div>
 
         <div className="mt-10 text-center">

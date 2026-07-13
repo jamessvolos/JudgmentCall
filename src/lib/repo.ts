@@ -30,6 +30,7 @@ import {
 import type { Finding, Variant, Comparison, Session, DrillItem, QuizItem } from "@prisma/client";
 import {
   getTrack,
+  TRACK_IDS as TRACK_LIST,
   liveRating as foldLiveRating,
   levelStanding,
   badgeConferrals,
@@ -1238,6 +1239,12 @@ export async function logShare(sessionId: string): Promise<void> {
   await prisma.xpEvent.create({ data: { sessionId, kind: "share", amount: 0 } });
 }
 
+/** Log a Calibration Credential publish. Amount 0 (measured, never rewarded);
+ * the track rides in `detail` so the launch funnel can split by room. */
+export async function logCredential(sessionId: string, track: string): Promise<void> {
+  await prisma.xpEvent.create({ data: { sessionId, kind: "credential", amount: 0, detail: track } });
+}
+
 export type Funnel = {
   sessions: number;
   voted: number; // >=1 vote
@@ -1276,6 +1283,58 @@ export async function getFunnel(): Promise<Funnel> {
     topReferrers: refs.map((r) => ({ referrer: r.referrer!, sessions: r._count._all })),
     topUtm: utms.map((u) => ({ utmSource: u.utmSource!, sessions: u._count._all })),
   };
+}
+
+// The Training-Rooms funnel — a launch dashboard for circulation, the real
+// bottleneck (calibration scores need n≥30 staked; the "The Room" verdicts on
+// duels/bake-offs need n≥5). Every number is a pure fold over QuizAttempt +
+// the credential XpEvents; no new state to keep in sync.
+export type TrackFunnel = {
+  track: string;
+  engaged: number; // distinct sessions with ≥1 attempt in the room
+  attempts: number; // total calls logged
+  staked: number; // calls carrying a conviction (mcq/duel/bake-off/flood)
+  stakedSessions: number; // distinct sessions that staked ≥1
+  scoreEligible: number; // sessions past the n≥30 staked calibration-score gate
+  credentials: number; // distinct sessions that published a credential for this room
+  roomReady: number; // duel+bake-off items that have reached the n≥5 crowd gate
+  roomItems: number; // duel+bake-off items in the pool
+};
+export type TrainFunnel = { tracks: TrackFunnel[]; credentialSessions: number };
+
+const CALIBRATION_SCORE_MIN_N = 30; // mirror of SCORE_MIN_N in train-tracks
+const ROOM_MIN_N = 5; // mirror of the duel/bake-off crowd gate
+
+export async function getTrainFunnel(): Promise<TrainFunnel> {
+  const [engagedGroups, stakedGroups, roomItems, credEvents] = await Promise.all([
+    prisma.quizAttempt.groupBy({ by: ["track", "sessionId"], _count: { _all: true } }),
+    prisma.quizAttempt.groupBy({ by: ["track", "sessionId"], where: { confidence: { not: null } }, _count: { _all: true } }),
+    prisma.quizItem.findMany({ where: { kind: { in: ["duel", "bakeoff"] } }, select: { id: true, track: true } }),
+    prisma.xpEvent.findMany({ where: { kind: "credential" }, select: { sessionId: true, detail: true } }),
+  ]);
+  const roomCounts = roomItems.length
+    ? await prisma.quizAttempt.groupBy({ by: ["quizItemId"], where: { quizItemId: { in: roomItems.map((i) => i.id) } }, _count: { _all: true } })
+    : [];
+  const countByItem = new Map(roomCounts.map((r) => [r.quizItemId, r._count._all]));
+
+  const tracks: TrackFunnel[] = TRACK_LIST.map((track) => {
+    const eng = engagedGroups.filter((g) => g.track === track);
+    const stk = stakedGroups.filter((g) => g.track === track);
+    const items = roomItems.filter((i) => i.track === track);
+    const creds = new Set(credEvents.filter((e) => e.detail === track).map((e) => e.sessionId));
+    return {
+      track,
+      engaged: eng.length,
+      attempts: eng.reduce((s, g) => s + g._count._all, 0),
+      staked: stk.reduce((s, g) => s + g._count._all, 0),
+      stakedSessions: stk.length,
+      scoreEligible: stk.filter((g) => g._count._all >= CALIBRATION_SCORE_MIN_N).length,
+      credentials: creds.size,
+      roomReady: items.filter((i) => (countByItem.get(i.id) ?? 0) >= ROOM_MIN_N).length,
+      roomItems: items.length,
+    };
+  });
+  return { tracks, credentialSessions: new Set(credEvents.map((e) => e.sessionId)).size };
 }
 
 // ---------------------------------------------------------------------------

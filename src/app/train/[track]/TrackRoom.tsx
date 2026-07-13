@@ -438,6 +438,19 @@ function CalibrationCard({ cal, coverage }: { cal: CalibrationDto; coverage: Cov
         : cal.tendency === "sharp"
           ? "Sharp — your confidence tracks your accuracy."
           : "Stake conviction on a few more calls to read your calibration.";
+  // Cold start: a fresh room has no staked calls, so the diagram would be an
+  // empty box. Show an inviting placeholder that says what will appear instead.
+  if (cal.n === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-card-border bg-card px-4 py-5 text-center">
+        <p className="kicker text-muted">Calibration — is your confidence honest?</p>
+        <p className="mt-3 text-sm leading-relaxed text-foreground">
+          Your reliability curve is drawn here — how sure you said vs. how often you were right — the moment you stake conviction on your first call.
+        </p>
+        <p className="mt-2 font-mono text-[0.65rem] text-muted/70">Most people find they lean overconfident. Start a run to find out where you land.</p>
+      </div>
+    );
+  }
   return (
     <div className="rounded-lg border border-card-border bg-card px-4 py-4">
       <div className="flex items-baseline justify-between">
@@ -487,10 +500,11 @@ function CalibrationCard({ cal, coverage }: { cal: CalibrationDto; coverage: Cov
 }
 
 // ============================================================ Credential share
-// Publish a ledger-derived calibration credential and copy its link. Reuses the
-// session's public slug (mint-once, idempotent) so the taste poster and the
-// credential share one opaque id. The URL is built client-side from the slug +
-// this track; the page/OG fold the standing fresh on each view.
+// Publish a ledger-derived calibration credential and copy its link. Mints the
+// session's public slug (mint-once, idempotent, shared with the taste poster)
+// and logs a track-tagged credential event for the launch funnel. The URL is
+// built client-side from the slug + this track; the page/OG fold the standing
+// fresh on each view.
 function CredentialShare({ trackId }: { trackId: TrackId }) {
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -500,10 +514,10 @@ function CredentialShare({ trackId }: { trackId: TrackId }) {
     setBusy(true);
     try {
       const sid = getOrCreateSessionId();
-      const res = await fetch("/api/profile", {
+      const res = await fetch("/api/train/credential", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: sid }),
+        body: JSON.stringify({ sessionId: sid, track: trackId }),
       });
       if (!res.ok) throw new Error("publish failed");
       const data: { slug: string } = await res.json();
@@ -1049,8 +1063,10 @@ function DuelCall({ item, reveal, submitting, onSubmit, postReveal }: {
             {reveal.room && (
               reveal.room.total >= 5 ? (
                 <VerdictRow label="The Room" value={`${Math.round((reveal.room.a / reveal.room.total) * 100)}% A · ${Math.round((reveal.room.b / reveal.room.total) * 100)}% B (${reveal.room.total})`} tone="muted" />
+              ) : reveal.room.total <= 1 ? (
+                <VerdictRow label="The Room" value="you're the first to call this — the crowd tally opens at five" tone="accent" />
               ) : (
-                <VerdictRow label="The Room" value={`still gathering — you're among the first ${reveal.room.total}`} tone="muted" />
+                <VerdictRow label="The Room" value={`vote ${reveal.room.total} of 5 — the crowd tally opens at five`} tone="muted" />
               )
             )}
             <VerdictRow label="The Desk" value={`Design ${reveal.better} — ${reveal.failureMode}`} tone="ink" />

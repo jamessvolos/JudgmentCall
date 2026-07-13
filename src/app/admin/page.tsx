@@ -3,7 +3,8 @@ import { revalidatePath } from "next/cache";
 import { computeCoverageGrid, computeOverclaim, computeAnalytics, MIN_N } from "@/lib/analytics";
 import { audit, isAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
-import { getFunnel, getServingConfig, getVotesPerDay, setServingConfig } from "@/lib/repo";
+import { getFunnel, getServingConfig, getVotesPerDay, setServingConfig, getTrainFunnel } from "@/lib/repo";
+import { TRACKS } from "@/lib/train-tracks";
 import { SEGMENTS } from "@/lib/types";
 import { AdminNav } from "@/components/AdminNav";
 
@@ -26,13 +27,14 @@ export default async function AdminPage({
   const { key } = await searchParams;
   if (!(await isAdmin(key))) notFound();
 
-  const [o, a, grid, series, policy, funnel, pendingCount, weekVotes, lowJudges] = await Promise.all([
+  const [o, a, grid, series, policy, funnel, trainFunnel, pendingCount, weekVotes, lowJudges] = await Promise.all([
     computeOverclaim(),
     computeAnalytics(),
     computeCoverageGrid(),
     getVotesPerDay(14),
     getServingConfig(),
     getFunnel(),
+    getTrainFunnel(),
     prisma.variant.count({ where: { status: "pending" } }),
     prisma.comparison.count({
       where: { createdAt: { gte: weekAgo() }, deckId: null },
@@ -127,6 +129,52 @@ export default async function AdminPage({
                 `utm: ${funnel.topUtm.map((u) => `${u.utmSource} (${u.sessions})`).join(" · ")}`}
             </p>
           )}
+        </section>
+
+        {/* Training-Rooms funnel — circulation is the real bottleneck: a
+            calibration score needs n≥30 staked calls; "The Room" verdicts need
+            n≥5. This tracks the path to those thresholds, per room. */}
+        <section className="mt-6 rounded-card border border-card-border bg-card p-5">
+          <h2 className="kicker text-muted">Training Rooms — circulation</h2>
+          <p className="mt-2 text-xs text-muted">
+            Credentials published (all rooms): <strong className="tabular-nums">{trainFunnel.credentialSessions}</strong>
+          </p>
+          <div className="mt-3 space-y-4">
+            {trainFunnel.tracks.map((t) => {
+              const room = TRACKS[t.track as keyof typeof TRACKS];
+              const steps = [
+                { label: "entered", value: t.engaged },
+                { label: "staked", value: t.stakedSessions },
+                { label: "n≥30", value: t.scoreEligible },
+                { label: "credential", value: t.credentials },
+              ];
+              return (
+                <div key={t.track}>
+                  <div className="flex items-baseline justify-between">
+                    <p className="font-mono text-xs uppercase tracking-[0.14em] text-ink-strong">{room?.name ?? t.track}</p>
+                    <p className="font-mono text-[10px] text-muted tabular-nums">
+                      {t.attempts} calls · {t.staked} staked · The Room {t.roomReady}/{t.roomItems} live (n≥5)
+                    </p>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2 font-mono text-sm tabular-nums">
+                    {steps.map((step, i, arr) => (
+                      <span key={step.label} className="flex items-center gap-2">
+                        <span className="text-center">
+                          <span className="block text-lg font-semibold">{step.value}</span>
+                          <span className="block text-[10px] text-muted uppercase tracking-[0.12em]">{step.label}</span>
+                        </span>
+                        {i < arr.length - 1 && (
+                          <span className="text-muted text-xs" aria-hidden>
+                            → {arr[i].value > 0 ? `${Math.round((arr[i + 1].value / arr[i].value) * 100)}%` : "—"}
+                          </span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </section>
 
         <h1 className="mt-8 font-serif font-semibold text-ink-strong text-3xl tracking-tight">The overclaim experiment</h1>
