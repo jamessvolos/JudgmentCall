@@ -7,7 +7,7 @@
 import type { PrismaClient } from "@prisma/client";
 
 export type QuizChoice = { text: string; correct: boolean; rationale: string };
-export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff";
+export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood";
 export type QuizSeed = {
   track: "statistics" | "architecture";
   title: string; // stable natural key for idempotent sync
@@ -2593,6 +2593,114 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "explanation": "Time-bucket keys hot-spot on the current window, and range-partitioning the series id lets a few chatty series overheat one shard. Hashing the high-cardinality series id balances writes while keeping each series co-located, so a single-series time-range read still hits just one shard. The lost cross-series ordering is rarely needed here."
     },
     "explanation": "Time-bucket keys hot-spot on the current window, and range-partitioning the series id lets a few chatty series overheat one shard. Hashing the high-cardinality series id balances writes while keeping each series co-located, so a single-series time-range read still hits just one shard. The lost cross-series ordering is rarely needed here."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-flood-01",
+    "topic": "base_rates",
+    "kind": "flood",
+    "difficulty": 1,
+    "scenario": "A blood test screens for Wilson's iron-overload, a rare metabolic condition. In trials it catches 90% of people who truly have the condition, and it correctly clears 95% of healthy people.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip — P(has it | positive) = 50%.",
+    "choices": [],
+    "payload": {
+      "sensitivity": 90,
+      "specificity": 95,
+      "min": 0,
+      "max": 30,
+      "truth": 5.3
+    },
+    "explanation": "When a condition is rare, the huge pool of healthy people produces enough false positives to rival the small pool of true positives. The predictive value of a positive result depends on the base rate, not just on how accurate the test is. Only once prevalence climbs to about 5.3% do true positives finally equal false positives."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-flood-02",
+    "topic": "base_rates",
+    "kind": "flood",
+    "difficulty": 1,
+    "scenario": "A saliva test flags an early gum-disease marker. It detects the marker in 95% of people who genuinely have it, and it correctly returns a clean result for 90% of people who don't.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip — P(has it | positive) = 50%.",
+    "choices": [],
+    "payload": {
+      "sensitivity": 95,
+      "specificity": 90,
+      "min": 0,
+      "max": 40,
+      "truth": 9.5
+    },
+    "explanation": "A slightly lower specificity means more healthy people get flagged, so false positives pile up faster. Even a highly sensitive test can't overcome a low base rate on its own. Positive predictive value rises with prevalence, reaching a coin flip near 9.5%."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-flood-03",
+    "topic": "base_rates",
+    "kind": "flood",
+    "difficulty": 2,
+    "scenario": "A quick questionnaire screens for a stress-related sleep disorder. It correctly identifies 85% of people who actually have the disorder, and it correctly clears 80% of people who sleep fine.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip — P(has it | positive) = 50%.",
+    "choices": [],
+    "payload": {
+      "sensitivity": 85,
+      "specificity": 80,
+      "min": 0,
+      "max": 50,
+      "truth": 19
+    },
+    "explanation": "With only 80% specificity, one in five healthy people is falsely flagged, so false positives dominate at low prevalence. The base rate, not the test's accuracy alone, drives how much a positive result means. Here true and false positives balance out around 19% prevalence."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-flood-04",
+    "topic": "base_rates",
+    "kind": "flood",
+    "difficulty": 2,
+    "scenario": "An imaging scan looks for a benign-but-monitored thyroid nodule. It spots 80% of the nodules that are really present, and it correctly gives an all-clear to 92% of people without one.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip — P(has it | positive) = 50%.",
+    "choices": [],
+    "payload": {
+      "sensitivity": 80,
+      "specificity": 92,
+      "min": 0,
+      "max": 40,
+      "truth": 9.1
+    },
+    "explanation": "High specificity keeps false positives in check, but when the condition is uncommon they still outnumber true positives. A positive scan is only as informative as the base rate allows. The two flood levels meet near 9.1% prevalence."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-flood-05",
+    "topic": "base_rates",
+    "kind": "flood",
+    "difficulty": 3,
+    "scenario": "A next-generation assay screens for a rare inherited clotting variant. It picks up 99% of true carriers, and it correctly clears 97% of non-carriers.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip — P(has it | positive) = 50%.",
+    "choices": [],
+    "payload": {
+      "sensitivity": 99,
+      "specificity": 97,
+      "min": 0,
+      "max": 20,
+      "truth": 2.9
+    },
+    "explanation": "Even a near-perfect test is swamped by false positives when the condition is very rare, because a tiny error rate applied to many healthy people still adds up. Positive predictive value is governed by the base rate. Here a positive result becomes a genuine coin flip at just 2.9% prevalence."
+  },
+  {
+    "track": "statistics",
+    "title": "stats-flood-06",
+    "topic": "base_rates",
+    "kind": "flood",
+    "difficulty": 3,
+    "scenario": "A field survey tool screens for mild dehydration among endurance athletes. It correctly flags 75% of athletes who are truly dehydrated, and it correctly clears 70% of those who are well hydrated.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip — P(has it | positive) = 50%.",
+    "choices": [],
+    "payload": {
+      "sensitivity": 75,
+      "specificity": 70,
+      "min": 0,
+      "max": 60,
+      "truth": 28.6
+    },
+    "explanation": "A mediocre test with 30% false-positive rate needs a fairly common condition before a positive result is trustworthy. Because predictive value tracks the base rate, false positives dominate until prevalence is high. True and false positives only balance around 28.6% prevalence."
   }
 ];
 

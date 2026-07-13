@@ -113,9 +113,40 @@ career-switcher, and a calibration scientist). Their findings, prioritised:
   hot shard for each candidate. The invisible tradeoff (skew) made visible; the
   key never leaks its shard loads before you commit. 8 items.
 
-## v4 backlog
+## v4 — shipped
+
+Growth-and-depth batch, led by the insight that the real bottleneck is
+circulation (calibration scores need n≥30; the "The Room" verdicts need n≥5):
+
+- **Calibration-led launch copy (growth #1):** `docs/LAUNCH-COPY.md` rewritten to
+  lead with the self-knowledge hook ("find out how well-calibrated you are"),
+  six ready formats, the study demoted to a second act. Calibration converts
+  faster and shares better than the pairwise-study framing.
+- **The Calibration Credential (growth #2):** a shareable, ledger-derived card at
+  `/train/[track]/c/[slug]` with an OG-image twin — the score (or the n/30
+  provisional), the reliability curve, level, and the honesty badges, recomputed
+  from the record on every view. Publishes via the session's existing public
+  slug (mint-once, shared with the taste poster); a "Publish & copy link" action
+  on the dashboard. Craft-only by construction — reads calibration folds, never
+  the study — so it passes the blinding guard.
+- **The Descent (Halftone roguelike):** a push-your-luck run mode over the same
+  five call kinds. Each survived call adds a rising reward to the pot (depth d
+  pays d); one miss busts the whole unbanked pot; Bank to lock it in. Personal
+  best per track in localStorage. Client-side theatre — attempts still log to the
+  record and calibration exactly as a normal run. The five call components were
+  refactored to a `postReveal` slot so the reveal card is agnostic to the mode
+  driving it (standard Next vs. Bank/Deeper/Busted).
+- **Base-Rate Flood (Observable Field manipulable):** a fifth call kind — scrub a
+  disease's prevalence across a 1024-person grid until a positive result is a
+  coin flip (PPV = 50%), watching true- vs. false-positives light up live. The
+  target prevalence never crosses the wire before you commit; graded within a
+  fair tolerance of the PPV-50 point. 6 items; the PPV-50 arithmetic invariant is
+  locked by `quiz-content.test.ts`.
+
+## v5 backlog
 
 Brier decomposition *viz* with bootstrap bands; adaptive (equal-mass) ECE bins;
-the Descent roguelike (bank/push, Composure, boss, Daily Gauntlet + leaderboard);
-more Observable-Field manipulables (Base-Rate Flood, Simpson's Rotor); the
-verifiable credential OG card; Attack-Surface + Constraint-Flip architecture modes.
+the Descent's richer layer (Composure resource, a boss scenario, a Daily
+Gauntlet with a shared seed + leaderboard); more Observable-Field manipulables
+(Simpson's Rotor, Regression Rink); Attack-Surface + Constraint-Flip
+architecture modes.

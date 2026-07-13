@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { getOrCreateSessionId, nowMs } from "@/lib/session-client";
 import { TRACKS, TRACK_IDS, topicOf, type TrackId, type Track } from "@/lib/train-tracks";
@@ -14,6 +14,12 @@ import { TRACKS, TRACK_IDS, topicOf, type TrackId, type Track } from "@/lib/trai
 
 const RUN_LENGTH = 8;
 
+// The Descent: a push-your-luck run over the same calls. Each survived call adds
+// a rising reward to the pot (depth 1 pays 1, depth 2 pays 2, …); a single miss
+// busts the whole unbanked pot. Bank to lock it in — the run ends either way.
+// Client-side theatre over calls that log to your record exactly as normal.
+const rewardAt = (depth: number) => depth;
+
 // ---- DTOs -------------------------------------------------------------------
 type ServedChoice = { i: number; text: string };
 type DuelDesign = { name: string; sketch: string; bullets: string[] };
@@ -23,7 +29,7 @@ type ItemDto = {
   id: string;
   track: string;
   topic: string;
-  kind: "mcq" | "estimate" | "duel" | "bakeoff";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood";
   difficulty: number;
   scenario: string;
   prompt: string;
@@ -31,6 +37,7 @@ type ItemDto = {
   estimate?: { unit: string; min: number; max: number };
   duel?: { constraint: string; designA: DuelDesign; designB: DuelDesign };
   bakeoff?: { keys: BakeKeyLite[] };
+  flood?: { sensitivity: number; specificity: number; min: number; max: number };
 };
 type LevelDto = { n: number; roman: string; title: string; floor: number | null; gate: string };
 type CalBinDto = { lo: number; hi: number; meanConf: number; accuracy: number; count: number };
@@ -66,7 +73,7 @@ type GetDto = { item: ItemDto | null; remaining: number; liveRating: number; cou
 type RevealChoice = { i: number; text: string; correct: boolean; rationale: string };
 type PostDto = {
   correct: boolean;
-  kind: "mcq" | "estimate" | "duel" | "bakeoff";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood";
   topic: string;
   confidence: number | null;
   // mcq
@@ -91,12 +98,17 @@ type PostDto = {
   keys?: BakeKeyFull[];
   best?: string;
   pickedKeyId?: string;
+  // flood
+  yourPrev?: number;
+  sensitivity?: number;
+  specificity?: number;
   liveRating: number;
   ratingDelta: number;
   count: number;
 };
 
-type Phase = "dashboard" | "run" | "recap";
+type Phase = "dashboard" | "run" | "recap" | "descent-recap";
+type RunMode = "standard" | "descent";
 const TIER_LABEL = (d: number) => (d >= 3 ? "SUBTLE" : d === 2 ? "MID" : "FOUNDATION");
 
 // conviction word for a chip value
@@ -132,6 +144,9 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
 
   const [runIndex, setRunIndex] = useState(0);
   const [runCorrect, setRunCorrect] = useState(0);
+  const [runMode, setRunMode] = useState<RunMode>("standard");
+  const [pot, setPot] = useState(0);
+  const [busted, setBusted] = useState(false);
   const [runStart, setRunStart] = useState<{ rating: number; levelN: number; badges: Set<string>; calScore: number | null; firstEver: boolean }>({
     rating: 1200,
     levelN: 1,
@@ -194,7 +209,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
   }, [trackId]);
 
   const startRun = useCallback(
-    async (topic?: string) => {
+    async (topic?: string, mode: RunMode = "standard") => {
       setError(null);
       try {
         const next = await fetchItem(topic);
@@ -210,6 +225,9 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
           firstEver: (standing?.count ?? 0) === 0,
         });
         setTopicFilter(topic);
+        setRunMode(mode);
+        setPot(0);
+        setBusted(false);
         setRunIndex(0);
         setRunCorrect(0);
         setPoolDry(false);
@@ -225,7 +243,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
   );
 
   const submit = useCallback(
-    async (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string }, confidence: number | null) => {
+    async (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string; prevalence?: number }, confidence: number | null) => {
       if (!item || submitting || reveal) return;
       setSubmitting(true);
       try {
@@ -246,20 +264,25 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
         const data: PostDto = await res.json();
         setReveal(data);
         setRating(data.liveRating);
-        if (data.correct) setRunCorrect((c) => c + 1);
+        if (data.correct) {
+          setRunCorrect((c) => c + 1);
+          if (runMode === "descent") setPot((p) => p + rewardAt(runIndex + 1));
+        } else if (runMode === "descent") {
+          setBusted(true);
+        }
       } catch {
         setError("Couldn't record that call. Try again.");
       } finally {
         setSubmitting(false);
       }
     },
-    [item, submitting, reveal, trackId]
+    [item, submitting, reveal, trackId, runMode, runIndex]
   );
 
   const next = useCallback(async () => {
     const answered = runIndex + 1;
     setRunIndex(answered);
-    if (answered >= RUN_LENGTH) {
+    if (runMode === "standard" && answered >= RUN_LENGTH) {
       await refresh();
       setPhase("recap");
       return;
@@ -269,7 +292,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
       if (!nx) {
         setPoolDry(true);
         await refresh();
-        setPhase("recap");
+        setPhase(runMode === "descent" ? "descent-recap" : "recap");
         return;
       }
       setReveal(null);
@@ -278,7 +301,14 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
     } catch {
       setError("Couldn't load the next call. Try again.");
     }
-  }, [runIndex, fetchItem, topicFilter, refresh]);
+  }, [runIndex, runMode, fetchItem, topicFilter, refresh]);
+
+  // Bank (or surface after a bust) — end the descent and show its recap. The
+  // pot is already final; the busted flag decides whether it survives.
+  const bank = useCallback(async () => {
+    await refresh();
+    setPhase("descent-recap");
+  }, [refresh]);
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-2xl px-5 py-10">
@@ -308,8 +338,21 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
           total={RUN_LENGTH}
           levelRoman={standing?.level.level.roman ?? "I"}
           firstEver={runStart.firstEver}
+          runMode={runMode}
+          pot={pot}
           onSubmit={submit}
           onNext={next}
+          onBank={bank}
+        />
+      ) : phase === "descent-recap" && standing ? (
+        <DescentRecap
+          trackId={trackId}
+          track={track}
+          busted={busted}
+          pot={pot}
+          depth={runIndex + 1}
+          onAgain={() => startRun(topicFilter, "descent")}
+          onHome={() => setPhase("dashboard")}
         />
       ) : phase === "recap" && standing ? (
         <Recap
@@ -443,9 +486,66 @@ function CalibrationCard({ cal, coverage }: { cal: CalibrationDto; coverage: Cov
   );
 }
 
+// ============================================================ Credential share
+// Publish a ledger-derived calibration credential and copy its link. Reuses the
+// session's public slug (mint-once, idempotent) so the taste poster and the
+// credential share one opaque id. The URL is built client-side from the slug +
+// this track; the page/OG fold the standing fresh on each view.
+function CredentialShare({ trackId }: { trackId: TrackId }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const publish = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const sid = getOrCreateSessionId();
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: sid }),
+      });
+      if (!res.ok) throw new Error("publish failed");
+      const data: { slug: string } = await res.json();
+      const link = `${window.location.origin}/train/${trackId}/c/${data.slug}`;
+      setUrl(link);
+      try {
+        await navigator.clipboard.writeText(link);
+        setCopied(true);
+      } catch {
+        /* clipboard blocked — the link is shown for manual copy */
+      }
+    } catch {
+      /* leave the button live so the reader can retry */
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, trackId]);
+
+  return (
+    <div className="rounded-lg border border-card-border bg-card px-4 py-4">
+      <p className="kicker text-muted">Your calibration credential</p>
+      <p className="mt-2 text-sm leading-relaxed text-muted">A shareable card — your score, your reliability curve, the honesty badges you hold. Recomputed from your record every time it&apos;s opened.</p>
+      {!url ? (
+        <button onClick={publish} disabled={busy} className="mt-3 w-full rounded-md border border-accent/50 bg-accent/5 px-4 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-accent transition-colors hover:border-accent disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+          {busy ? "Publishing…" : "Publish & copy link →"}
+        </button>
+      ) : (
+        <div className="mt-3">
+          <div className="flex items-center gap-2">
+            <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} className="min-w-0 flex-1 rounded-md border border-card-border bg-background/50 px-3 py-2 font-mono text-[0.7rem] text-foreground" aria-label="Your credential link" />
+            <a href={url} target="_blank" rel="noreferrer" className="shrink-0 rounded-md border border-card-border px-3 py-2 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-strong transition-colors hover:border-rule-strong">View</a>
+          </div>
+          <p className="mt-2 font-mono text-[0.65rem] text-accent">{copied ? "Copied to your clipboard — drop it anywhere; it unfurls with a card." : "Link ready — copy it and share."}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ============================================================ Dashboard
 function Dashboard({ track, standing, rating, otherId, onStart }: {
-  track: Track; standing: StandingDto; rating: number; otherId: TrackId; onStart: (topic?: string) => void;
+  track: Track; standing: StandingDto; rating: number; otherId: TrackId; onStart: (topic?: string, mode?: RunMode) => void;
 }) {
   const progressFor = (id: string) => standing.topics.find((t) => t.id === id);
   const otherTrack = TRACKS[otherId];
@@ -459,10 +559,23 @@ function Dashboard({ track, standing, rating, otherId, onStart }: {
       </button>
       <p className="mt-2 text-center font-mono text-[0.7rem] text-muted/70">On each call you stake how sure you are; calibration checks whether your sureness matches your accuracy.</p>
 
+      {/* The Descent — push-your-luck alt mode. Secondary so a first-timer takes
+          the measured run; the daredevil path is one tap away. */}
+      <button onClick={() => onStart(undefined, "descent")} className="mt-3 w-full rounded-lg border border-danger/40 bg-danger/5 px-5 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-danger transition-colors hover:border-danger/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger">
+        ↓ The Descent — bank or push, one miss busts the pot
+      </button>
+
       {/* calibration */}
       <div className="mt-8">
         <CalibrationCard cal={standing.calibration} coverage={standing.coverage} />
       </div>
+
+      {/* shareable credential — only once there's a record to show */}
+      {standing.count > 0 && (
+        <div className="mt-4">
+          <CredentialShare trackId={track.id} />
+        </div>
+      )}
 
       <p className="mx-auto mt-6 max-w-md text-center text-sm leading-relaxed text-muted">{track.blurb}</p>
 
@@ -552,18 +665,28 @@ function BadgeLedger({ badges }: { badges: StandingDto["badges"] }) {
 }
 
 // ============================================================ Run
-function Run({ track, item, reveal, submitting, rating, position, total, levelRoman, firstEver, onSubmit, onNext }: {
+function Run({ track, item, reveal, submitting, rating, position, total, levelRoman, firstEver, runMode, pot, onSubmit, onNext, onBank }: {
   track: Track; item: ItemDto; reveal: PostDto | null; submitting: boolean; rating: number;
   position: number; total: number; levelRoman: string; firstEver: boolean;
-  onSubmit: (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string }, confidence: number | null) => void;
-  onNext: () => void;
+  runMode: RunMode; pot: number;
+  onSubmit: (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string; prevalence?: number }, confidence: number | null) => void;
+  onNext: () => void; onBank: () => void;
 }) {
   const topic = topicOf(track, item.topic);
-  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : "CALL";
+  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : item.kind === "flood" ? "BASE-RATE" : "CALL";
   const [hintOpen, setHintOpen] = useState(true);
+  const descent = runMode === "descent";
+  // the post-reveal control: descent shows Bank/Deeper (or Surface on a bust);
+  // a standard run shows Next/Recap. Passed into each call so the reveal card is
+  // agnostic to the mode driving it.
+  const postReveal: ReactNode = reveal
+    ? descent
+      ? <DescentControls correct={reveal.correct} pot={pot} depth={position} nextReward={rewardAt(position + 1)} onBank={onBank} onDeeper={onNext} />
+      : <NextButton last={position >= total} onNext={onNext} />
+    : null;
   return (
     <div className="mt-6">
-      {firstEver && hintOpen && position === 1 && (
+      {firstEver && hintOpen && position === 1 && !descent && (
         <div className="rise mb-4 rounded-lg border border-accent/40 bg-accent/5 px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <p className="text-sm leading-relaxed text-foreground">
@@ -578,16 +701,59 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
       )}
       <div className="flex items-center justify-between font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted">
         <span>{topic.short} · <span className="text-muted/70">{kindLabel} · {TIER_LABEL(item.difficulty)}</span></span>
-        <span className="tabular-nums">Lv {levelRoman} · {rating} · {Math.min(position, total)}/{total}</span>
+        {descent ? (
+          <span className="tabular-nums text-danger">Depth {position} · pot {pot}</span>
+        ) : (
+          <span className="tabular-nums">Lv {levelRoman} · {rating} · {Math.min(position, total)}/{total}</span>
+        )}
       </div>
-      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-card-border" aria-hidden>
-        <div className="h-full rounded-full bg-rule-strong transition-[width] duration-300" style={{ width: `${(Math.min(position, total) / total) * 100}%` }} />
-      </div>
+      {descent ? (
+        <div className="mt-2 flex items-center gap-1" aria-hidden>
+          {Array.from({ length: Math.min(position, 12) }, (_, i) => (
+            <span key={i} className="h-1 flex-1 rounded-full bg-danger/60" />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-card-border" aria-hidden>
+          <div className="h-full rounded-full bg-rule-strong transition-[width] duration-300" style={{ width: `${(Math.min(position, total) / total) * 100}%` }} />
+        </div>
+      )}
 
-      {item.kind === "mcq" && <McqCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} onNext={onNext} last={position >= total} />}
-      {item.kind === "estimate" && <EstimateCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} onNext={onNext} last={position >= total} />}
-      {item.kind === "duel" && <DuelCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} onNext={onNext} last={position >= total} />}
-      {item.kind === "bakeoff" && <BakeoffCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} onNext={onNext} last={position >= total} />}
+      {item.kind === "mcq" && <McqCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
+      {item.kind === "estimate" && <EstimateCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
+      {item.kind === "duel" && <DuelCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
+      {item.kind === "bakeoff" && <BakeoffCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
+      {item.kind === "flood" && <FloodCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
+    </div>
+  );
+}
+
+// ---- Descent controls (post-reveal): bank the pot, or risk it one deeper ----
+function DescentControls({ correct, pot, depth, nextReward, onBank, onDeeper }: {
+  correct: boolean; pot: number; depth: number; nextReward: number; onBank: () => void; onDeeper: () => void;
+}) {
+  if (!correct) {
+    return (
+      <div className="mt-4 rounded-lg border border-danger/50 bg-danger/10 px-4 py-4 text-center">
+        <p className="font-mono text-sm font-semibold uppercase tracking-[0.14em] text-danger">Busted</p>
+        <p className="mt-1 font-mono text-[0.65rem] text-muted">You fell at depth {depth}. A miss takes the whole unbanked pot — that&apos;s the wager.</p>
+        <button onClick={onBank} className="mt-3 w-full rounded-md bg-foreground px-4 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+          Surface →
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-4">
+      <p className="text-center font-mono text-[0.7rem] text-muted">Bank {pot} now — or risk all {pot} one call deeper (it pays +{nextReward}).</p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <button onClick={onBank} className="rounded-md border border-accent/50 bg-accent/5 px-4 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-accent transition-colors hover:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+          Bank {pot} →
+        </button>
+        <button onClick={onDeeper} className="rounded-md bg-danger px-4 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger">
+          ↓ Deeper
+        </button>
+      </div>
     </div>
   );
 }
@@ -638,9 +804,9 @@ function NextButton({ last, onNext }: { last: boolean; onNext: () => void }) {
 }
 
 // ---- MCQ --------------------------------------------------------------------
-function McqCall({ item, reveal, submitting, onSubmit, onNext, last }: {
+function McqCall({ item, reveal, submitting, onSubmit, postReveal }: {
   item: ItemDto; reveal: PostDto | null; submitting: boolean;
-  onSubmit: (a: { pickedIndex: number }, c: number | null) => void; onNext: () => void; last: boolean;
+  onSubmit: (a: { pickedIndex: number }, c: number | null) => void; postReveal: ReactNode;
 }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [conviction, setConviction] = useState<number | null>(null);
@@ -683,7 +849,7 @@ function McqCall({ item, reveal, submitting, onSubmit, onNext, last }: {
           <RevealHeader correct={reveal.correct} delta={reveal.ratingDelta} rating={reveal.liveRating} />
           {reveal.confidence != null && <ConvictionEcho confidence={reveal.confidence} correct={reveal.correct} />}
           <p className="mt-2 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
-          <NextButton last={last} onNext={onNext} />
+          {postReveal}
         </div>
       )}
     </>
@@ -697,9 +863,9 @@ function ConvictionEcho({ confidence, correct }: { confidence: number; correct: 
 }
 
 // ---- ESTIMATE (drag a point + a 90% band on a number line) ------------------
-function EstimateCall({ item, reveal, submitting, onSubmit, onNext, last }: {
+function EstimateCall({ item, reveal, submitting, onSubmit, postReveal }: {
   item: ItemDto; reveal: PostDto | null; submitting: boolean;
-  onSubmit: (a: { point: number; lo: number; hi: number }, c: number | null) => void; onNext: () => void; last: boolean;
+  onSubmit: (a: { point: number; lo: number; hi: number }, c: number | null) => void; postReveal: ReactNode;
 }) {
   const est = item.estimate!;
   const span = est.max - est.min;
@@ -805,7 +971,7 @@ function EstimateCall({ item, reveal, submitting, onSubmit, onNext, last }: {
             {reveal.captured ? (reveal.notLazy ? "Captured the truth with a sharp band" : "Captured — but your band was lazily wide") : "The truth fell outside your interval"}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
-          <NextButton last={last} onNext={onNext} />
+          {postReveal}
         </div>
       )}
     </>
@@ -850,9 +1016,9 @@ function DuelDesignCard({ side, design, selected, reveal, submitting, onPick }: 
     </button>
   );
 }
-function DuelCall({ item, reveal, submitting, onSubmit, onNext, last }: {
+function DuelCall({ item, reveal, submitting, onSubmit, postReveal }: {
   item: ItemDto; reveal: PostDto | null; submitting: boolean;
-  onSubmit: (a: { pickedIndex: number }, c: number | null) => void; onNext: () => void; last: boolean;
+  onSubmit: (a: { pickedIndex: number }, c: number | null) => void; postReveal: ReactNode;
 }) {
   const d = item.duel!;
   const [selected, setSelected] = useState<number | null>(null);
@@ -895,7 +1061,7 @@ function DuelCall({ item, reveal, submitting, onSubmit, onNext, last }: {
               <span className="font-mono uppercase tracking-[0.12em] text-muted/70">Also defensible · </span>{reveal.alsoFits}
             </p>
           )}
-          <NextButton last={last} onNext={onNext} />
+          {postReveal}
         </div>
       )}
     </>
@@ -927,9 +1093,9 @@ function ShardHisto({ shards, globalMax, tone }: { shards: number[]; globalMax: 
     </svg>
   );
 }
-function BakeoffCall({ item, reveal, submitting, onSubmit, onNext, last }: {
+function BakeoffCall({ item, reveal, submitting, onSubmit, postReveal }: {
   item: ItemDto; reveal: PostDto | null; submitting: boolean;
-  onSubmit: (a: { keyId: string }, c: number | null) => void; onNext: () => void; last: boolean;
+  onSubmit: (a: { keyId: string }, c: number | null) => void; postReveal: ReactNode;
 }) {
   const keys = item.bakeoff!.keys;
   const [selected, setSelected] = useState<string | null>(null);
@@ -988,7 +1154,79 @@ function BakeoffCall({ item, reveal, submitting, onSubmit, onNext, last }: {
         <div className="verdict-card-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
           <RevealHeader correct={reveal.correct} delta={reveal.ratingDelta} rating={reveal.liveRating} />
           <p className="mt-2 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
-          <NextButton last={last} onNext={onNext} />
+          {postReveal}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ---- BASE-RATE FLOOD (scrub prevalence over 1024 people to PPV = 50%) -------
+function FloodCall({ item, reveal, submitting, onSubmit, postReveal }: {
+  item: ItemDto; reveal: PostDto | null; submitting: boolean;
+  onSubmit: (a: { prevalence: number }, c: null) => void; postReveal: ReactNode;
+}) {
+  const f = item.flood!;
+  const [prev, setPrev] = useState(Math.round(((f.min + f.max) / 2) * 10) / 10);
+  const shownPrev = reveal ? reveal.yourPrev! : prev;
+  const N = 1024, COLS = 32;
+  const p = shownPrev / 100;
+  const sick = Math.round(N * p);
+  const healthy = N - sick;
+  const tp = Math.round(sick * (f.sensitivity / 100));
+  const fp = Math.round(healthy * (1 - f.specificity / 100));
+  const ppv = tp + fp > 0 ? Math.round((tp / (tp + fp)) * 100) : 0;
+  // color the first tp cells accent (true positives), next fp cells danger
+  // (false positives), the rest faint (test-negatives) — the accent-vs-danger
+  // ratio among the lit cells IS the PPV, made visible.
+  const cellCls = (i: number) => (i < tp ? "fill-accent" : i < tp + fp ? "fill-danger" : "fill-card-border");
+  const S = 10, GAP = 1.5;
+  return (
+    <>
+      <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The screen</p>
+        <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
+      </div>
+      <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
+
+      <div className="mt-4 rounded-lg border border-card-border bg-card px-4 py-4">
+        <svg viewBox={`0 0 ${COLS * (S + GAP)} ${COLS * (S + GAP)}`} className="mx-auto block w-full max-w-[300px]" role="img" aria-label="A grid of 1024 people: true positives, false positives, and test-negatives at the chosen prevalence">
+          {Array.from({ length: N }, (_, i) => (
+            <rect key={i} x={(i % COLS) * (S + GAP)} y={Math.floor(i / COLS) * (S + GAP)} width={S} height={S} rx={1} className={cellCls(i)} />
+          ))}
+        </svg>
+        <div className="mt-3 flex items-center justify-center gap-4 font-mono text-[0.65rem]">
+          <span className="text-accent">■ has it & tests + ({tp})</span>
+          <span className="text-danger">■ healthy but tests + ({fp})</span>
+        </div>
+        <p className="mt-3 text-center font-mono text-sm tabular-nums text-ink-strong">
+          P(has it | positive) = <span className={Math.abs(ppv - 50) <= 6 ? "text-accent" : "text-foreground"}>{ppv}%</span>
+        </p>
+      </div>
+
+      {!reveal ? (
+        <>
+          <div className="mt-3">
+            <div className="flex items-baseline justify-between font-mono text-[0.7rem] text-muted">
+              <span>prevalence</span>
+              <span className="tabular-nums text-ink-strong">{prev}%</span>
+            </div>
+            <input type="range" min={f.min} max={f.max} step={0.1} value={prev} onChange={(e) => setPrev(Number(e.target.value))} aria-label="prevalence" className="mt-1 w-full accent-[var(--accent)]" />
+            <p className="mt-1 font-mono text-[0.6rem] text-muted/70">Drag until a positive result is a coin flip — P(has it | positive) = 50%.</p>
+          </div>
+          <button disabled={submitting} onClick={() => onSubmit({ prevalence: prev }, null)}
+            className="mt-4 w-full rounded-lg bg-accent px-5 py-3 text-center font-mono text-sm font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+            Lock in the prevalence →
+          </button>
+        </>
+      ) : (
+        <div className="verdict-card-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+          <RevealHeader correct={reveal.correct} delta={reveal.ratingDelta} rating={reveal.liveRating} />
+          <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted">
+            You said {reveal.yourPrev}% · PPV hits 50% at {reveal.truth}% prevalence
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
+          {postReveal}
         </div>
       )}
     </>
@@ -1036,6 +1274,63 @@ function Recap({ track, standing, runCorrect, runAnswered, ratingDelta, leveledU
 
       <div className="mt-8 space-y-2.5">
         <button onClick={onAgain} className="w-full rounded-lg bg-accent px-5 py-4 text-center font-mono text-sm font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Another run →</button>
+        <button onClick={onHome} className="w-full rounded-lg border border-card-border bg-card px-5 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-ink-strong transition-colors hover:border-rule-strong">Back to {track.name}</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================ Descent recap
+// A run ends by banking (pot survives) or busting (pot lost). The reached depth
+// and banked pot are the only score; personal best lives in localStorage per
+// track — no server truth to fold, so nothing here can lie either.
+function DescentRecap({ trackId, track, busted, pot, depth, onAgain, onHome }: {
+  trackId: TrackId; track: Track; busted: boolean; pot: number; depth: number; onAgain: () => void; onHome: () => void;
+}) {
+  const finalPot = busted ? 0 : pot;
+  const survived = busted ? depth - 1 : depth;
+  // Read (and, if beaten, write) the personal best in a lazy initializer — this
+  // recap only ever mounts client-side after a run, so localStorage is safe and
+  // no effect is needed. Runs once per mounted recap.
+  const [{ best, isBest }] = useState<{ best: number | null; isBest: boolean }>(() => {
+    try {
+      const key = `jc-descent-best-${trackId}`;
+      const prev = Number(localStorage.getItem(key) ?? "0");
+      if (finalPot > prev) {
+        localStorage.setItem(key, String(finalPot));
+        return { best: finalPot, isBest: finalPot > 0 };
+      }
+      return { best: prev, isBest: false };
+    } catch {
+      return { best: finalPot, isBest: false };
+    }
+  });
+  return (
+    <div className="rise mt-6">
+      <div className="text-center">
+        <p className="kicker text-muted">The Descent</p>
+        <p className={`mt-3 font-mono text-sm font-semibold uppercase tracking-[0.14em] ${busted ? "text-danger" : "text-accent"}`}>{busted ? "Busted out" : "Banked"}</p>
+        <p className="mt-3 font-mono text-[clamp(1.75rem,6vw,2.5rem)] font-semibold leading-none text-ink-strong tabular-nums">{finalPot}<span className="text-muted"> pts</span></p>
+        <p className="mt-2 font-mono text-xs uppercase tracking-[0.14em] text-muted">{busted ? `fell at depth ${depth}` : `banked at depth ${depth}`} · {survived} call{survived === 1 ? "" : "s"} survived</p>
+      </div>
+
+      {isBest ? (
+        <div className="mt-6 rounded-lg border border-accent/50 bg-accent/10 px-4 py-4 text-center">
+          <p className="font-mono text-xs uppercase tracking-[0.16em] text-accent">New personal best</p>
+          <p className="mt-1 text-sm text-ink-strong">Your deepest bank yet in this room — {finalPot} points.</p>
+        </div>
+      ) : best != null ? (
+        <p className="mt-6 text-center font-mono text-[0.7rem] text-muted">your best in this room: {best} pts</p>
+      ) : null}
+
+      <p className="mx-auto mt-6 max-w-md text-center text-sm leading-relaxed text-muted">
+        {busted
+          ? "One miss took the pot — that's the wager. The calls still counted toward your record and calibration; only the streak was lost."
+          : "You read the moment and cashed out. Every call still counted toward your record and calibration — the Descent just added stakes."}
+      </p>
+
+      <div className="mt-8 space-y-2.5">
+        <button onClick={onAgain} className="w-full rounded-lg bg-danger px-5 py-4 text-center font-mono text-sm font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger">↓ Descend again</button>
         <button onClick={onHome} className="w-full rounded-lg border border-card-border bg-card px-5 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-ink-strong transition-colors hover:border-rule-strong">Back to {track.name}</button>
       </div>
     </div>

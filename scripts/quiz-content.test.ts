@@ -23,7 +23,7 @@ for (const q of QUIZ_SEEDS) {
   if (!track) continue;
   ok(track.topics.some((t) => t.id === q.topic), `${label}: topic "${q.topic}" exists in ${q.track}`);
   ok([1, 2, 3].includes(q.difficulty), `${label}: difficulty in 1..3`);
-  ok(["mcq", "estimate", "duel", "bakeoff"].includes(q.kind), `${label}: kind is mcq|estimate|duel|bakeoff`);
+  ok(["mcq", "estimate", "duel", "bakeoff", "flood"].includes(q.kind), `${label}: kind is mcq|estimate|duel|bakeoff|flood`);
   ok(!!q.scenario.trim() && !!q.prompt.trim() && !!q.explanation.trim(), `${label}: scenario/prompt/explanation non-empty`);
   if (q.kind === "mcq") {
     ok(q.choices.filter((c) => c.correct).length === 1, `${label}: exactly one correct choice`);
@@ -45,6 +45,13 @@ for (const q of QUIZ_SEEDS) {
     const maxOf = (k: { shards: number[] }) => Math.max(...k.shards);
     const best = p.keys.find((k) => k.id === p.best)!;
     ok(!!best && p.keys.every((k) => k.id === p.best || maxOf(k) >= maxOf(best)), `${label}: best is the most balanced key`);
+  } else if (q.kind === "flood") {
+    const p = q.payload as { sensitivity: number; specificity: number; min: number; max: number; truth: number };
+    // truth is the prevalence at which PPV = 50%: p·sens = (1−p)·(1−spec).
+    const expected = Math.round(((100 - p.specificity) / (p.sensitivity + (100 - p.specificity))) * 100 * 10) / 10;
+    ok(!!p && Math.abs(expected - p.truth) <= 0.15, `${label}: flood truth is the PPV-50 prevalence`);
+    ok(p.min < p.truth && p.truth < p.max, `${label}: flood truth sits inside the slider range`);
+    ok(q.choices.length === 0, `${label}: flood carries no choices`);
   }
   if (titles.has(q.title)) dupTitles++;
   titles.add(q.title);

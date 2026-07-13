@@ -52,6 +52,7 @@ type DuelPayload = {
 };
 type BakeKey = { id: string; label: string; shards: number[]; note: string };
 type BakeoffPayload = { keys: BakeKey[]; best: string; explanation: string };
+type FloodPayload = { sensitivity: number; specificity: number; min: number; max: number; truth: number };
 
 // GET /api/train?sessionId=...&track=...&topic=... — next item + The Record.
 async function getHandler(request: Request) {
@@ -99,6 +100,10 @@ async function getHandler(request: Request) {
     // the notes, or which key balances. The learner predicts, then the reveal
     // shows the histograms.
     item = { ...base, bakeoff: { keys: shuffled(p.keys.map((k) => ({ id: k.id, label: k.label }))) } };
+  } else if (it.kind === "flood") {
+    const p = JSON.parse(it.payload ?? "{}") as FloodPayload;
+    // send the test's accuracy + slider frame — never the target prevalence
+    item = { ...base, flood: { sensitivity: p.sensitivity, specificity: p.specificity, min: p.min, max: p.max } };
   } else {
     const choices = parseChoices(it.choices).map((c, i) => ({ i, text: c.text }));
     item = { ...base, choices: shuffled(choices) };
@@ -191,6 +196,14 @@ async function postHandler(request: Request) {
       pickedKeyId: keyId,
       explanation: item.explanation,
     };
+  } else if (item.kind === "flood") {
+    const p = JSON.parse(item.payload ?? "{}") as FloodPayload;
+    const prevalence = Number(body?.prevalence);
+    if (!Number.isFinite(prevalence)) return NextResponse.json({ error: "invalid prevalence" }, { status: 400 });
+    // correct if you land within a fair tolerance of the PPV-50 prevalence
+    const tol = Math.max(2.5, 0.2 * p.truth);
+    correct = Math.abs(prevalence - p.truth) <= tol;
+    reveal = { truth: p.truth, yourPrev: prevalence, sensitivity: p.sensitivity, specificity: p.specificity, explanation: item.explanation };
   } else {
     const choices = parseChoices(item.choices);
     const pickedIndex = Number(body?.pickedIndex);
