@@ -24,9 +24,6 @@ export function SiteFooter() {
           <Link href="/results#desk-calls" className="hover:text-foreground hover:underline">
             The Desk&apos;s Calls
           </Link>
-          <Link href="/submit" className="hover:text-foreground hover:underline">
-            Bring your data
-          </Link>
           <Link href="/methods" className="hover:text-foreground hover:underline">
             Methods
           </Link>

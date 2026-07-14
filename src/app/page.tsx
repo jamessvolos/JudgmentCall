@@ -61,14 +61,6 @@ const SURFACES: {
     group: "study",
   },
   {
-    n: "05",
-    label: "Bring your data",
-    href: "/submit",
-    benefit: "Test your own story.",
-    mode: "Turn a finding into a head-to-head",
-    group: "study",
-  },
-  {
     n: "03",
     label: "The Training Rooms",
     href: "/train",
@@ -239,13 +231,13 @@ export default function Landing() {
              the returning path + the 90s hook); both fully present, both with a
              full CTA. Only the study glows — accent is earned by the live data. */}
         <div
-          className="hero-line mt-9 grid grid-cols-1 gap-4 sm:grid-cols-2"
+          className="rise mt-9 grid grid-cols-1 gap-4 sm:grid-cols-2"
           style={{ "--i": 5 } as React.CSSProperties}
         >
           {/* LANE A — the study */}
           <section className="flex flex-col rounded-card border border-card-border bg-card p-5 shadow-[var(--shadow-card)]">
             <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-accent">
-              I&apos;m curious
+              The study
             </p>
             <h2 className="mt-2 font-sans text-xl font-semibold leading-tight text-ink-strong tracking-[-0.01em] text-balance">
               Find out what your taste actually is.
@@ -276,7 +268,7 @@ export default function Landing() {
           {/* LANE B — the training rooms (equal weight, full CTA, milled ink) */}
           <section className="flex flex-col rounded-card border border-card-border bg-card p-5 shadow-[var(--shadow-card)]">
             <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">
-              I&apos;m training
+              The rooms
             </p>
             <h2 className="mt-2 font-sans text-xl font-semibold leading-tight text-ink-strong tracking-[-0.01em] text-balance">
               Get better at knowing when you&apos;re right.
