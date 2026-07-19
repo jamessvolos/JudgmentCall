@@ -15,7 +15,7 @@
 // This module is pure (no crypto, no Prisma), so it is safe to import from both
 // the server (repo, API) and the client (the /train page).
 
-export type TrackId = "statistics" | "architecture" | "economics";
+export type TrackId = "statistics" | "architecture" | "economics" | "decision";
 
 export type Topic = {
   id: string;
@@ -280,6 +280,76 @@ const ECON_BADGES: Badge[] = [
   ...CALIBRATION_BADGES,
 ];
 
+// ---------------------------------------------------------------------------
+// DECISION — the Solver Room: probability → price → margin → equilibrium. The
+// specialist track for decision quality under uncertainty: compound the odds,
+// price the bet, weigh the increment, size the stake, and hold the frequencies
+// that can't be exploited. Results-oriented thinking is the enemy the whole
+// room is built to overwrite. See docs/GTO-10X.md.
+
+const DECISION_TOPICS: Topic[] = [
+  {
+    id: "probability",
+    name: "Compound Odds",
+    short: "Odds",
+    concept:
+      "Independent chances multiply, they don't add — and 'at least one' is the complement trick: 1 − (1−p)ⁿ. Most bad bets start with a mis-multiplied probability.",
+  },
+  {
+    id: "expected_value",
+    name: "Expected Value",
+    short: "EV",
+    concept:
+      "A decision's worth is the probability-weighted sum of its outcomes, not its best case or its last result. The break-even probability — where EV crosses zero — is the price of the bet.",
+  },
+  {
+    id: "marginal_ev",
+    name: "The Margin",
+    short: "Margin",
+    concept:
+      "Decisions are made at the margin: the question is never 'is this good?' but 'how much better than the next-best line?' Agonizing decisions are usually close; the costly ones are the blowouts nobody sweats.",
+  },
+  {
+    id: "equilibrium",
+    name: "Unexploitable",
+    short: "GTO",
+    concept:
+      "At equilibrium your frequencies make the opponent's options equally worthless — bluffs priced by the pot, defenses set so aggression can't profit. GTO isn't the most profitable line; it's the one that can't be beaten.",
+  },
+  {
+    id: "bankroll",
+    name: "Sizing & Ruin",
+    short: "Sizing",
+    concept:
+      "Knowing a bet is +EV is half the skill; how much is the other half. Over-betting a winning edge is how winners go broke — growth peaks at the Kelly fraction and turns to ruin past it.",
+  },
+  {
+    id: "exploitation",
+    name: "The Deviation",
+    short: "Exploit",
+    concept:
+      "Against a mistaken opponent, the maximally exploitative line beats the equilibrium one — but every deviation opens a door back at you. Exploit is a bet on your read; GTO is the fallback when the read runs out.",
+  },
+];
+
+const DECISION_LEVELS: Level[] = [
+  { n: 1, roman: "I", title: "Results-Oriented", floor: null, minCalls: 0, minTopics: 0, minHard: 0, gate: "Walk in. Everyone holds it." },
+  { n: 2, roman: "II", title: "Odds Literate", floor: 1260, minCalls: 8, minTopics: 3, minHard: 0, gate: "Reading at 1260 · 8 calls · three topics faced" },
+  { n: 3, roman: "III", title: "EV Thinker", floor: 1350, minCalls: 20, minTopics: 6, minHard: 3, gate: "Reading at 1350 · 20 calls · all six topics faced · 3 subtle-tier calls landed" },
+  { n: 4, roman: "IV", title: "Unexploitable", floor: 1440, minCalls: 35, minTopics: 6, minHard: 6, gate: "Reading at 1440 · 35 calls · 6 subtle-tier landed · a call in every topic" },
+  { n: 5, roman: "V", title: "The Solver", floor: 1520, minCalls: 50, minTopics: 6, minHard: 10, gate: "Reading at 1520 · 50 calls · subtle-tier landed across four or more topics" },
+];
+
+const DECISION_BADGES: Badge[] = [
+  { code: "sweep", name: "CLEAN SWEEP", tier: "competence", criterion: "Eight consecutive calls, all correct." },
+  { code: "fine_print", name: "THIN VALUE", tier: "competence", criterion: "Six subtle-tier calls landed, across three or more topics." },
+  { code: "specialist", name: "SPECIALIST", tier: "competence", criterion: "Five correct in a single topic, at least one above the easy tier." },
+  { code: "correction", name: "OFF TILT", tier: "competence", criterion: "A topic that was beating you, beaten: behind in it, then three straight." },
+  { code: "full_map", name: "THE FULL MAP", tier: "exploration", criterion: "Faced all six topics." },
+  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a subtle-tier call in four or more topics — landing it not required." },
+  ...CALIBRATION_BADGES,
+];
+
 export const TRACKS: Record<TrackId, Track> = {
   statistics: {
     id: "statistics",
@@ -317,12 +387,24 @@ export const TRACKS: Record<TrackId, Track> = {
     levels: ECON_LEVELS,
     badges: ECON_BADGES,
   },
+  decision: {
+    id: "decision",
+    name: "Decision Science",
+    room: "THE SOLVER ROOM",
+    tagline: "Play the odds, not the outcome.",
+    blurb:
+      "The specialist room for decisions under uncertainty: compound the odds without averaging them, price a bet at its break-even, weigh the margin between the two best lines, size the stake so a winning edge can't ruin you, and hold the frequencies no opponent can exploit. Every call commits a number; the reveal shows the math that was waiting.",
+    accentNote: "Rating moves like a chess ladder — the harder the call, the more it swings.",
+    topics: DECISION_TOPICS,
+    levels: DECISION_LEVELS,
+    badges: DECISION_BADGES,
+  },
 };
 
-export const TRACK_IDS: TrackId[] = ["statistics", "architecture", "economics"];
+export const TRACK_IDS: TrackId[] = ["statistics", "architecture", "economics", "decision"];
 
 export function isTrackId(x: string): x is TrackId {
-  return x === "statistics" || x === "architecture" || x === "economics";
+  return x === "statistics" || x === "architecture" || x === "economics" || x === "decision";
 }
 
 export function getTrack(id: string): Track | null {

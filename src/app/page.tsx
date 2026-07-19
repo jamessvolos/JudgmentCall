@@ -65,7 +65,7 @@ const SURFACES: {
     label: "The Training Rooms",
     href: "/train",
     benefit: "Sharpen your eye.",
-    mode: "Statistics · economics · architecture · data storytelling",
+    mode: "Statistics · economics · architecture · decision science · storytelling",
     group: "rooms",
   },
   {
@@ -188,7 +188,7 @@ export default function Landing() {
             className="hero-line kicker text-muted"
             style={{ "--i": 1 } as React.CSSProperties}
           >
-            A live study · four training rooms
+            A live study · five training rooms
           </p>
           <h1
             className="hero-line mt-3 font-sans font-semibold text-ink-strong text-[clamp(2.25rem,6.4vw,3.875rem)] leading-[1.0] tracking-[-0.03em] text-balance"
@@ -274,8 +274,9 @@ export default function Landing() {
               Get better at knowing when you&apos;re right.
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Four studios — statistics, economics, data architecture, data storytelling. Answer,
-              stake how sure you are, and watch the gap between confidence and accuracy close.
+              Five studios — statistics, economics, data architecture, decision science, data
+              storytelling. Answer, stake how sure you are, and watch the gap between confidence
+              and accuracy close.
             </p>
             <div className="mt-auto pt-5">
               <Link
@@ -285,7 +286,7 @@ export default function Landing() {
                 Enter the rooms →
               </Link>
               <p className="mt-2 text-center font-mono text-[0.7rem] text-muted">
-                Four rooms · levels &amp; badges
+                Five rooms · levels &amp; badges
               </p>
             </div>
           </section>
