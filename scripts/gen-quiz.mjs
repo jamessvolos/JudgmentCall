@@ -18,10 +18,13 @@ const economics = JSON.parse(readFileSync(join(SRC, "economics.json"), "utf8"));
 const market = JSON.parse(readFileSync(join(SRC, "market.json"), "utf8"));
 const redline = JSON.parse(readFileSync(join(SRC, "redline.json"), "utf8"));
 const pool = JSON.parse(readFileSync(join(SRC, "pool.json"), "utf8"));
+const decision = JSON.parse(readFileSync(join(SRC, "decision.json"), "utf8"));
+const gap = JSON.parse(readFileSync(join(SRC, "gap.json"), "utf8"));
 
 const STATS_TOPICS = ["sampling", "variation", "association", "base_rates", "uncertainty", "aggregation"];
 const ARCH_TOPICS = ["storage", "processing", "modeling", "scaling", "reliability", "cost"];
 const ECON_TOPICS = ["opportunity_cost", "sunk_cost", "nominal_vs_real", "secondary_effects", "tax_incidence", "comparative_advantage"];
+const DECISION_TOPICS = ["probability", "expected_value", "marginal_ev", "equilibrium", "bankroll", "exploitation"];
 
 function check(items, track, topics) {
   const titles = new Set();
@@ -38,6 +41,7 @@ function check(items, track, topics) {
 check(stats, "statistics", STATS_TOPICS);
 check(arch, "architecture", ARCH_TOPICS);
 check(economics, "economics", ECON_TOPICS);
+check(decision, "decision", DECISION_TOPICS);
 
 // --- validators for the new interaction kinds --------------------------------
 function checkEstimate(items) {
@@ -207,10 +211,71 @@ function checkPool(items) {
 checkEstimate(estimate);
 checkDuel(duel);
 checkBakeoff(bakeoff);
+// The GAP interaction (decision signature, winner of the Solver Room 4-firm
+// competition — Firm B "MARGIN", see docs/GTO-10X.md): two lines, each a
+// declared branch table; the learner commits a SIGNED margin ΔEV = EV(A)−EV(B)
+// on a zero-crossing slider — picking the winner and pricing it are one act.
+// The naive is a DECLARED, recomputed reflex rule, never hand-tuned:
+//   mode  — compare the most-likely outcome of each line (probability neglect)
+//   best  — compare best cases (optimism)   ·   worst — compare worst cases
+function gapEV(line) {
+  return line.branches.reduce((s, br) => s + br.p * br.v, 0);
+}
+function gapNaive(it) {
+  const pick = (line) => {
+    if (it.naiveRule === "best") return Math.max(...line.branches.map((b) => b.v));
+    if (it.naiveRule === "worst") return Math.min(...line.branches.map((b) => b.v));
+    // mode: the value of the single most-likely branch (must be unique)
+    const top = Math.max(...line.branches.map((b) => b.p));
+    const tops = line.branches.filter((b) => b.p === top);
+    if (tops.length !== 1) throw new Error(`gap: ambiguous mode branch in ${it.title} (${line.name})`);
+    return tops[0].v;
+  };
+  return pick(it.lineA) - pick(it.lineB);
+}
+function checkGap(items) {
+  const titles = new Set();
+  let flips = 0;
+  let sameSign = 0;
+  for (const it of items) {
+    if (!DECISION_TOPICS.includes(it.topic)) throw new Error(`gap: bad topic ${it.topic} in ${it.title}`);
+    if (![1, 2, 3].includes(it.difficulty)) throw new Error(`gap: bad difficulty in ${it.title}`);
+    if (!["mode", "best", "worst"].includes(it.naiveRule)) throw new Error(`gap: bad naiveRule in ${it.title}`);
+    for (const line of [it.lineA, it.lineB]) {
+      if (!line?.name || !Array.isArray(line.branches)) throw new Error(`gap: malformed line in ${it.title}`);
+      if (line.branches.length < 1 || line.branches.length > 4) throw new Error(`gap: 1-4 branches per line in ${it.title}`);
+      let psum = 0;
+      for (const br of line.branches) {
+        if (!(typeof br.p === "number" && br.p > 0 && typeof br.v === "number")) throw new Error(`gap: bad branch in ${it.title}`);
+        psum += br.p;
+      }
+      if (Math.abs(psum - 1) > 1e-6) throw new Error(`gap: probabilities of ${line.name} sum to ${psum} in ${it.title}`);
+    }
+    const expected = Math.round((gapEV(it.lineA) - gapEV(it.lineB)) * 10) / 10;
+    if (Math.abs(expected - it.truth) > 0.05) throw new Error(`gap: truth ${it.truth} != ΔEV ${expected} in ${it.title}`);
+    const naive = Math.round(gapNaive(it) * 10) / 10;
+    if (Math.abs(naive - it.naive) > 0.05) throw new Error(`gap: naive ${it.naive} != ${it.naiveRule}-rule ${naive} in ${it.title}`);
+    if (!(it.min < 0 && 0 < it.max)) throw new Error(`gap: slider must cross zero in ${it.title}`);
+    if (!(it.min < it.truth && it.truth < it.max)) throw new Error(`gap: truth outside range in ${it.title}`);
+    if (!(it.min <= it.naive && it.naive <= it.max)) throw new Error(`gap: naive outside range in ${it.title}`);
+    if (!(it.tol > 0)) throw new Error(`gap: tol must be positive in ${it.title}`);
+    if (Math.abs(it.truth - it.naive) <= 2 * it.tol) throw new Error(`gap: naive within 2·tol of truth in ${it.title}`);
+    if (it.truth * it.naive < 0) flips++;
+    if (it.truth * it.naive > 0) sameSign++;
+    if (titles.has(it.title)) throw new Error(`gap: dup title ${it.title}`);
+    titles.add(it.title);
+    for (const k of ["scenario", "prompt", "explanation", "unit"]) if (!it[k] || !String(it[k]).trim()) throw new Error(`gap: empty ${k} in ${it.title}`);
+  }
+  // The teaching-mix invariant (the teacher judge's graft): if every item were a
+  // sign flip, learners would train a contrarian reflex instead of the skill.
+  if (flips < 2) throw new Error(`gap: need >=2 sign-flip items (felt winner loses), have ${flips}`);
+  if (sameSign < 2) throw new Error(`gap: need >=2 same-sign items (felt winner right, price wrong), have ${sameSign}`);
+}
 checkFlood(flood);
 checkMarket(market);
 checkRedline(redline);
 checkPool(pool);
+checkGap(gap);
 
 const mcqSeed = (it, track) => ({
   track,
@@ -328,10 +393,24 @@ const poolSeed = (it) => ({
   payload: { arms: it.arms, subgroups: it.subgroups, unit: it.unit, min: it.min, max: it.max, truth: it.truth, naive: it.naive, tol: it.tol },
   explanation: it.explanation,
 });
+const gapSeed = (it) => ({
+  track: "decision",
+  title: it.title,
+  topic: it.topic,
+  kind: "gap",
+  difficulty: it.difficulty,
+  scenario: it.scenario,
+  prompt: it.prompt,
+  choices: [],
+  payload: { lineA: it.lineA, lineB: it.lineB, naiveRule: it.naiveRule, unit: it.unit, min: it.min, max: it.max, truth: it.truth, naive: it.naive, tol: it.tol },
+  explanation: it.explanation,
+});
 const seeds = [
   ...stats.map((it) => mcqSeed(it, "statistics")),
   ...arch.map((it) => mcqSeed(it, "architecture")),
   ...economics.map((it) => mcqSeed(it, "economics")),
+  ...decision.map((it) => mcqSeed(it, "decision")),
+  ...gap.map(gapSeed),
   ...estimate.map(estimateSeed),
   ...duel.map(duelSeed),
   ...bakeoff.map(bakeoffSeed),
@@ -350,9 +429,9 @@ const out = `// AUTO-GENERATED by scripts/gen-quiz.mjs — do not hand-edit item
 import type { PrismaClient } from "@prisma/client";
 
 export type QuizChoice = { text: string; correct: boolean; rationale: string };
-export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool";
+export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool" | "gap";
 export type QuizSeed = {
-  track: "statistics" | "architecture" | "economics";
+  track: "statistics" | "architecture" | "economics" | "decision";
   title: string; // stable natural key for idempotent sync
   topic: string;
   kind: QuizKind;
@@ -394,4 +473,4 @@ export async function syncQuizItems(prisma: PrismaClient): Promise<number> {
 `;
 
 writeFileSync(join(ROOT, "prisma", "quiz.ts"), out);
-console.log(`wrote prisma/quiz.ts with ${seeds.length} items (${stats.length} statistics, ${arch.length} architecture, ${economics.length} economics mcq, ${market.length} market, ${redline.length} redline, ${pool.length} pool)`);
+console.log(`wrote prisma/quiz.ts with ${seeds.length} items (${stats.length} statistics, ${arch.length} architecture, ${economics.length} economics mcq, ${market.length} market, ${redline.length} redline, ${pool.length} pool, ${decision.length} decision mcq, ${gap.length} gap)`);

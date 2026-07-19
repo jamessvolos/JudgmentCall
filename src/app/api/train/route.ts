@@ -69,6 +69,12 @@ type PoolPayload = {
   subgroups: { label: string; T: PoolArm; C: PoolArm }[];
   truth: number; naive: number; tol: number;
 };
+type GapBranch = { p: number; v: number };
+type GapLine = { name: string; branches: GapBranch[] };
+type GapPayload = {
+  lineA: GapLine; lineB: GapLine; naiveRule: "mode" | "best" | "worst";
+  unit: string; min: number; max: number; truth: number; naive: number; tol: number;
+};
 
 // GET /api/train?sessionId=...&track=...&topic=... — next item + The Record.
 async function getHandler(request: Request) {
@@ -136,6 +142,12 @@ async function getHandler(request: Request) {
     // send the full subgroup table (rates + sizes) — the learner needs it to
     // reason — but never the pooled truth or the unweighted-average trap value.
     item = { ...base, pool: { arms: p.arms, unit: p.unit, min: p.min, max: p.max, subgroups: p.subgroups } };
+  } else if (it.kind === "gap") {
+    const p = JSON.parse(it.payload ?? "{}") as GapPayload;
+    // send both lines' full branch tables (the skill is weighing them, not
+    // guessing hidden data — the pool precedent) — never the ΔEV truth, the
+    // felt-gap naive, or which reflex rule the trap encodes.
+    item = { ...base, gap: { lineA: p.lineA, lineB: p.lineB, unit: p.unit, min: p.min, max: p.max } };
   } else {
     const choices = parseChoices(it.choices).map((c, i) => ({ i, text: c.text }));
     item = { ...base, choices: shuffled(choices) };
@@ -277,6 +289,26 @@ async function postHandler(request: Request) {
     reveal = {
       truth: p.truth, naive: p.naive, yourValue: value, naiveTrap, tol: p.tol,
       arms: p.arms, unit: p.unit, subgroups: p.subgroups, pooledC,
+      explanation: item.explanation,
+    };
+  } else if (item.kind === "gap") {
+    const p = JSON.parse(item.payload ?? "{}") as GapPayload;
+    const value = Number(body?.value);
+    if (!Number.isFinite(value)) return NextResponse.json({ error: "invalid value" }, { status: 400 });
+    correct = Math.abs(value - p.truth) <= p.tol;
+    // naive_trap: landed on the FELT gap (the declared reflex rule) instead of ΔEV
+    const naiveTrap = !correct && Math.abs(value - p.naive) <= p.tol;
+    const ev = (line: GapLine) => line.branches.reduce((s, br) => s + br.p * br.v, 0);
+    const evA = Math.round(ev(p.lineA) * 10) / 10;
+    const evB = Math.round(ev(p.lineB) * 10) / 10;
+    // the agony index: how small the true margin is against the headline swing
+    const vs = [...p.lineA.branches, ...p.lineB.branches].map((br) => br.v);
+    const swing = Math.max(...vs) - Math.min(...vs);
+    const agonyPct = swing > 0 ? Math.round((Math.abs(p.truth) / swing) * 1000) / 10 : 0;
+    reveal = {
+      truth: p.truth, naive: p.naive, yourValue: value, naiveTrap, tol: p.tol,
+      unit: p.unit, naiveRule: p.naiveRule, lineA: p.lineA, lineB: p.lineB,
+      evA, evB, swing, agonyPct,
       explanation: item.explanation,
     };
   } else {

@@ -29,7 +29,7 @@ type ItemDto = {
   id: string;
   track: string;
   topic: string;
-  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool" | "gap";
   difficulty: number;
   scenario: string;
   prompt: string;
@@ -41,7 +41,10 @@ type ItemDto = {
   market?: { unit: string; min: number; max: number; lever: "none" | "tax" | "ceiling"; target: "price" | "quantity" };
   redline?: { mu: number; slaMs: number; percentile: number; min: number; max: number };
   pool?: { arms: [string, string]; unit: string; min: number; max: number; subgroups: PoolSubgroup[] };
+  gap?: { lineA: GapLine; lineB: GapLine; unit: string; min: number; max: number };
 };
+type GapBranch = { p: number; v: number };
+type GapLine = { name: string; branches: GapBranch[] };
 type PoolSubgroup = { label: string; T: { rate: number; n: number }; C: { rate: number; n: number } };
 type LevelDto = { n: number; roman: string; title: string; floor: number | null; gate: string };
 type CalBinDto = { lo: number; hi: number; meanConf: number; accuracy: number; count: number };
@@ -77,7 +80,7 @@ type GetDto = { item: ItemDto | null; remaining: number; liveRating: number; cou
 type RevealChoice = { i: number; text: string; correct: boolean; rationale: string };
 type PostDto = {
   correct: boolean;
-  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool" | "gap";
   topic: string;
   confidence: number | null;
   // mcq
@@ -126,6 +129,14 @@ type PostDto = {
   arms?: [string, string];
   subgroups?: PoolSubgroup[];
   pooledC?: number;
+  // gap
+  lineA?: GapLine;
+  lineB?: GapLine;
+  evA?: number;
+  evB?: number;
+  swing?: number;
+  agonyPct?: number;
+  naiveRule?: "mode" | "best" | "worst";
   liveRating: number;
   ratingDelta: number;
   count: number;
@@ -711,7 +722,7 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
   onNext: () => void; onBank: () => void;
 }) {
   const topic = topicOf(track, item.topic);
-  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : item.kind === "flood" ? "BASE-RATE" : item.kind === "market" ? "MARKET" : item.kind === "redline" ? "REDLINE" : item.kind === "pool" ? "POOLED" : "CALL";
+  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : item.kind === "flood" ? "BASE-RATE" : item.kind === "market" ? "MARKET" : item.kind === "redline" ? "REDLINE" : item.kind === "pool" ? "POOLED" : item.kind === "gap" ? "MARGIN" : "CALL";
   const [hintOpen, setHintOpen] = useState(true);
   const descent = runMode === "descent";
   // the post-reveal control: descent shows Bank/Deeper (or Surface on a bust);
@@ -765,6 +776,7 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
       {item.kind === "market" && <MarketCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
       {item.kind === "redline" && <RedlineCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
       {item.kind === "pool" && <PoolCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
+      {item.kind === "gap" && <GapCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
     </div>
   );
 }
@@ -1638,6 +1650,135 @@ function PoolCall({ item, reveal, submitting, onSubmit, postReveal }: {
               <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">weighted</span>
             </div>
           </div>
+          <p className="mt-3 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
+          {postReveal}
+        </div>
+      )}
+    </>
+  );
+}
+
+// Winner of the Solver Room 4-firm competition (Firm B "MARGIN" — the Margin
+// Caliper, docs/GTO-10X.md). Two lines, both branch tables fully visible; the
+// learner commits a SIGNED margin on a zero-crossing slider — naming the winner
+// and pricing it are one gesture. The naive trap is the FELT gap (a declared
+// reflex rule, recomputed server-side); the reveal prices the agony.
+function GapCall({ item, reveal, submitting, onSubmit, postReveal }: {
+  item: ItemDto; reveal: PostDto | null; submitting: boolean;
+  onSubmit: (a: { value: number }, c: number | null) => void; postReveal: ReactNode;
+}) {
+  const pl = item.gap!;
+  const span = pl.max - pl.min;
+  const [value, setValue] = useState(0);
+  const [conviction, setConviction] = useState<number | null>(null);
+  const fmt = (v: number) => `${v > 0 ? "+" : ""}${Math.round(v * 10) / 10}`;
+  const cx = (v: number) => `${Math.max(0, Math.min(100, ((v - pl.min) / span) * 100))}%`;
+  const your = reveal?.yourValue ?? 0;
+  const truth = reveal?.truth ?? 0;
+  const naive = reveal?.naive ?? 0;
+  const within = reveal ? Math.abs(your - truth) <= (reveal.tol ?? 0) : false;
+  const flipped = reveal ? truth * naive < 0 : false;
+  const winner = truth > 0 ? pl.lineA.name : truth < 0 ? pl.lineB.name : null;
+  const claim =
+    value > 0 ? `${pl.lineA.name} wins by ${fmt(value)}` : value < 0 ? `${pl.lineB.name} wins by ${fmt(Math.abs(value))}` : "dead even — no margin either way";
+  const lineBlock = (line: GapLine) => (
+    <div className="mt-2 rounded-md border border-card-border/70 px-3 py-2">
+      <p className="font-mono text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-ink-strong">{line.name}</p>
+      <div className="mt-1.5 space-y-1">
+        {line.branches.map((br, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="h-2 shrink-0 rounded-sm bg-accent/50" style={{ width: `${br.p * 52}%` }} />
+            <span className="font-mono text-[0.65rem] tabular-nums text-foreground">{Math.round(br.p * 100)}%</span>
+            <span className="font-mono text-[0.65rem] tabular-nums text-muted">→ {fmt(br.v)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  return (
+    <>
+      <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The two lines · {pl.unit}</p>
+        <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
+        {lineBlock(pl.lineA)}
+        {lineBlock(pl.lineB)}
+      </div>
+      <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
+      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">
+        Slide right if {pl.lineA.name} wins, left if {pl.lineB.name} does — the distance is your price.
+      </p>
+
+      {!reveal ? (
+        <>
+          <div className="mt-4 rounded-lg border border-card-border bg-card px-4 py-4">
+            <div className="flex items-baseline justify-between font-mono text-[0.7rem] text-muted">
+              <span>your margin</span>
+              <span className="tabular-nums text-ink-strong text-sm">{fmt(value)} {pl.unit}</span>
+            </div>
+            <input type="range" min={pl.min} max={pl.max} step={0.5} value={value} onChange={(e) => setValue(Number(e.target.value))} aria-label="the signed margin between the two lines" className="mt-2 w-full accent-[var(--accent)]" />
+            <div className="mt-1 flex justify-between font-mono text-[0.55rem] text-muted/70">
+              <span>{pl.lineB.name} +{Math.abs(pl.min)}</span><span>0</span><span>{pl.lineA.name} +{pl.max}</span>
+            </div>
+            <p className={`mt-2 text-center font-mono text-[0.65rem] ${value === 0 ? "text-muted/70" : "text-foreground"}`}>{claim}</p>
+            <div className="mt-2 flex items-center justify-center gap-2 font-mono text-[0.65rem]">
+              <button onClick={() => setValue((v) => Math.max(pl.min, Math.round((v - 0.5) * 10) / 10))} className="rounded border border-card-border px-2 py-0.5 text-accent" aria-label="toward line B">−</button>
+              <span className="tabular-nums text-foreground">{fmt(value)}</span>
+              <button onClick={() => setValue((v) => Math.min(pl.max, Math.round((v + 0.5) * 10) / 10))} className="rounded border border-card-border px-2 py-0.5 text-accent" aria-label="toward line A">+</button>
+            </div>
+          </div>
+          <ConvictionBar floor={50} conviction={conviction} setConviction={setConviction} submitting={submitting} onCommit={() => onSubmit({ value }, conviction)} />
+        </>
+      ) : (
+        <div className="verdict-card-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+          <RevealHeader correct={reveal.correct} delta={reveal.ratingDelta} rating={reveal.liveRating} />
+          {reveal.confidence != null && <ConvictionEcho confidence={reveal.confidence} correct={reveal.correct} />}
+          <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted">
+            You said {fmt(your)} · true margin {fmt(truth)} {pl.unit}
+            {winner ? ` — ${winner} wins` : " — a dead heat"}
+          </p>
+          <p className="mt-1 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted">
+            EV {pl.lineA.name} = {fmt(reveal.evA ?? 0)} · EV {pl.lineB.name} = {fmt(reveal.evB ?? 0)}
+          </p>
+          {reveal.naiveTrap && (
+            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">
+              You priced the felt gap — headline outcomes compared, probability weights dropped.
+            </p>
+          )}
+          {flipped && (
+            <p className="mt-2 rounded-md border border-danger/40 bg-danger/5 px-3 py-2 text-center font-mono text-[0.65rem] uppercase tracking-[0.1em] text-danger">
+              Flipped · the felt winner is the loser
+            </p>
+          )}
+          {/* caliper strip: you · the felt gap · the true margin, on a signed
+              axis with the zero line marked; the truth slides in from the felt
+              position (the same reduced-motion-safe slide the pool ships) */}
+          <div className="relative mt-4 h-9">
+            <div className="absolute left-0 right-0 top-4 h-px bg-card-border" />
+            <div className="absolute top-4 -translate-x-1/2 -translate-y-1/2 text-muted/50" style={{ left: cx(0) }}>
+              <span className="block h-3.5 w-px bg-current" />
+              <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">0</span>
+            </div>
+            <div className={`absolute top-4 h-1 -translate-y-1/2 rounded ${within ? "bg-accent/40" : "bg-danger/40"}`}
+              style={{ left: cx(Math.min(your, truth)), width: `calc(${cx(Math.max(your, truth))} - ${cx(Math.min(your, truth))})` }} />
+            <div className="absolute top-4 -translate-x-1/2 -translate-y-1/2" style={{ left: cx(naive) }}>
+              <span className="block h-2.5 w-px bg-muted/60" />
+              <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem] text-muted/70">felt</span>
+            </div>
+            <div className={`absolute top-4 -translate-x-1/2 -translate-y-1/2 ${within ? "text-accent" : "text-danger"}`} style={{ left: cx(your) }}>
+              <span className="block h-3 w-0.5 bg-current" />
+              <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">you</span>
+            </div>
+            <div className="pool-slide absolute top-4 -translate-x-1/2 -translate-y-1/2 text-ink-strong"
+              style={{ left: cx(truth), ["--pool-from" as string]: cx(naive), ["--pool-to" as string]: cx(truth) } as CSSProperties}>
+              <span className="block h-3 w-0.5 bg-current" />
+              <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">true</span>
+            </div>
+          </div>
+          {(reveal.swing ?? 0) > 0 && (
+            <p className="mt-3 rounded-md border border-card-border bg-wash px-3 py-2 text-center font-mono text-[0.65rem] text-muted">
+              Headline swing {Math.round((reveal.swing ?? 0) * 10) / 10} · true margin {Math.round(Math.abs(truth) * 10) / 10} — agony index {reveal.agonyPct}%
+            </p>
+          )}
           <p className="mt-3 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
           {postReveal}
         </div>

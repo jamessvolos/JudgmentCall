@@ -23,7 +23,7 @@ for (const q of QUIZ_SEEDS) {
   if (!track) continue;
   ok(track.topics.some((t) => t.id === q.topic), `${label}: topic "${q.topic}" exists in ${q.track}`);
   ok([1, 2, 3].includes(q.difficulty), `${label}: difficulty in 1..3`);
-  ok(["mcq", "estimate", "duel", "bakeoff", "flood", "market", "redline", "pool"].includes(q.kind), `${label}: kind is one of the known kinds`);
+  ok(["mcq", "estimate", "duel", "bakeoff", "flood", "market", "redline", "pool", "gap"].includes(q.kind), `${label}: kind is one of the known kinds`);
   ok(!!q.scenario.trim() && !!q.prompt.trim() && !!q.explanation.trim(), `${label}: scenario/prompt/explanation non-empty`);
   if (q.kind === "mcq") {
     ok(q.choices.filter((c) => c.correct).length === 1, `${label}: exactly one correct choice`);
@@ -72,6 +72,21 @@ for (const q of QUIZ_SEEDS) {
     ok(p.min < p.truth && p.truth < p.max, `${label}: redline truth sits inside the slider`);
     ok(Math.abs(p.naive - p.truth) > p.tol, `${label}: redline naive is a genuine trap (outside tolerance)`);
     ok(q.choices.length === 0, `${label}: redline carries no choices`);
+  } else if (q.kind === "gap") {
+    type GapLine = { name: string; branches: { p: number; v: number }[] };
+    const p = q.payload as { lineA: GapLine; lineB: GapLine; naiveRule: "mode" | "best" | "worst"; truth: number; naive: number; tol: number; min: number; max: number };
+    const ev = (l: GapLine) => l.branches.reduce((s, br) => s + br.p * br.v, 0);
+    const sum = (l: GapLine) => l.branches.reduce((s, br) => s + br.p, 0);
+    const naiveOf = (l: GapLine) =>
+      p.naiveRule === "best" ? Math.max(...l.branches.map((b) => b.v))
+      : p.naiveRule === "worst" ? Math.min(...l.branches.map((b) => b.v))
+      : l.branches.reduce((a, b) => (b.p > a.p ? b : a)).v;
+    ok(Math.abs(sum(p.lineA) - 1) < 1e-6 && Math.abs(sum(p.lineB) - 1) < 1e-6, `${label}: gap — branch probabilities sum to 1`);
+    ok(Math.abs(Math.round((ev(p.lineA) - ev(p.lineB)) * 10) / 10 - p.truth) <= 0.05, `${label}: gap truth is the exact ΔEV`);
+    ok(Math.abs(naiveOf(p.lineA) - naiveOf(p.lineB) - p.naive) <= 0.05, `${label}: gap naive is the declared ${p.naiveRule}-rule recompute`);
+    ok(p.min < 0 && 0 < p.max, `${label}: gap slider crosses zero`);
+    ok(Math.abs(p.truth - p.naive) > 2 * p.tol, `${label}: gap naive is a genuine trap (outside 2·tol)`);
+    ok(q.choices.length === 0, `${label}: gap carries no choices`);
   } else if (q.kind === "pool") {
     const p = q.payload as { subgroups: { T: { rate: number; n: number }; C: { rate: number; n: number } }[]; truth: number; naive: number; tol: number; min: number; max: number };
     const pooled = (arm: "T" | "C") => p.subgroups.reduce((s, g) => s + g[arm].rate * g[arm].n, 0) / p.subgroups.reduce((s, g) => s + g[arm].n, 0);

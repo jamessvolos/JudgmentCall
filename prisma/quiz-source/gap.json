@@ -1,0 +1,233 @@
+[
+  {
+    "title": "gap-ship-01",
+    "topic": "marginal_ev",
+    "difficulty": 2,
+    "unit": "$k per launch",
+    "min": -30,
+    "max": 30,
+    "lineA": {
+      "name": "Ship now",
+      "branches": [
+        { "p": 0.7, "v": 50 },
+        { "p": 0.25, "v": 20 },
+        { "p": 0.05, "v": -120 }
+      ]
+    },
+    "lineB": {
+      "name": "Harden first",
+      "branches": [
+        { "p": 0.9, "v": 40 },
+        { "p": 0.1, "v": 10 }
+      ]
+    },
+    "naiveRule": "mode",
+    "truth": -3.0,
+    "naive": 10.0,
+    "tol": 2,
+    "scenario": "Launch review. Ship now: 70% it lands clean (+$50k), 25% it lands soft (+$20k), 5% a bad outage (−$120k). Harden first: 90% a clean but later launch (+$40k), 10% you miss the window (+$10k). Every probability and payoff is on the table.",
+    "prompt": "Set the margin: which line wins, and by how much per launch?",
+    "explanation": "EV(ship) = 35 + 5 − 6 = $34k. EV(harden) = 36 + 1 = $37k. Harden first wins — by $3k. The reflex compares what will probably happen (50 vs 40, ship by +10) because the 5% outage 'won't happen' — but its −$6k contribution is real and it flips the sign. The felt winner is the loser, and the whole agonizing debate is a $3k decision."
+  },
+  {
+    "title": "gap-offer-01",
+    "topic": "marginal_ev",
+    "difficulty": 1,
+    "unit": "$k of year-one value",
+    "min": -60,
+    "max": 60,
+    "lineA": {
+      "name": "The startup offer",
+      "branches": [
+        { "p": 0.6, "v": 180 },
+        { "p": 0.4, "v": 90 }
+      ]
+    },
+    "lineB": {
+      "name": "The BigCo offer",
+      "branches": [
+        { "p": 0.95, "v": 150 },
+        { "p": 0.05, "v": 120 }
+      ]
+    },
+    "naiveRule": "mode",
+    "truth": -4.5,
+    "naive": 30.0,
+    "tol": 4,
+    "scenario": "Two offers on the desk. Startup: 60% the equity vests as hoped ($180k all-in), 40% it doesn't ($90k). BigCo: 95% the standard package pays $150k, 5% a re-org trims it to $120k.",
+    "prompt": "Set the margin: which offer wins, and by how much in year-one value?",
+    "explanation": "EV(startup) = 108 + 36 = $144k. EV(BigCo) = 142.5 + 6 = $148.5k. BigCo wins by $4.5k. The reflex compares headline outcomes — 180 vs 150, startup by +30 — but the 40% downside branch does $36k of quiet work. A close call either way; the $30k gap you felt was never real."
+  },
+  {
+    "title": "gap-warranty-01",
+    "topic": "expected_value",
+    "difficulty": 2,
+    "unit": "$ per gadget",
+    "min": -120,
+    "max": 120,
+    "lineA": {
+      "name": "Decline the warranty",
+      "branches": [
+        { "p": 0.92, "v": 0 },
+        { "p": 0.08, "v": -400 }
+      ]
+    },
+    "lineB": {
+      "name": "Buy the warranty",
+      "branches": [
+        { "p": 0.92, "v": -55 },
+        { "p": 0.08, "v": -105 }
+      ]
+    },
+    "naiveRule": "mode",
+    "truth": 27.0,
+    "naive": 55.0,
+    "tol": 8,
+    "scenario": "A $55 two-year warranty on a device with an 8% failure rate. Out of warranty, a failure costs $400 to replace. Under warranty, a failure still costs a $50 deductible on top of the $55 you paid.",
+    "prompt": "Set the margin: which choice wins, and by how much per gadget?",
+    "explanation": "EV(decline) = 0.92·0 + 0.08·(−400) = −$32. EV(buy) = 0.92·(−55) + 0.08·(−105) = −$59. Declining wins by $27 — the direction the reflex guessed, at half the size it felt. 'The warranty is wasted money' compares the most-likely branches (0 vs −55) and claims $55; the 8% failure quietly claws back half of that. Right call, wrong price — and pricing it is the skill."
+  },
+  {
+    "title": "gap-vendor-01",
+    "topic": "probability",
+    "difficulty": 3,
+    "unit": "$k per year",
+    "min": -40,
+    "max": 40,
+    "lineA": {
+      "name": "Vendor A, with backups",
+      "branches": [
+        { "p": 0.9, "v": 50 },
+        { "p": 0.1, "v": 40 }
+      ]
+    },
+    "lineB": {
+      "name": "Vendor B, cheaper",
+      "branches": [
+        { "p": 0.9, "v": 45 },
+        { "p": 0.1, "v": -80 }
+      ]
+    },
+    "naiveRule": "mode",
+    "truth": 16.5,
+    "naive": 5.0,
+    "tol": 3,
+    "scenario": "Two data vendors. A costs more but degrades gracefully: 90% a smooth year (+$50k of value), 10% a rough patch you absorb (+$40k). B is cheaper on the sticker: 90% a smooth year (+$45k), 10% an unrecoverable data loss (−$80k).",
+    "prompt": "Set the margin: which vendor wins, and by how much per year?",
+    "explanation": "EV(A) = 45 + 4 = $49k. EV(B) = 40.5 − 8 = $32.5k. A wins by $16.5k — more than three times the $5k sticker gap everyone compares. The 10% tail is where this decision lives: a branch you'd round to 'unlikely' carries −$8k of expected value all by itself. Quiet blowouts hide in tails; the sticker comparison never sees them."
+  },
+  {
+    "title": "gap-call-01",
+    "topic": "exploitation",
+    "difficulty": 2,
+    "unit": "$ per hand",
+    "min": -80,
+    "max": 80,
+    "lineA": {
+      "name": "Call the bet",
+      "branches": [
+        { "p": 0.3, "v": 180 },
+        { "p": 0.7, "v": -60 }
+      ]
+    },
+    "lineB": {
+      "name": "Fold",
+      "branches": [
+        { "p": 1.0, "v": 0 }
+      ]
+    },
+    "naiveRule": "mode",
+    "truth": 12.0,
+    "naive": -60.0,
+    "tol": 6,
+    "scenario": "River, $120 pot, opponent bets $60. From their timing and history you put them on a bluff 30% of the time. Call and you win $180 when they're bluffing, lose your $60 when they're not. Folding is free.",
+    "prompt": "Set the margin: calling versus folding — which wins, and by how much per hand?",
+    "explanation": "EV(call) = 0.3·180 − 0.7·60 = 54 − 42 = +$12. EV(fold) = 0. Calling wins by $12 per hand — even though it LOSES seven times in ten. The reflex reads the most-likely outcome (−$60, 'calling usually burns the bet') and folds. But a 30% bluff rate against 3:1 pot odds is a profitable call all day: you only needed to be right 25% of the time. The felt loser is the winner."
+  },
+  {
+    "title": "gap-runway-01",
+    "topic": "bankroll",
+    "difficulty": 3,
+    "unit": "$k of expected value",
+    "min": -150,
+    "max": 150,
+    "lineA": {
+      "name": "Bet the runway on the big client",
+      "branches": [
+        { "p": 0.6, "v": 300 },
+        { "p": 0.4, "v": -200 }
+      ]
+    },
+    "lineB": {
+      "name": "Half commit, keep optionality",
+      "branches": [
+        { "p": 0.6, "v": 190 },
+        { "p": 0.4, "v": -40 }
+      ]
+    },
+    "naiveRule": "mode",
+    "truth": 2.0,
+    "naive": 110.0,
+    "tol": 10,
+    "scenario": "Nine months of runway. All-in on landing the big client: 60% you land it (+$300k), 40% you don't and the company nearly dies (−$200k). Half-commit: 60% you land a smaller version (+$190k), 40% you lose little (−$40k). The board has argued about this for three weeks.",
+    "prompt": "Set the margin: which plan wins, and by how much in expected value?",
+    "explanation": "EV(all-in) = 180 − 80 = $100k. EV(half) = 114 − 16 = $98k. The margin is $2k — on a decision with a $500k swing between best and worst case. Three weeks of board agony over a coin-flip-close call: in pure EV the two plans are the same plan. Which means the REAL decision criterion is the one EV doesn't price — the −$200k branch nearly kills the company, and the −$40k one doesn't. When the margin is this thin, survival, not expectation, should cast the deciding vote."
+  },
+  {
+    "title": "gap-rebate-01",
+    "topic": "expected_value",
+    "difficulty": 1,
+    "unit": "$ per entry",
+    "min": -50,
+    "max": 50,
+    "lineA": {
+      "name": "Take the sure rebate",
+      "branches": [
+        { "p": 1.0, "v": 25 }
+      ]
+    },
+    "lineB": {
+      "name": "Enter the drawing",
+      "branches": [
+        { "p": 0.02, "v": 1000 },
+        { "p": 0.98, "v": 0 }
+      ]
+    },
+    "naiveRule": "mode",
+    "truth": 5.0,
+    "naive": 25.0,
+    "tol": 4,
+    "scenario": "At checkout: a guaranteed $25 rebate, or one entry in a drawing — 2% chance at $1,000, otherwise nothing.",
+    "prompt": "Set the margin: which option wins, and by how much per entry?",
+    "explanation": "EV(rebate) = $25. EV(drawing) = 0.02·1000 = $20. The rebate wins by $5 — a much closer call than it feels. The reflex compares the most-likely outcomes ($25 vs $0) and claims the drawing is worthless; a 2% shot at $1,000 is quietly worth $20. Small probabilities times big numbers are still real money — in both directions."
+  },
+  {
+    "title": "gap-hire-01",
+    "topic": "marginal_ev",
+    "difficulty": 2,
+    "unit": "$k of first-year impact",
+    "min": -60,
+    "max": 60,
+    "lineA": {
+      "name": "The star with flight risk",
+      "branches": [
+        { "p": 0.7, "v": 120 },
+        { "p": 0.3, "v": -60 }
+      ]
+    },
+    "lineB": {
+      "name": "The steady senior",
+      "branches": [
+        { "p": 0.95, "v": 70 },
+        { "p": 0.05, "v": -10 }
+      ]
+    },
+    "naiveRule": "mode",
+    "truth": 0.0,
+    "naive": 50.0,
+    "tol": 4,
+    "scenario": "One headcount, two finalists. The star: 70% they stay and transform the team (+$120k of impact), 30% they leave in six months and the backfill costs you (−$60k). The steady senior: 95% solid delivery (+$70k), 5% a quiet miss (−$10k).",
+    "prompt": "Set the margin: which hire wins, and by how much in first-year impact?",
+    "explanation": "EV(star) = 84 − 18 = $66k. EV(steady) = 66.5 − 0.5 = $66k. The margin is zero — this is a genuine coin flip in expectation, though it doesn't feel like one: the reflex compares 120 to 70 and hands the star a $50k lead. When the EV margin is a true wash, the decision should be made on the axes EV doesn't see — variance tolerance, team state, what a miss costs you personally. Knowing a decision is a tie is knowing something."
+  }
+]
