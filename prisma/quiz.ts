@@ -7,9 +7,9 @@
 import type { PrismaClient } from "@prisma/client";
 
 export type QuizChoice = { text: string; correct: boolean; rationale: string };
-export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool" | "gap";
+export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool" | "gap" | "payback";
 export type QuizSeed = {
-  track: "statistics" | "architecture" | "economics" | "decision";
+  track: "statistics" | "architecture" | "economics" | "decision" | "ml";
   title: string; // stable natural key for idempotent sync
   topic: string;
   kind: QuizKind;
@@ -3334,6 +3334,808 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "tol": 4
     },
     "explanation": "EV(star) = 84 − 18 = $66k. EV(steady) = 66.5 − 0.5 = $66k. The margin is zero — this is a genuine coin flip in expectation, though it doesn't feel like one: the reflex compares 120 to 70 and hands the star a $50k lead. When the EV margin is a true wash, the decision should be made on the axes EV doesn't see — variance tolerance, team state, what a miss costs you personally. Knowing a decision is a tie is knowing something."
+  },
+  {
+    "track": "ml",
+    "title": "ml-gap-01",
+    "topic": "generalization",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "Your churn model hits 99% accuracy on the data it trained on. On a held-out validation set of customers it has never seen, it scores 71%. The PM wants to put 99% on the launch slide.",
+    "prompt": "What does the pair of numbers actually tell you?",
+    "choices": [
+      {
+        "text": "The model is overfitting — the 28-point gap between 99% and 71% is memorization, and 71% is your honest estimate of production performance.",
+        "correct": true,
+        "rationale": "Training accuracy measures fit to examples the model has already seen; the held-out 71% is what new customers will experience. 99 − 71 = 28 points of gap, and the gap is the overfit."
+      },
+      {
+        "text": "Ship the 99% — that's the accuracy the model actually achieved.",
+        "correct": false,
+        "rationale": "Judging on training accuracy is the classic reflex. The model will never score those training customers again; production looks like the validation set, so production looks like 71%."
+      },
+      {
+        "text": "Train for more epochs — with more learning, the 71% will catch up to the 99%.",
+        "correct": false,
+        "rationale": "More epochs push training accuracy toward 100% while validation stalls or falls. Extra optimization on the same data widens this gap; it doesn't close it."
+      },
+      {
+        "text": "Average them — the true accuracy is about 85%.",
+        "correct": false,
+        "rationale": "The two numbers measure different things — fit versus generalization — and averaging them estimates neither. Tomorrow's customers behave like the val set, not like a blend."
+      }
+    ],
+    "payload": null,
+    "explanation": "A 28-point train-validation gap means the model memorized rather than learned, and only the held-out number predicts production. Training performance is a promise; held-out performance is the product."
+  },
+  {
+    "track": "ml",
+    "title": "ml-gap-02",
+    "topic": "generalization",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "You're sweeping tree depth for a loan-default model. Depth 6: 94% train / 89% validation. Depth 12: 99% train / 90% validation. Depth 20: 100% train / 84% validation.",
+    "prompt": "Which model do you ship?",
+    "choices": [
+      {
+        "text": "Depth 12 — 90% is the best validation score, and validation is the number that predicts production.",
+        "correct": true,
+        "rationale": "You pick capacity by held-out performance. Depth 12's 90% beats 89% and 84%; its near-perfect training fit is irrelevant except as a warning to keep watching the gap."
+      },
+      {
+        "text": "Depth 20 — 100% training accuracy means it has fully learned the data.",
+        "correct": false,
+        "rationale": "'Lower training loss = better model' is the reflex to unlearn. Depth 20 memorized the training set and pays a 16-point gap (100 vs 84) on the only data that matters."
+      },
+      {
+        "text": "Depth 6 — the smallest model is always the safest choice.",
+        "correct": false,
+        "rationale": "Underfitting is a real failure too. Depth 6 leaves a point of validation accuracy on the table; capacity should be sized by the val set, not by maximal caution."
+      },
+      {
+        "text": "Keep growing depth past 20 until validation recovers.",
+        "correct": false,
+        "rationale": "In this sweep validation is falling as capacity grows — the standard overfitting pattern. Betting on an unobserved recovery is hope, not evidence; pick the peak you can see."
+      }
+    ],
+    "payload": null,
+    "explanation": "Every capacity knob — depth included — eventually buys training fit at validation's expense, so the sweep's job is to find the held-out peak. Choose capacity where validation peaks; training accuracy is a diagnostic, never the selection criterion."
+  },
+  {
+    "track": "ml",
+    "title": "ml-gap-03",
+    "topic": "generalization",
+    "kind": "mcq",
+    "difficulty": 3,
+    "scenario": "You're sweeping the width of a neural ranking model for your recommender. Test error falls, then rises as the model approaches the width where it can exactly fit the training set — then, as you keep widening past that point, test error starts falling again. A teammate declares the sweep bugged: 'past the sweet spot, test error can only go up.'",
+    "prompt": "Is the second descent a bug?",
+    "choices": [
+      {
+        "text": "Not necessarily — this is double descent: past the interpolation threshold, larger models can generalize better again. Rerun to confirm, but the shape itself is a documented phenomenon, not proof of a broken sweep.",
+        "correct": true,
+        "rationale": "In modern overparameterized networks, test error can peak near the interpolation threshold and then improve as width keeps growing. The classical U-curve describes the underparameterized regime, not all regimes."
+      },
+      {
+        "text": "Yes — the U-curve is a law; capacity beyond the sweet spot always hurts test error.",
+        "correct": false,
+        "rationale": "The U-curve is an intuition from the underparameterized regime, not a law. Deep networks routinely exhibit a second descent past the interpolation threshold."
+      },
+      {
+        "text": "It's test-set leakage — test error improving at higher capacity is only possible if the model saw the test data.",
+        "correct": false,
+        "rationale": "Leakage inflates scores, but it isn't the only way test error can fall with capacity. Double descent shows up with perfectly clean splits; suspect leakage on evidence, not on shape alone."
+      },
+      {
+        "text": "The first rise was the bug — bigger models are simply always better, so error should fall monotonically.",
+        "correct": false,
+        "rationale": "The rise near the interpolation threshold is also real and well documented. Neither monotonic story — 'always worse past the peak' or 'always better with size' — matches the observed curve."
+      }
+    ],
+    "payload": null,
+    "explanation": "Both the rise and the second fall are real: double descent is the known exception to the U-curve once models cross the interpolation threshold. Intuitions are summaries of a regime, not laws — check which regime you're in before calling the data wrong."
+  },
+  {
+    "track": "ml",
+    "title": "ml-eval-01",
+    "topic": "evaluation",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "Your new fraud model scores 99% accuracy on a test set where 10 of every 1,000 transactions (1%) are fraudulent. The team is celebrating.",
+    "prompt": "What should you check before joining the celebration?",
+    "choices": [
+      {
+        "text": "The baseline: a model that predicts 'not fraud' for everything scores exactly 99% on this data — so 99% accuracy may mean the model catches no fraud at all. Look at precision and recall on the fraud class.",
+        "correct": true,
+        "rationale": "990 of every 1,000 transactions are legitimate, so the all-negative baseline scores 990/1000 = 99%. Matching the do-nothing model is not evidence of skill; the model must beat 99%."
+      },
+      {
+        "text": "Nothing — 99% accuracy is excellent by any standard.",
+        "correct": false,
+        "rationale": "Celebrating accuracy under class imbalance is the reflex this dataset punishes: a coin with 'legitimate' on both sides also scores 99% here."
+      },
+      {
+        "text": "Whether more training could push it to 99.5%.",
+        "correct": false,
+        "rationale": "A higher number on a metric that hides the fraud class proves nothing. Until you see recall on the 1% that matters, you don't know if the model catches a single fraudulent transaction."
+      },
+      {
+        "text": "The test set is too small — collect more data before concluding anything.",
+        "correct": false,
+        "rationale": "Sample size isn't the flaw here; the metric is. On 1%-positive data of any size, accuracy is dominated by the majority class."
+      }
+    ],
+    "payload": null,
+    "explanation": "On 1%-positive data the do-nothing baseline scores exactly 99%, so 99% accuracy is indistinguishable from catching nothing. Accuracy without a baseline is a number without a meaning."
+  },
+  {
+    "track": "ml",
+    "title": "ml-eval-02",
+    "topic": "evaluation",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "Your hospital's triage model flags patients for urgent review. Last month it flagged 100 patients, of whom 90 were genuinely urgent. The hospital saw 180 genuinely urgent patients in total. The dashboard headline reads: '90% of urgent cases caught.'",
+    "prompt": "What's wrong with the headline?",
+    "choices": [
+      {
+        "text": "It confuses precision with recall. 90 correct out of 100 flags is 90% precision — but the model caught only 90 of 180 urgent patients, a recall of 50%. Half the urgent cases were never flagged.",
+        "correct": true,
+        "rationale": "Precision = 90/100 = 90% says the flags are trustworthy; recall = 90/180 = 50% says half the urgent patients slipped through. The headline reports the first number with the second number's meaning."
+      },
+      {
+        "text": "Nothing — 90 correct out of 100 flags is 90%, exactly as stated.",
+        "correct": false,
+        "rationale": "The arithmetic on the flags is right, but the claim is about urgent cases caught — and that denominator is 180, not 100. Caught fraction is 90/180 = 50%."
+      },
+      {
+        "text": "The model missed only 10 urgent patients — the 10 incorrect flags.",
+        "correct": false,
+        "rationale": "The 10 bad flags are non-urgent patients wrongly flagged, not urgent ones missed. Missed urgent patients = 180 − 90 = 90."
+      },
+      {
+        "text": "The numbers are inconsistent — there can't be 180 urgent patients if only 100 were flagged.",
+        "correct": false,
+        "rationale": "There can: the model simply never flagged 90 of them. That silent miss is exactly what recall measures and precision hides."
+      }
+    ],
+    "payload": null,
+    "explanation": "Precision is about your alarms; recall is about the world's positives — here 90% and 50% respectively, and the 90 unflagged urgent patients live in the difference. Always ask which denominator a percentage stands on."
+  },
+  {
+    "track": "ml",
+    "title": "ml-eval-03",
+    "topic": "evaluation",
+    "kind": "mcq",
+    "difficulty": 3,
+    "scenario": "A teammate refactors your demand-forecasting pipeline and validation RMSE improves from 12.4 to 11.1. Reading the diff, you notice the refactor now standardizes each feature using the mean and standard deviation of the full dataset — computed before the train/validation split — where the old code fit the scaler on training rows only.",
+    "prompt": "How do you read the improvement?",
+    "choices": [
+      {
+        "text": "As leakage, not learning — the scaler now carries validation-period statistics into training-time preprocessing. Refit the scaler on training data only and re-measure before believing any of the 1.3-point gain.",
+        "correct": true,
+        "rationale": "Normalizing on the full dataset before splitting leaks the validation set's distribution — in a forecasting problem, the future — into features the model trains on. The improvement is contamination until proven otherwise."
+      },
+      {
+        "text": "As a real gain — normalization is just preprocessing, and preprocessing can't leak because it never touches the labels.",
+        "correct": false,
+        "rationale": "Leakage doesn't require labels. Statistics computed over validation rows shape the transform applied to training rows, letting evaluation-period information into the model."
+      },
+      {
+        "text": "Peeking at validation data during preprocessing is harmless as long as you never train on the val rows themselves.",
+        "correct": false,
+        "rationale": "Treating a val-set peek as free is the reflex that quietly corrupts benchmarks. Every use of validation information — even through a humble mean — spends its independence."
+      },
+      {
+        "text": "Rerun with several random seeds and report the best RMSE to confirm the improvement is real.",
+        "correct": false,
+        "rationale": "Cherry-picking the best seed manufactures improvement out of noise — it compounds the problem rather than testing the leakage hypothesis."
+      }
+    ],
+    "payload": null,
+    "explanation": "A metric is only as honest as its setup: any statistic that flows from evaluation data into the training pipeline buys score without buying skill. Fit every transform on training data only, then apply it to the rest."
+  },
+  {
+    "track": "ml",
+    "title": "ml-optim-01",
+    "topic": "optimization",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "Training loss on your marketplace's product-image classifier is falling, but slowly. An engineer multiplies the learning rate by 10 to speed things up. Within 50 steps the loss shoots to ten times its starting value, then NaN.",
+    "prompt": "What happened?",
+    "choices": [
+      {
+        "text": "The learning rate is now too large — each step overshoots the minimum, so updates amplify the loss instead of shrinking it until the numbers blow up entirely.",
+        "correct": true,
+        "rationale": "Divergence immediately after a learning-rate increase is the signature of overshooting: steps larger than the loss surface's curvature can handle bounce outward, not inward. Revert and increase gently, or add warmup."
+      },
+      {
+        "text": "The model is too small for the task — add layers.",
+        "correct": false,
+        "rationale": "Undersized models plateau at high loss; they don't explode to NaN seconds after a learning-rate change. The timing points at the knob that moved."
+      },
+      {
+        "text": "Slow loss means the optimizer needed an even bigger learning rate to escape.",
+        "correct": false,
+        "rationale": "Cranking the rate because loss falls slowly is the reflex that caused this. Past the stable step size, bigger means divergence, not speed."
+      },
+      {
+        "text": "The data loader must have broken — divergence is always a data bug.",
+        "correct": false,
+        "rationale": "Bad batches can spike a loss, but the change that provably happened is a 10x learning rate. Test the known cause first: revert the rate and watch the curve."
+      }
+    ],
+    "payload": null,
+    "explanation": "The learning rate trades speed against stability, and loss diverging right after an increase means you bought neither. A loss curve's cliff into NaN is a diagnosis, not a mystery — suspect the knob that just moved."
+  },
+  {
+    "track": "ml",
+    "title": "ml-optim-02",
+    "topic": "optimization",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "Your two-tower recommender's training loss has sat at 0.52 for ten epochs after falling steadily. One engineer wants to double the learning rate 'to push through the plateau'; another wants to cut it by 10x.",
+    "prompt": "Which move does the loss curve support?",
+    "choices": [
+      {
+        "text": "Cut it — a plateau late in training often means the steps are too large to settle further into the minimum. Decaying the rate lets the model descend the fine structure the big steps keep jumping over.",
+        "correct": true,
+        "rationale": "This is why schedules decay: large steps find the basin, small steps settle it. If loss drops after the cut, the plateau was step size; if it stays flat, you've genuinely converged. Either way you learn something."
+      },
+      {
+        "text": "Double it — a flat loss means the optimizer needs more energy.",
+        "correct": false,
+        "rationale": "Cranking the rate because loss stopped falling is the reflex, but late in training bigger steps bounce harder around the minimum — or diverge. A larger rate answers a different problem: loss that never started falling."
+      },
+      {
+        "text": "Neither — a plateau means the model has extracted everything; stop training.",
+        "correct": false,
+        "rationale": "Maybe — but a cheap decay distinguishes 'converged' from 'stuck bouncing.' Stopping without running the test leaves loss on the table."
+      },
+      {
+        "text": "Keep the rate and add more epochs — more training is more learning.",
+        "correct": false,
+        "rationale": "Ten flat epochs say the current step size has done what it can. Repetition without changing the dynamics repeats the plateau."
+      }
+    ],
+    "payload": null,
+    "explanation": "Training is a dynamical system: a late plateau is usually a step-size symptom, not an intelligence ceiling. Learning-rate decay is the diagnostic that doubles as the cure."
+  },
+  {
+    "track": "ml",
+    "title": "ml-optim-03",
+    "topic": "optimization",
+    "kind": "mcq",
+    "difficulty": 3,
+    "scenario": "At epoch 60 — exactly when your vision model's schedule cuts the learning rate from 0.1 to 0.01 — training loss falls off a cliff, 0.48 to 0.35 in two epochs, after weeks of slow decline. A teammate posts: 'Breakthrough — the model finally understood the task. Next run, cut the rate at epoch 20 and get the breakthrough sooner.'",
+    "prompt": "What's the right read?",
+    "choices": [
+      {
+        "text": "The cliff is the schedule, not an epiphany — smaller steps let the model settle into the basin it was already orbiting. Cutting much earlier shortens the exploration phase and usually lands somewhere worse, not at the same cliff sooner.",
+        "correct": true,
+        "rationale": "The drop coincides with the decay because the decay causes it. The high-rate phase does the searching; decay cashes it in. Moving the cut is a real experiment worth running — but expect a tradeoff, not a free 40-epoch discount."
+      },
+      {
+        "text": "It's a genuine phase change — the model 'got it,' and the timing with the schedule is coincidence.",
+        "correct": false,
+        "rationale": "When an effect lands at the exact step a hyperparameter changed, the hyperparameter is the prime suspect. Loss cliffs at decay boundaries are routine dynamics, not epiphanies."
+      },
+      {
+        "text": "Cut the learning rate at epoch 1 — collect the whole drop immediately.",
+        "correct": false,
+        "rationale": "The early high-rate phase isn't wasted time; it explores the surface. Decaying immediately settles into the first basin found, typically a worse one than 40 epochs of search would reach."
+      },
+      {
+        "text": "The data pipeline probably reshuffled at epoch 60 — investigate a data bug first.",
+        "correct": false,
+        "rationale": "The change that provably happened at epoch 60 is the scheduled decay; the cliff is its textbook signature. Chase the known cause before the hypothetical one."
+      }
+    ],
+    "payload": null,
+    "explanation": "A loss curve's shape is a diagnosis: a cliff at a decay boundary means step size was the binding constraint, and the high-rate phase was buying exploration, not wasting time. Attribute changes to the knob that moved."
+  },
+  {
+    "track": "ml",
+    "title": "ml-leash-01",
+    "topic": "regularization",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "You're training a gradient-boosted churn model with a checkpoint every round. Validation loss bottoms out at round 200, then climbs steadily for the next 300 rounds while training loss keeps falling.",
+    "prompt": "Which model do you keep?",
+    "choices": [
+      {
+        "text": "The round-200 checkpoint — that's where held-out performance peaked; every round after it was the model fitting noise.",
+        "correct": true,
+        "rationale": "Early stopping is regularization: you stop where the validation curve bottoms, deliberately accepting worse training loss to keep the best generalization."
+      },
+      {
+        "text": "The final round — it has the lowest training loss, so it has learned the most.",
+        "correct": false,
+        "rationale": "'Lower training loss = better model' fails exactly here: the last 300 rounds lowered training loss by fitting noise, which is why validation loss rose the whole time."
+      },
+      {
+        "text": "Keep training — more rounds is more learning, and validation will come back down.",
+        "correct": false,
+        "rationale": "Once validation turns upward while training keeps falling, further rounds are memorization. Three hundred rounds of steady climb is the ordinary overfitting signature, not a dip before recovery."
+      },
+      {
+        "text": "Retrain from scratch for exactly 200 rounds — checkpoints are unreliable.",
+        "correct": false,
+        "rationale": "The checkpoint is the round-200 model; retraining spends compute to reproduce it (modulo randomness). Nothing about a saved checkpoint is less trustworthy than a rerun."
+      }
+    ],
+    "payload": null,
+    "explanation": "Early stopping trades the last drops of training fit for the best held-out score — you ship the validation minimum, not the training minimum. The leash costs training accuracy and buys you the test set."
+  },
+  {
+    "track": "ml",
+    "title": "ml-leash-02",
+    "topic": "regularization",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "Your factory's defect-detection CNN scores 99% train / 84% validation. You add weight decay and dropout: training accuracy drops to 95%, validation rises to 88%. A reviewer objects: 'The new model is worse — it lost 4 points of accuracy.'",
+    "prompt": "Who's right?",
+    "choices": [
+      {
+        "text": "You are — the 4 points of training accuracy you lost were memorization, and trading them for 4 points of validation is exactly what regularization is for. The gap shrank from 15 points to 7.",
+        "correct": true,
+        "rationale": "The leash deliberately fits worse to generalize better: 99 − 84 = 15 became 95 − 88 = 7, and only the validation number predicts the factory floor, where the new model wins 88 to 84."
+      },
+      {
+        "text": "The reviewer — accuracy dropped, so remove the regularization.",
+        "correct": false,
+        "rationale": "That reads the training number as the product. Production boards are unseen boards, and on unseen data the regularized model is 4 points better, not 4 points worse."
+      },
+      {
+        "text": "Neither yet — tune the regularization strength on the test set to settle it.",
+        "correct": false,
+        "rationale": "Tuning on the test set spends the only honest number you have. Strength gets tuned on validation; the test set is read once, at the end."
+      },
+      {
+        "text": "You are — because dropout eventually raises training accuracy too, once the model adapts.",
+        "correct": false,
+        "rationale": "Wrong mechanism: dropout and weight decay typically keep training accuracy lower for good. The win is on held-out data, not a delayed training-set payoff."
+      }
+    ],
+    "payload": null,
+    "explanation": "Regularization is deliberately fitting worse to generalize better — here 4 training points bought 4 validation points and halved the gap. Judge the leash by the held-out score it buys, never by the training accuracy it costs."
+  },
+  {
+    "track": "ml",
+    "title": "ml-leash-03",
+    "topic": "regularization",
+    "kind": "mcq",
+    "difficulty": 3,
+    "scenario": "Your demand-forecasting team ships a linear model trained by gradient descent with early stopping tuned on validation. A reviewer demands you add an L2 penalty as well: 'Early stopping is a hack; L2 is principled regularization — use both, and the more the safer.'",
+    "prompt": "What's the sharpest response?",
+    "choices": [
+      {
+        "text": "For this model they're close substitutes — early stopping bounds how far weights travel from initialization much as L2 pulls them toward zero. Either leash, sized on validation, does the job; stacking both means re-tuning to the same effective constraint, and tightening past the validation optimum is underfitting, not safety.",
+        "correct": true,
+        "rationale": "For linear models under gradient descent, early stopping approximately implements L2 regularization — two knobs on the same fit-versus-complexity dial. What matters is the validated tightness of the leash, not the count of mechanisms."
+      },
+      {
+        "text": "The reviewer is right — L2 is mathematically principled, early stopping is an engineering hack, and combining them doubles the protection.",
+        "correct": false,
+        "rationale": "Both are principled and their effects overlap heavily in this setting. Regularization strengths don't add up as 'protection'; past the optimum, extra leash costs accuracy on held-out data too."
+      },
+      {
+        "text": "The reviewer is wrong because early stopping isn't regularization at all — it's just a compute saver.",
+        "correct": false,
+        "rationale": "Stopping before convergence constrains effective capacity, which is precisely what regularization does. The compute saving is a bonus, not the mechanism."
+      },
+      {
+        "text": "More regularization is always safer — a model can't be over-regularized.",
+        "correct": false,
+        "rationale": "It can: tighten past the validation optimum and error rises again on the other side of the curve. The leash has two failure directions, and underfitting is the second."
+      }
+    ],
+    "payload": null,
+    "explanation": "Different regularizers are often interchangeable currencies for the same purchase — less effective capacity — so you size the total leash on validation rather than stacking mechanisms for comfort. Over-regularizing fails just as surely as under-regularizing, only on the other side of the curve."
+  },
+  {
+    "track": "ml",
+    "title": "ml-llm-01",
+    "topic": "llm_tuning",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "Your support bot answers product questions fluently, but when customers ask about the pricing change you shipped last month, it confidently describes the old plans. The tuning budget is on the table, and a teammate says: 'Time to finetune.'",
+    "prompt": "Which intervention fits this failure?",
+    "choices": [
+      {
+        "text": "Retrieval — the model is missing knowledge, not skill. Ground its answers in the current pricing docs at answer time; it already knows how to answer, it just doesn't know the facts.",
+        "correct": true,
+        "rationale": "A knowledge gap is retrieval-shaped: the failure is stale facts, and feeding current documents into the context fixes it directly — and keeps fixing it the next time pricing changes."
+      },
+      {
+        "text": "Finetune on support transcripts — tuning is the strongest intervention, so it fixes the most.",
+        "correct": false,
+        "rationale": "'Finetune it' is the reflex, but finetuning teaches style and format far more reliably than it stores fresh facts — and next month's pricing change puts you right back here."
+      },
+      {
+        "text": "Raise the temperature so the bot explores beyond its confident wrong answer.",
+        "correct": false,
+        "rationale": "Temperature changes how the model samples from what it already believes; it cannot conjure facts the model never saw."
+      },
+      {
+        "text": "Swap in a bigger base model — more parameters means more knowledge.",
+        "correct": false,
+        "rationale": "A bigger model carries more pretraining knowledge, but your last-month pricing isn't in any pretraining corpus. The missing facts have to arrive through the context."
+      }
+    ],
+    "payload": null,
+    "explanation": "The interventions form a ladder of rising cost and control, and the judgment is matching the rung to the failure: knowledge gaps want retrieval, format and style gaps want tuning. Finetuning is not a mechanism for keeping facts fresh."
+  },
+  {
+    "track": "ml",
+    "title": "ml-llm-02",
+    "topic": "llm_tuning",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "Your LLM assistant's eval suite scored 71 last week at temperature 0. A colleague re-runs it today — same model, same prompts — at temperature 0.9 and gets 74. Three more re-runs at 0.9 score 69, 71, and 74. The colleague wants to report 74.",
+    "prompt": "What did the temperature change actually do?",
+    "choices": [
+      {
+        "text": "It made the outputs stochastic, so the score is now a random variable — the 69-to-74 spread is sampling variance, not improvement. Compare at fixed decoding settings and report the mean of the runs (72), never the best draw.",
+        "correct": true,
+        "rationale": "At temperature 0.9 each run samples different outputs, so single-run scores wobble. The four runs (74, 69, 71, 74) average 72, and the run-to-run spread is as large as the 'gain' being claimed."
+      },
+      {
+        "text": "It improved the model — 74 beats 71, so report the gain.",
+        "correct": false,
+        "rationale": "Same weights, same prompts — nothing about the model changed. A delta smaller than the run-to-run spread (69 to 74) is noise, not signal."
+      },
+      {
+        "text": "Report the best of the re-runs — the maximum shows the model's true capability.",
+        "correct": false,
+        "rationale": "Cherry-picking the best run is p-hacking the eval: with enough draws from noise, some run always looks better. Max-of-N measures your luck, not your model."
+      },
+      {
+        "text": "Temperature 0.9 makes the model more creative, and the eval is now rewarding that creativity.",
+        "correct": false,
+        "rationale": "Perhaps on some tasks — but a 5-point spread across identical runs says the movement here is variance. You can't credit creativity for a difference that fits inside the noise."
+      }
+    ],
+    "payload": null,
+    "explanation": "Raising temperature turns each eval score into one draw from a distribution: hold decoding settings fixed across comparisons, report means and spreads, and treat any single-run delta smaller than the run-to-run spread as noise."
+  },
+  {
+    "track": "ml",
+    "title": "ml-llm-03",
+    "topic": "llm_tuning",
+    "kind": "mcq",
+    "difficulty": 3,
+    "scenario": "You LoRA-tune your support bot — rank 8 on 4,096-dim layers, so about 2 × 8 × 4,096 = 65,536 trainable parameters per adapted matrix pair, roughly 0.39% of the 16.7M in a full weight matrix — on 5,000 historical support transcripts. Your eval score jumps from 62 to 89. Then you notice the eval set is a random sample of those same 5,000 transcripts.",
+    "prompt": "What does the 89 mean?",
+    "choices": [
+      {
+        "text": "Almost nothing — the model was tuned on the eval's own transcripts, so 89 mixes memorization with generalization in unknown proportions. Rebuild the eval from transcripts excluded from tuning and re-score.",
+        "correct": true,
+        "rationale": "A held-out eval for a tuned model must exclude the tuning data. The model has seen these exact conversations during training, so its score on them bounds nothing about the next customer."
+      },
+      {
+        "text": "An 89 is an 89 — tuning data and eval data are both real support transcripts, so the score is representative.",
+        "correct": false,
+        "rationale": "Representative content isn't the issue; independence is. Scoring the model on conversations it trained on measures recall of the training set, not performance on new tickets."
+      },
+      {
+        "text": "Keep iterating the adapter against this eval until the score stops rising — that's what evals are for.",
+        "correct": false,
+        "rationale": "That's tuning on the test set: every iteration against it leaks its contents into your choices, and the number drifts from measurement to target."
+      },
+      {
+        "text": "LoRA trains only 0.39% of each matrix, far too few parameters to memorize transcripts — the score is clean.",
+        "correct": false,
+        "rationale": "65,536 parameters per adapted pair, across dozens of layers, is millions of trainable weights — ample to store the patterns of 5,000 transcripts. Small relative to the base model is not small in absolute terms."
+      }
+    ],
+    "payload": null,
+    "explanation": "A tuned model's eval only measures generalization if the model couldn't have memorized its way to the score — even a 0.39%-sized adapter can. Held out means held out of tuning, not just held out of pretraining."
+  },
+  {
+    "track": "ml",
+    "title": "ml-scale-01",
+    "topic": "scaling_laws",
+    "kind": "mcq",
+    "difficulty": 1,
+    "scenario": "Your legal-tech team has 2,000 labeled contracts and a transformer classifier that scores 98% training / 74% validation accuracy. An engineer proposes the fix: 'Scale it — 10x the parameters.'",
+    "prompt": "What's wrong with the proposal?",
+    "choices": [
+      {
+        "text": "The model is data-starved, not capacity-starved — at 98% train it already nearly memorizes the 2,000 contracts, so more parameters buy more memorization. The binding constraint is labeled data (or a tighter leash), not model size.",
+        "correct": true,
+        "rationale": "A 24-point gap with near-perfect training fit says capacity already exceeds the data. More labels, augmentation, or regularization move the validation number; 10x parameters mostly widens the gap."
+      },
+      {
+        "text": "Nothing — bigger models are better, and scaling laws guarantee it.",
+        "correct": false,
+        "rationale": "'Bigger model' is the reflex, but scaling laws describe loss falling when parameters, data, and compute grow together. Scaling one axis while another starves is not what the curves promise."
+      },
+      {
+        "text": "Right idea, wrong knob — 10x the epochs instead.",
+        "correct": false,
+        "rationale": "Training accuracy is already 98%; more passes over the same 2,000 contracts push it to 100% while validation stalls or sinks. More epochs is not more learning here."
+      },
+      {
+        "text": "The 74% is the wrong number to worry about — 98% is the model's real accuracy.",
+        "correct": false,
+        "rationale": "Production is unseen contracts, and unseen contracts score 74%. The 2,000 the model trained on never come back to be classified again."
+      }
+    ],
+    "payload": null,
+    "explanation": "Scale helps when the model is too small for its data; this model already swallows its data whole, so added capacity buys memorization, not accuracy. Find the binding constraint — parameters, data, or compute — before spending on any of them."
+  },
+  {
+    "track": "ml",
+    "title": "ml-scale-02",
+    "topic": "scaling_laws",
+    "kind": "mcq",
+    "difficulty": 2,
+    "scenario": "Your translation model's validation loss has fallen by about 0.05 per doubling of training data: 2.35 at 4M sentence pairs, 2.30 at 8M, 2.25 at 16M. A PM asks what it takes to reach 2.20 and proposes 'another 8M pairs, same as last time.'",
+    "prompt": "What does the trend actually imply?",
+    "choices": [
+      {
+        "text": "About 32M pairs total — the gain has come per doubling, not per added example, so the next 0.05 costs 16M new pairs, twice the previous increment.",
+        "correct": true,
+        "rationale": "Power-law scaling is log-linear: equal loss decrements cost multiplicative, not additive, data. The doublings were 4M→8M, then 8M→16M; the next one is 16M→32M."
+      },
+      {
+        "text": "24M pairs — each 8M of new data has been buying 0.05, so one more 8M buys the next.",
+        "correct": false,
+        "rationale": "That linearly extrapolates a log-linear trend. The first 0.05 cost 4M new pairs and the second cost 8M — the increments double, they don't stay flat. 24M is only about half a doubling past 16M."
+      },
+      {
+        "text": "No amount of data — three nearly flat losses mean the curve has plateaued near 2.25.",
+        "correct": false,
+        "rationale": "Three points on a clean per-doubling trend is the opposite of a plateau. Diminishing absolute returns per example is how power laws always look — it isn't a wall."
+      },
+      {
+        "text": "It will keep dropping 0.05 per doubling all the way to zero loss.",
+        "correct": false,
+        "rationale": "Power laws bend toward an irreducible-loss floor — the entropy of language no model removes — so even the per-doubling gain eventually shrinks. Extrapolate cautiously, and never to zero."
+      }
+    ],
+    "payload": null,
+    "explanation": "Scaling returns are priced per multiplicative step: each equal gain costs double the data, so budget in doublings, not increments. And the curve flattens toward an irreducible floor, not toward zero."
+  },
+  {
+    "track": "ml",
+    "title": "ml-scale-03",
+    "topic": "scaling_laws",
+    "kind": "mcq",
+    "difficulty": 3,
+    "scenario": "You have a fixed pretraining compute budget for an in-house code model — compute scales with parameters × training tokens, and your budget covers 6B parameters × 30B tokens or 3B parameters × 60B tokens (the same product, 180). The room leans toward Plan A: 'At the same compute, the bigger model wins.'",
+    "prompt": "Which plan does scaling math favor?",
+    "choices": [
+      {
+        "text": "Quite possibly B — at fixed compute the parameter/data split has an optimum, and a 6B model on 5 tokens per parameter is badly under-trained. A half-size model fed twice the tokens often lands at lower loss; check the compute-optimal frontier instead of defaulting to bigger.",
+        "correct": true,
+        "rationale": "Both plans spend 6 × 30 = 3 × 60 = 180 units, but equal compute is not equal loss. Loss depends on both axes, and starving a large model of tokens leaves its capacity unrealized."
+      },
+      {
+        "text": "A — parameter count determines capability, so at equal compute the bigger model always wins.",
+        "correct": false,
+        "rationale": "'Bigger model' is a reflex, not a law. Famous replications showed smaller models trained on more tokens beating larger under-trained ones at identical compute."
+      },
+      {
+        "text": "They'll perform identically — parameters and tokens trade one-for-one, and the products are equal.",
+        "correct": false,
+        "rationale": "The iso-compute line holds the budget fixed, but loss varies along it: the surface over (parameters, data) has a valley, and the two plans sit at different distances from it."
+      },
+      {
+        "text": "Neither — double both parameters and tokens instead.",
+        "correct": false,
+        "rationale": "6B × 60B is 360 units — twice the budget you have. The question is how to split fixed compute, and 'spend more' isn't a split."
+      }
+    ],
+    "payload": null,
+    "explanation": "At fixed compute, loss is minimized along a frontier that balances parameters against tokens, and an over-sized under-trained model sits off that frontier. Scale is a strategy with math — and the math frequently says smaller model, more data."
+  },
+  {
+    "track": "ml",
+    "title": "payback-support-bot",
+    "topic": "llm_tuning",
+    "kind": "payback",
+    "difficulty": 1,
+    "scenario": "Your support assistant runs on a 2,400-token mega-prompt (policies, tone guide, examples) and writes ~1,000-token replies at 1 credit per 1k tokens. A finetune would shrink the prompt to 150 tokens — but tuned serving runs on dedicated capacity at 2.0× the per-token price. The training job is quoted at 900,000 credits.",
+    "prompt": "After how many calls has the finetune paid for itself?",
+    "choices": [],
+    "payload": {
+      "pLong": 2400,
+      "pShort": 150,
+      "out": 1000,
+      "price": 1,
+      "premium": 2,
+      "trainCost": 900000,
+      "naiveRule": "headline",
+      "unit": "calls",
+      "minExp": 3,
+      "maxExp": 8,
+      "truthN": 818182,
+      "naiveN": 264706,
+      "tolDex": 0.15
+    },
+    "explanation": "Today a call costs 3.4 credits; the tuned call costs 2.0 × 1.15k = 2.3. The finetune is repaid by that 1.1-credit sliver — not by the 3.4-credit headline bill. Dividing the training cost by the full per-call spend promises payback three times too soon. Fixed costs are repaid by the marginal saving, never by what you were spending before."
+  },
+  {
+    "track": "ml",
+    "title": "payback-code-review",
+    "topic": "llm_tuning",
+    "kind": "payback",
+    "difficulty": 2,
+    "scenario": "The code-review bot reads a 1,800-token rubric prompt and writes long, 3,000-token reviews at 1 credit per 1k tokens. A finetune would internalize the rubric (300-token prompt) — on dedicated tuned serving at 1.8× the per-token price. Training is quoted at 600,000 credits.",
+    "prompt": "After how many calls has the finetune paid for itself?",
+    "choices": [],
+    "payload": {
+      "pLong": 1800,
+      "pShort": 300,
+      "out": 3000,
+      "price": 1,
+      "premium": 1.8,
+      "trainCost": 600000,
+      "naiveRule": "blind",
+      "unit": "calls",
+      "minExp": 3,
+      "maxExp": 8,
+      "truthN": null,
+      "naiveN": 400000,
+      "tolDex": 0.15
+    },
+    "explanation": "The prompt diet saves 1.5k tokens — but the 1.8× serving premium applies to the whole tuned call, output included, and the output is 3,000 tokens. Tuned calls cost 5.94 credits against 4.8 today: the finetune loses money on every single call, forever. When output dominates the bill, no prompt saving outruns a serving premium — the break-even you computed by ignoring it never arrives."
+  },
+  {
+    "track": "ml",
+    "title": "payback-classifier-router",
+    "topic": "llm_tuning",
+    "kind": "payback",
+    "difficulty": 1,
+    "scenario": "Your ticket router classifies with a 1,200-token instruction prompt and ~600-token structured outputs at 2 credits per 1k tokens. A finetuned router needs a 100-token prompt, served at a 1.5× premium. Training quote: 210,000 credits.",
+    "prompt": "After how many calls has the finetune paid for itself?",
+    "choices": [],
+    "payload": {
+      "pLong": 1200,
+      "pShort": 100,
+      "out": 600,
+      "price": 2,
+      "premium": 1.5,
+      "trainCost": 210000,
+      "naiveRule": "headline",
+      "unit": "calls",
+      "minExp": 3,
+      "maxExp": 8,
+      "truthN": 140000,
+      "naiveN": 58333,
+      "tolDex": 0.15
+    },
+    "explanation": "Calls cost 3.6 credits today and 2.1 tuned — a 1.5-credit marginal saving, so the 210k bill is repaid at 140k calls. Amortizing over the full 3.6-credit headline bill says 58k, more than twice too early. The training bill doesn't care what you spend; it cares what you stop spending."
+  },
+  {
+    "track": "ml",
+    "title": "payback-rag-stuffing",
+    "topic": "llm_tuning",
+    "kind": "payback",
+    "difficulty": 2,
+    "scenario": "Today you stuff 6,000 tokens of product docs into every prompt. The proposed finetune bakes the product knowledge in (800-token prompt), served on dedicated capacity at 1.9×. Outputs run ~1,200 tokens at 1 credit per 1k. The training pipeline — data curation included — is quoted at 1,500,000 credits.",
+    "prompt": "After how many calls has the finetune paid for itself?",
+    "choices": [],
+    "payload": {
+      "pLong": 6000,
+      "pShort": 800,
+      "out": 1200,
+      "price": 1,
+      "premium": 1.9,
+      "trainCost": 1500000,
+      "naiveRule": "headline",
+      "unit": "calls",
+      "minExp": 3,
+      "maxExp": 8,
+      "truthN": 441176,
+      "naiveN": 208333,
+      "tolDex": 0.15
+    },
+    "explanation": "The stuffed call costs 7.2 credits; the tuned one 1.9 × 2.0k = 3.8. The saving is 3.4 credits — so 1.5M credits is repaid at about 441k calls, not the 208k the headline division promises. The bigger your current bill, the more seductive the wrong denominator: the saving, not the spend, is what repays the build."
+  },
+  {
+    "track": "ml",
+    "title": "payback-summarizer",
+    "topic": "llm_tuning",
+    "kind": "payback",
+    "difficulty": 3,
+    "scenario": "The meeting summarizer takes a lean 900-token prompt and writes 2,500-token summaries at 2 credits per 1k tokens. A finetune would trim the prompt to 200 tokens, served at a 1.5× premium. Training quote: 400,000 credits.",
+    "prompt": "After how many calls has the finetune paid for itself?",
+    "choices": [],
+    "payload": {
+      "pLong": 900,
+      "pShort": 200,
+      "out": 2500,
+      "price": 2,
+      "premium": 1.5,
+      "trainCost": 400000,
+      "naiveRule": "blind",
+      "unit": "calls",
+      "minExp": 3,
+      "maxExp": 8,
+      "truthN": null,
+      "naiveN": 285714,
+      "tolDex": 0.15
+    },
+    "explanation": "The prompt was never the bill — the 2,500-token output was. Today: 6.8 credits. Tuned: 1.5 × 5.4k = 8.1. The 'saving' is negative 1.3 credits per call; the finetune digs the hole deeper with every summary. Prompt-diet arithmetic that ignores the premium promises a 286k-call payback on a project that can never pay back. Check the sign of the marginal saving before you compute anything else."
+  },
+  {
+    "track": "ml",
+    "title": "payback-triage-bot",
+    "topic": "llm_tuning",
+    "kind": "payback",
+    "difficulty": 2,
+    "scenario": "An incident-triage bot reads a 1,600-token runbook prompt and emits 400-token triage calls at 1 credit per 1k tokens. The finetune internalizes the runbook (200-token prompt) but its low volume means pricey dedicated serving: 2.5×. Training quote: 120,000 credits.",
+    "prompt": "After how many calls has the finetune paid for itself?",
+    "choices": [],
+    "payload": {
+      "pLong": 1600,
+      "pShort": 200,
+      "out": 400,
+      "price": 1,
+      "premium": 2.5,
+      "trainCost": 120000,
+      "naiveRule": "headline",
+      "unit": "calls",
+      "minExp": 3,
+      "maxExp": 8,
+      "truthN": 240000,
+      "naiveN": 60000,
+      "tolDex": 0.15
+    },
+    "explanation": "Two credits today, 1.5 tuned — the saving is half a credit, so 120k credits takes 240k calls to claw back. The headline division says 60k. For a triage bot doing a few hundred calls a day, the difference between those two answers is the difference between 'pays back this year' and 'pays back in four' — the marginal saving decides which quarter the CFO hears about."
+  },
+  {
+    "track": "ml",
+    "title": "payback-agent-tools",
+    "topic": "llm_tuning",
+    "kind": "payback",
+    "difficulty": 3,
+    "scenario": "Your agent carries 3,000 tokens of tool schemas and few-shot traces per step; outputs are ~600 tokens at 1 credit per 1k. A finetune can compress the tool prompt to 1,200 tokens, served at 1.6×. Training quote: 700,000 credits.",
+    "prompt": "After how many calls has the finetune paid for itself?",
+    "choices": [],
+    "payload": {
+      "pLong": 3000,
+      "pShort": 1200,
+      "out": 600,
+      "price": 1,
+      "premium": 1.6,
+      "trainCost": 700000,
+      "naiveRule": "blind",
+      "unit": "calls",
+      "minExp": 3,
+      "maxExp": 8,
+      "truthN": 972222,
+      "naiveN": 388889,
+      "tolDex": 0.15
+    },
+    "explanation": "The prompt shrinks by 1.8k tokens, and dividing 700k by that saving alone promises payback at 389k calls. But the 1.6× premium taxes the whole tuned call: 2.88 credits against 3.6 today, a true saving of 0.72 — break-even at 972k calls, two and a half times later. The premium doesn't cancel the saving here; it quietly halves it, and every premium-blind forecast lands a quarter early."
+  },
+  {
+    "track": "ml",
+    "title": "payback-moderation",
+    "topic": "llm_tuning",
+    "kind": "payback",
+    "difficulty": 1,
+    "scenario": "A moderation filter reads an 800-token policy prompt and returns 100-token verdicts at 1 credit per 1k tokens. The finetuned filter needs a 100-token prompt but — at your volume — dedicated serving costs 3.0×. Training quote: 90,000 credits.",
+    "prompt": "After how many calls has the finetune paid for itself?",
+    "choices": [],
+    "payload": {
+      "pLong": 800,
+      "pShort": 100,
+      "out": 100,
+      "price": 1,
+      "premium": 3,
+      "trainCost": 90000,
+      "naiveRule": "headline",
+      "unit": "calls",
+      "minExp": 3,
+      "maxExp": 8,
+      "truthN": 300000,
+      "naiveN": 100000,
+      "tolDex": 0.15
+    },
+    "explanation": "0.9 credits today, 0.6 tuned: the 3× premium on a tiny tuned call still undercuts the policy-prompt bill, and the 0.3-credit saving repays 90k credits at 300k calls. The headline division says 100k — three times too soon. Small numbers don't change the law: the denominator is the saving."
   },
   {
     "track": "statistics",

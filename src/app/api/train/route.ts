@@ -75,6 +75,11 @@ type GapPayload = {
   lineA: GapLine; lineB: GapLine; naiveRule: "mode" | "best" | "worst";
   unit: string; min: number; max: number; truth: number; naive: number; tol: number;
 };
+type PaybackPayload = {
+  pLong: number; pShort: number; out: number; price: number; premium: number;
+  trainCost: number; naiveRule: "headline" | "blind"; unit: string;
+  minExp: number; maxExp: number; truthN: number | null; naiveN: number; tolDex: number;
+};
 
 // GET /api/train?sessionId=...&track=...&topic=... — next item + The Record.
 async function getHandler(request: Request) {
@@ -148,6 +153,15 @@ async function getHandler(request: Request) {
     // guessing hidden data — the pool precedent) — never the ΔEV truth, the
     // felt-gap naive, or which reflex rule the trap encodes.
     item = { ...base, gap: { lineA: p.lineA, lineB: p.lineB, unit: p.unit, min: p.min, max: p.max } };
+  } else if (it.kind === "payback") {
+    const p = JSON.parse(it.payload ?? "{}") as PaybackPayload;
+    // send the full workload card — the skill is weighing shown numbers (the
+    // pool/gap precedent) — but never truthN, naiveN, the reflex rule, or the
+    // tolerance. Whether this item is a NEVER must be undetectable at serve.
+    item = { ...base, payback: {
+      pLong: p.pLong, pShort: p.pShort, out: p.out, price: p.price, premium: p.premium,
+      trainCost: p.trainCost, unit: p.unit, minExp: p.minExp, maxExp: p.maxExp,
+    } };
   } else {
     const choices = parseChoices(it.choices).map((c, i) => ({ i, text: c.text }));
     item = { ...base, choices: shuffled(choices) };
@@ -309,6 +323,34 @@ async function postHandler(request: Request) {
       truth: p.truth, naive: p.naive, yourValue: value, naiveTrap, tol: p.tol,
       unit: p.unit, naiveRule: p.naiveRule, lineA: p.lineA, lineB: p.lineB,
       evA, evB, swing, agonyPct,
+      explanation: item.explanation,
+    };
+  } else if (item.kind === "payback") {
+    const p = JSON.parse(item.payload ?? "{}") as PaybackPayload;
+    // NEVER is a first-class answer: the learner either commits a call volume
+    // or latches "never pays". Finite answers grade in dex — payback errors
+    // are multiplicative — and the trap is the declared reflex rule's number.
+    const never = body?.never === true;
+    const value = never ? null : Number(body?.value);
+    if (!never && (!Number.isFinite(value) || (value as number) <= 0)) {
+      return NextResponse.json({ error: "invalid value" }, { status: 400 });
+    }
+    correct = p.truthN == null
+      ? never
+      : !never && Math.abs(Math.log10(value as number) - Math.log10(p.truthN)) <= p.tolDex;
+    const naiveTrap = !correct && !never && Math.abs(Math.log10(value as number) - Math.log10(p.naiveN)) <= p.tolDex;
+    const r2 = (x: number) => Math.round(x * 100) / 100;
+    const costToday = r2((p.price * (p.pLong + p.out)) / 1000);
+    const costTuned = r2((p.premium * p.price * (p.pShort + p.out)) / 1000);
+    const saving = r2(costToday - costTuned);
+    const multiplier = !never && p.truthN != null
+      ? Math.round(((value as number) / p.truthN) * 10) / 10
+      : null;
+    reveal = {
+      truthN: p.truthN, naiveN: p.naiveN, yourValue: value, never, naiveTrap,
+      tolDex: p.tolDex, naiveRule: p.naiveRule, unit: p.unit,
+      minExp: p.minExp, maxExp: p.maxExp,
+      costToday, costTuned, saving, multiplier,
       explanation: item.explanation,
     };
   } else {

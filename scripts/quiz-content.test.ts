@@ -23,7 +23,7 @@ for (const q of QUIZ_SEEDS) {
   if (!track) continue;
   ok(track.topics.some((t) => t.id === q.topic), `${label}: topic "${q.topic}" exists in ${q.track}`);
   ok([1, 2, 3].includes(q.difficulty), `${label}: difficulty in 1..3`);
-  ok(["mcq", "estimate", "duel", "bakeoff", "flood", "market", "redline", "pool", "gap"].includes(q.kind), `${label}: kind is one of the known kinds`);
+  ok(["mcq", "estimate", "duel", "bakeoff", "flood", "market", "redline", "pool", "gap", "payback"].includes(q.kind), `${label}: kind is one of the known kinds`);
   ok(!!q.scenario.trim() && !!q.prompt.trim() && !!q.explanation.trim(), `${label}: scenario/prompt/explanation non-empty`);
   if (q.kind === "mcq") {
     ok(q.choices.filter((c) => c.correct).length === 1, `${label}: exactly one correct choice`);
@@ -87,6 +87,32 @@ for (const q of QUIZ_SEEDS) {
     ok(p.min < 0 && 0 < p.max, `${label}: gap slider crosses zero`);
     ok(Math.abs(p.truth - p.naive) > 2 * p.tol, `${label}: gap naive is a genuine trap (outside 2·tol)`);
     ok(q.choices.length === 0, `${label}: gap carries no choices`);
+  } else if (q.kind === "payback") {
+    const p = q.payload as {
+      pLong: number; pShort: number; out: number; price: number; premium: number; trainCost: number;
+      naiveRule: "headline" | "blind"; minExp: number; maxExp: number;
+      truthN: number | null; naiveN: number; tolDex: number;
+    };
+    // re-derive the tuning economics: the marginal saving, the break-even, the reflex
+    const costToday = (p.price * (p.pLong + p.out)) / 1000;
+    const costTuned = (p.premium * p.price * (p.pShort + p.out)) / 1000;
+    const s2 = costToday - costTuned;
+    const expNaive = p.naiveRule === "headline"
+      ? Math.round(p.trainCost / costToday)
+      : Math.round(p.trainCost / ((p.price * (p.pLong - p.pShort)) / 1000));
+    ok(p.premium >= 1 && p.pShort < p.pLong, `${label}: payback params well-formed`);
+    ok(Math.abs(s2) >= 0.05 * costToday, `${label}: payback saving is no knife-edge (|s| >= 5% of today's bill)`);
+    if (s2 > 0) {
+      const exp = Math.round(p.trainCost / s2);
+      ok(p.truthN != null && Math.abs(p.truthN - exp) <= Math.max(1, exp * 0.001), `${label}: payback truth is trainCost / marginal saving`);
+      ok(p.truthN != null && Math.log10(p.truthN) <= 7.5 && Math.log10(p.truthN) >= p.minExp + 0.2, `${label}: payback truth sits inside the rail`);
+      ok(p.truthN != null && Math.abs(Math.log10(p.naiveN) - Math.log10(p.truthN)) > 2 * p.tolDex, `${label}: payback naive is a genuine trap (outside 2·tolDex)`);
+    } else {
+      ok(p.truthN == null, `${label}: payback negative saving means NEVER (truthN null)`);
+    }
+    ok(Math.abs(p.naiveN - expNaive) <= Math.max(1, expNaive * 0.001), `${label}: payback naive is the declared ${p.naiveRule}-rule recompute`);
+    ok(p.tolDex > 0 && p.minExp < p.maxExp, `${label}: payback rail + tolerance well-formed`);
+    ok(q.choices.length === 0, `${label}: payback carries no choices`);
   } else if (q.kind === "pool") {
     const p = q.payload as { subgroups: { T: { rate: number; n: number }; C: { rate: number; n: number } }[]; truth: number; naive: number; tol: number; min: number; max: number };
     const pooled = (arm: "T" | "C") => p.subgroups.reduce((s, g) => s + g[arm].rate * g[arm].n, 0) / p.subgroups.reduce((s, g) => s + g[arm].n, 0);

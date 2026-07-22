@@ -29,7 +29,7 @@ type ItemDto = {
   id: string;
   track: string;
   topic: string;
-  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool" | "gap";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool" | "gap" | "payback";
   difficulty: number;
   scenario: string;
   prompt: string;
@@ -42,6 +42,11 @@ type ItemDto = {
   redline?: { mu: number; slaMs: number; percentile: number; min: number; max: number };
   pool?: { arms: [string, string]; unit: string; min: number; max: number; subgroups: PoolSubgroup[] };
   gap?: { lineA: GapLine; lineB: GapLine; unit: string; min: number; max: number };
+  payback?: PaybackDto;
+};
+type PaybackDto = {
+  pLong: number; pShort: number; out: number; price: number; premium: number;
+  trainCost: number; unit: string; minExp: number; maxExp: number;
 };
 type GapBranch = { p: number; v: number };
 type GapLine = { name: string; branches: GapBranch[] };
@@ -80,7 +85,7 @@ type GetDto = { item: ItemDto | null; remaining: number; liveRating: number; cou
 type RevealChoice = { i: number; text: string; correct: boolean; rationale: string };
 type PostDto = {
   correct: boolean;
-  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool" | "gap";
+  kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool" | "gap" | "payback";
   topic: string;
   confidence: number | null;
   // mcq
@@ -111,7 +116,7 @@ type PostDto = {
   specificity?: number;
   // market
   naive?: number;
-  yourValue?: number;
+  yourValue?: number | null;
   naiveTrap?: boolean;
   target?: "price" | "quantity";
   lever?: "none" | "tax" | "ceiling";
@@ -136,7 +141,18 @@ type PostDto = {
   evB?: number;
   swing?: number;
   agonyPct?: number;
-  naiveRule?: "mode" | "best" | "worst";
+  naiveRule?: "mode" | "best" | "worst" | "headline" | "blind";
+  // payback
+  truthN?: number | null;
+  naiveN?: number;
+  never?: boolean;
+  tolDex?: number;
+  minExp?: number;
+  maxExp?: number;
+  costToday?: number;
+  costTuned?: number;
+  saving?: number;
+  multiplier?: number | null;
   liveRating: number;
   ratingDelta: number;
   count: number;
@@ -278,7 +294,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
   );
 
   const submit = useCallback(
-    async (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string; prevalence?: number; value?: number }, confidence: number | null) => {
+    async (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string; prevalence?: number; value?: number; never?: boolean }, confidence: number | null) => {
       if (!item || submitting || reveal) return;
       setSubmitting(true);
       try {
@@ -718,11 +734,11 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
   track: Track; item: ItemDto; reveal: PostDto | null; submitting: boolean; rating: number;
   position: number; total: number; levelRoman: string; firstEver: boolean;
   runMode: RunMode; pot: number;
-  onSubmit: (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string; prevalence?: number; value?: number }, confidence: number | null) => void;
+  onSubmit: (answer: { pickedIndex?: number; point?: number; lo?: number; hi?: number; keyId?: string; prevalence?: number; value?: number; never?: boolean }, confidence: number | null) => void;
   onNext: () => void; onBank: () => void;
 }) {
   const topic = topicOf(track, item.topic);
-  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : item.kind === "flood" ? "BASE-RATE" : item.kind === "market" ? "MARKET" : item.kind === "redline" ? "REDLINE" : item.kind === "pool" ? "POOLED" : item.kind === "gap" ? "MARGIN" : "CALL";
+  const kindLabel = item.kind === "estimate" ? "ESTIMATE" : item.kind === "duel" ? "DUEL" : item.kind === "bakeoff" ? "BAKE-OFF" : item.kind === "flood" ? "BASE-RATE" : item.kind === "market" ? "MARKET" : item.kind === "redline" ? "REDLINE" : item.kind === "pool" ? "POOLED" : item.kind === "gap" ? "MARGIN" : item.kind === "payback" ? "PAYBACK" : "CALL";
   const [hintOpen, setHintOpen] = useState(true);
   const descent = runMode === "descent";
   // the post-reveal control: descent shows Bank/Deeper (or Surface on a bust);
@@ -777,6 +793,7 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
       {item.kind === "redline" && <RedlineCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
       {item.kind === "pool" && <PoolCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
       {item.kind === "gap" && <GapCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
+      {item.kind === "payback" && <PaybackCall key={item.id} item={item} reveal={reveal} submitting={submitting} onSubmit={onSubmit} postReveal={postReveal} />}
     </div>
   );
 }
@@ -1888,5 +1905,159 @@ function DescentRecap({ trackId, track, busted, pot, depth, onAgain, onHome }: {
         <button onClick={onHome} className="w-full rounded-lg border border-card-border bg-card px-5 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-ink-strong transition-colors hover:border-rule-strong">Back to {track.name}</button>
       </div>
     </div>
+  );
+}
+
+// Winner of the Tuning Room 4-firm competition (Firm D "ADAPTER" — the Payback
+// Dial, docs/ML-10X.md). The full workload card is shown — prompt today, tuned
+// prompt, output, price, the serving premium, the training bill — and the
+// learner commits WHEN the finetune has paid for itself on a log-decade dial,
+// or latches NEVER PAYS. The naive trap is a declared amortization reflex
+// (headline bill, or premium-blindness) recomputed server-side; errors grade
+// in dex because payback errors are multiplicative.
+function fmtCalls(v: number): string {
+  if (v >= 1e6) return `${Math.round(v / 1e5) / 10}M`;
+  if (v >= 1e3) return `${Math.round(v / 100) / 10}k`;
+  return `${Math.round(v)}`;
+}
+function PaybackCall({ item, reveal, submitting, onSubmit, postReveal }: {
+  item: ItemDto; reveal: PostDto | null; submitting: boolean;
+  onSubmit: (a: { value?: number; never?: boolean }, c: number | null) => void; postReveal: ReactNode;
+}) {
+  const pl = item.payback!;
+  const [dex, setDex] = useState((pl.minExp + pl.maxExp) / 2);
+  const [never, setNever] = useState(false);
+  const [conviction, setConviction] = useState<number | null>(null);
+  const dexSpan = pl.maxExp - pl.minExp;
+  const cx = (v: number) => `${Math.max(0, Math.min(100, ((Math.log10(v) - pl.minExp) / dexSpan) * 100))}%`;
+  const value = Math.round(10 ** dex);
+  const r2 = (x: number) => Math.round(x * 100) / 100;
+  const costToday = reveal?.costToday ?? r2((pl.price * (pl.pLong + pl.out)) / 1000);
+  const truthN = reveal?.truthN ?? null;
+  const yourV = reveal?.yourValue ?? null;
+  const saidNever = reveal?.never === true;
+  const within = reveal?.correct ?? false;
+  const decades = Array.from({ length: dexSpan + 1 }, (_, i) => pl.minExp + i);
+  const ledgerRow = (label: string, tokens: string, cost: string, hot?: boolean) => (
+    <div className="flex items-baseline justify-between font-mono text-[0.68rem]">
+      <span className="text-muted">{label}</span>
+      <span className="tabular-nums text-muted/80">{tokens}</span>
+      <span className={`tabular-nums ${hot ? "text-accent" : "text-ink-strong"}`}>{cost}</span>
+    </div>
+  );
+  return (
+    <>
+      <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The workload</p>
+        <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
+        <div className="mt-3 space-y-1 rounded-md border border-card-border/70 px-3 py-2">
+          {ledgerRow("prompt today", `${pl.pLong.toLocaleString()} tok`, `${r2((pl.price * pl.pLong) / 1000)} cr`)}
+          {ledgerRow("tuned prompt", `${pl.pShort.toLocaleString()} tok`, `${r2((pl.price * pl.pShort) / 1000)} cr`)}
+          {ledgerRow("output per call", `${pl.out.toLocaleString()} tok`, `${r2((pl.price * pl.out) / 1000)} cr`)}
+          {ledgerRow("tuned serving", "dedicated", `×${pl.premium}`, true)}
+          {ledgerRow("training bill", "one-time", `${pl.trainCost.toLocaleString()} cr`)}
+        </div>
+        <p className="mt-2 font-mono text-[0.6rem] text-muted/70">{pl.price} credit{pl.price === 1 ? "" : "s"} per 1k tokens · a call today costs {costToday} cr</p>
+      </div>
+      <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
+
+      {!reveal ? (
+        <>
+          <div className="mt-4 rounded-lg border border-card-border bg-card px-4 py-4">
+            <div className="flex items-baseline justify-between font-mono text-[0.7rem] text-muted">
+              <span>your call volume</span>
+              <span className={`tabular-nums text-sm ${never ? "text-muted/50 line-through" : "text-ink-strong"}`}>≈ {fmtCalls(value)} {pl.unit}</span>
+            </div>
+            <input
+              type="range" min={pl.minExp} max={pl.maxExp} step={0.05} value={dex} disabled={never}
+              onChange={(e) => setDex(Number(e.target.value))}
+              aria-label="calls until the finetune pays for itself, on a log scale"
+              className={`mt-2 w-full accent-[var(--accent)] ${never ? "opacity-40" : ""}`}
+            />
+            <div className="mt-1 flex justify-between font-mono text-[0.55rem] text-muted/70">
+              {decades.map((d) => (<span key={d}>1e{d}</span>))}
+            </div>
+            <button
+              onClick={() => setNever((n) => !n)}
+              aria-pressed={never}
+              className={`mt-3 w-full rounded-md border px-3 py-2 font-mono text-[0.7rem] font-semibold uppercase tracking-[0.14em] transition-colors ${
+                never ? "border-danger bg-danger/10 text-danger" : "border-card-border text-muted hover:border-rule-strong"
+              }`}
+            >
+              {never ? "Never pays — locked" : "It never pays"}
+            </button>
+          </div>
+          <ConvictionBar floor={50} conviction={conviction} setConviction={setConviction} submitting={submitting}
+            onCommit={() => onSubmit(never ? { never: true } : { value }, conviction)} />
+        </>
+      ) : (
+        <div className="verdict-card-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
+          <RevealHeader correct={reveal.correct} delta={reveal.ratingDelta} rating={reveal.liveRating} />
+          {reveal.confidence != null && <ConvictionEcho confidence={reveal.confidence} correct={reveal.correct} />}
+          {/* the meter ledger — where the money actually moves */}
+          <div className="mt-3 space-y-1 rounded-md border border-card-border/70 px-3 py-2 font-mono text-[0.68rem]">
+            <div className="flex justify-between"><span className="text-muted">per call today</span><span className="tabular-nums text-ink-strong">{reveal.costToday} cr</span></div>
+            <div className="flex justify-between"><span className="text-muted">per call tuned (×{pl.premium} premium)</span><span className="tabular-nums text-accent">{reveal.costTuned} cr</span></div>
+            <div className="flex justify-between border-t border-card-border/60 pt-1"><span className="text-muted">the saving that repays {pl.trainCost.toLocaleString()} cr</span><span className={`tabular-nums ${(reveal.saving ?? 0) > 0 ? "text-ink-strong" : "text-danger"}`}>{reveal.saving} cr</span></div>
+          </div>
+          <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted">
+            You said {saidNever ? "never pays" : `≈ ${fmtCalls(yourV ?? 0)} ${pl.unit}`} · truth {truthN == null ? "it never pays" : `≈ ${fmtCalls(truthN)} ${pl.unit}`}
+          </p>
+          {reveal.naiveTrap && (
+            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">
+              {reveal.naiveRule === "headline"
+                ? "You amortized the headline bill — only the marginal saving repays a fixed cost."
+                : "You ignored the serving premium — it taxes every tuned token, output included."}
+            </p>
+          )}
+          {truthN == null && (
+            <p className="mt-2 rounded-md border border-danger/40 bg-danger/5 px-3 py-2 text-center font-mono text-[0.65rem] uppercase tracking-[0.1em] text-danger">
+              Never pays · the serving premium eats the prompt saving
+            </p>
+          )}
+          {truthN != null && saidNever && (
+            <p className="mt-2 rounded-md border border-card-border bg-wash px-3 py-2 text-center font-mono text-[0.65rem] text-muted">
+              It does pay — the saving is {reveal.saving} cr per call; the bill clears at ≈ {fmtCalls(truthN)} calls.
+            </p>
+          )}
+          {/* the decade rail: you · felt · true on a log axis */}
+          <div className="relative mt-4 h-10">
+            <div className="absolute left-0 right-0 top-4 h-px bg-card-border" />
+            {decades.map((d) => (
+              <div key={d} className="absolute top-4 -translate-x-1/2 -translate-y-1/2 text-muted/40" style={{ left: `${((d - pl.minExp) / dexSpan) * 100}%` }}>
+                <span className="block h-2 w-px bg-current" />
+                <span className="mt-1 block whitespace-nowrap font-mono text-[0.5rem]">1e{d}</span>
+              </div>
+            ))}
+            {reveal.naiveN != null && (
+              <div className="absolute top-4 -translate-x-1/2 -translate-y-1/2" style={{ left: cx(reveal.naiveN) }}>
+                <span className="block h-2.5 w-px bg-muted/60" />
+                <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem] text-muted/70">felt</span>
+              </div>
+            )}
+            {!saidNever && yourV != null && (
+              <div className={`absolute top-4 -translate-x-1/2 -translate-y-1/2 ${within ? "text-accent" : "text-danger"}`} style={{ left: cx(yourV) }}>
+                <span className="block h-3 w-0.5 bg-current" />
+                <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">you</span>
+              </div>
+            )}
+            {truthN != null && reveal.naiveN != null && (
+              <div className="pool-slide absolute top-4 -translate-x-1/2 -translate-y-1/2 text-ink-strong"
+                style={{ left: cx(truthN), ["--pool-from" as string]: cx(reveal.naiveN), ["--pool-to" as string]: cx(truthN) } as CSSProperties}>
+                <span className="block h-3 w-0.5 bg-current" />
+                <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">true</span>
+              </div>
+            )}
+          </div>
+          {reveal.multiplier != null && !within && (
+            <p className="mt-2 text-center font-mono text-[0.65rem] text-muted">
+              You called it {reveal.multiplier < 1 ? `${Math.round((1 / reveal.multiplier) * 10) / 10}× early` : `${reveal.multiplier}× late`}.
+            </p>
+          )}
+          <p className="mt-3 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
+          {postReveal}
+        </div>
+      )}
+    </>
   );
 }

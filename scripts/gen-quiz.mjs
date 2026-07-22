@@ -20,10 +20,13 @@ const redline = JSON.parse(readFileSync(join(SRC, "redline.json"), "utf8"));
 const pool = JSON.parse(readFileSync(join(SRC, "pool.json"), "utf8"));
 const decision = JSON.parse(readFileSync(join(SRC, "decision.json"), "utf8"));
 const gap = JSON.parse(readFileSync(join(SRC, "gap.json"), "utf8"));
+const ml = JSON.parse(readFileSync(join(SRC, "ml.json"), "utf8"));
+const payback = JSON.parse(readFileSync(join(SRC, "payback.json"), "utf8"));
 
 const STATS_TOPICS = ["sampling", "variation", "association", "base_rates", "uncertainty", "aggregation"];
 const ARCH_TOPICS = ["storage", "processing", "modeling", "scaling", "reliability", "cost"];
 const ECON_TOPICS = ["opportunity_cost", "sunk_cost", "nominal_vs_real", "secondary_effects", "tax_incidence", "comparative_advantage"];
+const ML_TOPICS = ["generalization", "evaluation", "optimization", "regularization", "llm_tuning", "scaling_laws"];
 const DECISION_TOPICS = ["probability", "expected_value", "marginal_ev", "equilibrium", "bankroll", "exploitation"];
 
 function check(items, track, topics) {
@@ -41,6 +44,7 @@ function check(items, track, topics) {
 check(stats, "statistics", STATS_TOPICS);
 check(arch, "architecture", ARCH_TOPICS);
 check(economics, "economics", ECON_TOPICS);
+check(ml, "ml", ML_TOPICS);
 check(decision, "decision", DECISION_TOPICS);
 
 // --- validators for the new interaction kinds --------------------------------
@@ -271,9 +275,79 @@ function checkGap(items) {
   if (flips < 2) throw new Error(`gap: need >=2 sign-flip items (felt winner loses), have ${flips}`);
   if (sameSign < 2) throw new Error(`gap: need >=2 same-sign items (felt winner right, price wrong), have ${sameSign}`);
 }
+
+// The PAYBACK interaction (ml signature, winner of the Tuning Room 4-firm
+// competition — Firm D "ADAPTER", docs/ML-10X.md): how many calls until a
+// finetune has paid for itself. Exact algebra, per-1k-token pricing:
+//   costToday = price·(pLong+out)/1000
+//   costTuned = premium·price·(pShort+out)/1000
+//   s = costToday − costTuned    (the marginal saving per call)
+//   truthN = trainCost / s  if s > 0, else null (NEVER — it never pays)
+// Naive is a DECLARED, recomputed reflex rule:
+//   headline: trainCost / costToday          (amortize the full bill — always too soon)
+//   blind:    trainCost / (price·(pLong−pShort)/1000)  (ignore the premium — promises
+//             a finite payback even on items whose truth is NEVER)
+// Graded in dex (|log10 you − log10 truth| ≤ tolDex) — payback errors are
+// multiplicative. Rigor grafts: |s| ≥ 5% of costToday (NEVER is a sign
+// judgment, never a knife-edge) and finite truths live inside the rail.
+function paybackParts(it) {
+  const costToday = (it.price * (it.pLong + it.out)) / 1000;
+  const costTuned = (it.premium * it.price * (it.pShort + it.out)) / 1000;
+  return { costToday, costTuned, s: costToday - costTuned };
+}
+function checkPayback(items) {
+  const titles = new Set();
+  let never = 0;
+  let finite = 0;
+  const rules = {};
+  for (const it of items) {
+    if (!ML_TOPICS.includes(it.topic)) throw new Error(`payback: bad topic ${it.topic} in ${it.title}`);
+    if (![1, 2, 3].includes(it.difficulty)) throw new Error(`payback: bad difficulty in ${it.title}`);
+    if (!["headline", "blind"].includes(it.naiveRule)) throw new Error(`payback: bad naiveRule in ${it.title}`);
+    for (const k of ["pLong", "pShort", "out", "price", "premium", "trainCost"])
+      if (!(typeof it[k] === "number" && it[k] > 0)) throw new Error(`payback: bad ${k} in ${it.title}`);
+    if (!(it.premium >= 1)) throw new Error(`payback: premium must be >= 1 in ${it.title}`);
+    if (!(it.pShort < it.pLong)) throw new Error(`payback: pShort must beat pLong in ${it.title}`);
+    const { costToday, s } = paybackParts(it);
+    if (Math.abs(s) < 0.05 * costToday) throw new Error(`payback: knife-edge saving ${s} in ${it.title}`);
+    if (s > 0) {
+      const expected = Math.round(it.trainCost / s);
+      if (it.truthN == null || Math.abs(it.truthN - expected) > Math.max(1, expected * 0.001))
+        throw new Error(`payback: truthN ${it.truthN} != ${expected} in ${it.title}`);
+      const lg = Math.log10(it.truthN);
+      if (!(lg >= it.minExp + 0.2 && lg <= 7.5)) throw new Error(`payback: truth off the rail (${lg}) in ${it.title}`);
+      finite++;
+    } else {
+      if (it.truthN != null) throw new Error(`payback: truthN must be null when s<0 in ${it.title}`);
+      never++;
+    }
+    const expNaive =
+      it.naiveRule === "headline"
+        ? Math.round(it.trainCost / costToday)
+        : Math.round(it.trainCost / ((it.price * (it.pLong - it.pShort)) / 1000));
+    if (Math.abs(it.naiveN - expNaive) > Math.max(1, expNaive * 0.001))
+      throw new Error(`payback: naiveN ${it.naiveN} != ${it.naiveRule}-rule ${expNaive} in ${it.title}`);
+    const nlg = Math.log10(it.naiveN);
+    if (!(nlg >= it.minExp && nlg <= it.maxExp)) throw new Error(`payback: naive off the rail in ${it.title}`);
+    if (it.truthN != null && Math.abs(Math.log10(it.naiveN) - Math.log10(it.truthN)) <= 2 * it.tolDex)
+      throw new Error(`payback: trap within 2·tolDex of truth in ${it.title}`);
+    if (!(it.tolDex > 0)) throw new Error(`payback: tolDex must be positive in ${it.title}`);
+    if (!(it.minExp < it.maxExp)) throw new Error(`payback: bad rail in ${it.title}`);
+    rules[it.naiveRule] = (rules[it.naiveRule] ?? 0) + 1;
+    if (titles.has(it.title)) throw new Error(`payback: dup title ${it.title}`);
+    titles.add(it.title);
+    for (const k of ["scenario", "prompt", "explanation", "unit"]) if (!it[k] || !String(it[k]).trim()) throw new Error(`payback: empty ${k} in ${it.title}`);
+  }
+  // Mix invariants (the judges' grafts): NEVER items keep the latch honest,
+  // finite items keep it from becoming a tell, both reflex rules stay live.
+  if (never < 2) throw new Error(`payback: need >=2 NEVER items, have ${never}`);
+  if (finite < 3) throw new Error(`payback: need >=3 finite items, have ${finite}`);
+  if ((rules.headline ?? 0) < 2 || (rules.blind ?? 0) < 2) throw new Error(`payback: need >=2 items per naive rule`);
+}
 checkFlood(flood);
 checkMarket(market);
 checkRedline(redline);
+checkPayback(payback);
 checkPool(pool);
 checkGap(gap);
 
@@ -405,12 +479,30 @@ const gapSeed = (it) => ({
   payload: { lineA: it.lineA, lineB: it.lineB, naiveRule: it.naiveRule, unit: it.unit, min: it.min, max: it.max, truth: it.truth, naive: it.naive, tol: it.tol },
   explanation: it.explanation,
 });
+const paybackSeed = (it) => ({
+  track: "ml",
+  title: it.title,
+  topic: it.topic,
+  kind: "payback",
+  difficulty: it.difficulty,
+  scenario: it.scenario,
+  prompt: it.prompt,
+  choices: [],
+  payload: {
+    pLong: it.pLong, pShort: it.pShort, out: it.out, price: it.price, premium: it.premium,
+    trainCost: it.trainCost, naiveRule: it.naiveRule, unit: it.unit,
+    minExp: it.minExp, maxExp: it.maxExp, truthN: it.truthN, naiveN: it.naiveN, tolDex: it.tolDex,
+  },
+  explanation: it.explanation,
+});
 const seeds = [
   ...stats.map((it) => mcqSeed(it, "statistics")),
   ...arch.map((it) => mcqSeed(it, "architecture")),
   ...economics.map((it) => mcqSeed(it, "economics")),
   ...decision.map((it) => mcqSeed(it, "decision")),
   ...gap.map(gapSeed),
+  ...ml.map((it) => mcqSeed(it, "ml")),
+  ...payback.map(paybackSeed),
   ...estimate.map(estimateSeed),
   ...duel.map(duelSeed),
   ...bakeoff.map(bakeoffSeed),
@@ -429,9 +521,9 @@ const out = `// AUTO-GENERATED by scripts/gen-quiz.mjs — do not hand-edit item
 import type { PrismaClient } from "@prisma/client";
 
 export type QuizChoice = { text: string; correct: boolean; rationale: string };
-export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool" | "gap";
+export type QuizKind = "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool" | "gap" | "payback";
 export type QuizSeed = {
-  track: "statistics" | "architecture" | "economics" | "decision";
+  track: "statistics" | "architecture" | "economics" | "decision" | "ml";
   title: string; // stable natural key for idempotent sync
   topic: string;
   kind: QuizKind;
