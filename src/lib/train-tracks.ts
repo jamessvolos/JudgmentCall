@@ -15,7 +15,7 @@
 // This module is pure (no crypto, no Prisma), so it is safe to import from both
 // the server (repo, API) and the client (the /train page).
 
-export type TrackId = "statistics" | "architecture" | "economics" | "decision";
+export type TrackId = "statistics" | "architecture" | "economics" | "decision" | "ml";
 
 export type Topic = {
   id: string;
@@ -350,6 +350,78 @@ const DECISION_BADGES: Badge[] = [
   ...CALIBRATION_BADGES,
 ];
 
+
+// ---------------------------------------------------------------------------
+// ML — the Tuning Room: the specialist track for machine learning judgment,
+// classic and modern. The organizing enemy is the curve fitter's reflex — more
+// training, more parameters, the default threshold, the metric that flatters.
+// Every call makes the learner commit a number a practitioner actually sets
+// (a stopping point, a budget split, a threshold) and shows the curve that was
+// waiting. See docs/ML-10X.md.
+
+const ML_TOPICS: Topic[] = [
+  {
+    id: "generalization",
+    name: "The Gap",
+    short: "Gap",
+    concept:
+      "Training performance is a promise; held-out performance is the product. The gap between them is overfitting, and every capacity knob — epochs, depth, features — widens it eventually.",
+  },
+  {
+    id: "evaluation",
+    name: "Honest Measurement",
+    short: "Eval",
+    concept:
+      "A metric is only as honest as its setup — leakage inflates it, class imbalance distorts it, and accuracy without a baseline is a number without a meaning. Measure like an adversary is checking.",
+  },
+  {
+    id: "optimization",
+    name: "Learning Dynamics",
+    short: "Optim",
+    concept:
+      "Training is a dynamical system: the learning rate trades speed against stability, schedules bend the path, and a loss curve's shape — plateau, cliff, divergence — is a diagnosis, not a mood.",
+  },
+  {
+    id: "regularization",
+    name: "The Leash",
+    short: "Leash",
+    concept:
+      "Regularization is deliberately fitting worse to generalize better — L1/L2 penalties, dropout, early stopping, pruning. The leash costs training accuracy and buys you the test set.",
+  },
+  {
+    id: "llm_tuning",
+    name: "Tuning the LLM",
+    short: "LLM",
+    concept:
+      "Prompting, retrieval, LoRA, full finetune, RLHF — a ladder of rising cost and rising control. The judgment is matching the intervention to the failure: knowledge gaps want retrieval, format gaps want tuning.",
+  },
+  {
+    id: "scaling_laws",
+    name: "Scale & Compute",
+    short: "Scale",
+    concept:
+      "Loss falls as a power law in parameters, data, and compute — and at a fixed budget the split between them has an optimum. Scale is a strategy with math, not a faith.",
+  },
+];
+
+const ML_LEVELS: Level[] = [
+  { n: 1, roman: "I", title: "Curve Fitter", floor: null, minCalls: 0, minTopics: 0, minHard: 0, gate: "Walk in. Everyone holds it." },
+  { n: 2, roman: "II", title: "Baseline Beater", floor: 1260, minCalls: 8, minTopics: 3, minHard: 0, gate: "Reading at 1260 · 8 calls · three topics faced" },
+  { n: 3, roman: "III", title: "Regularizer", floor: 1350, minCalls: 20, minTopics: 6, minHard: 3, gate: "Reading at 1350 · 20 calls · all six topics faced · 3 subtle-tier calls landed" },
+  { n: 4, roman: "IV", title: "Ablationist", floor: 1440, minCalls: 35, minTopics: 6, minHard: 6, gate: "Reading at 1440 · 35 calls · 6 subtle-tier landed · a call in every topic" },
+  { n: 5, roman: "V", title: "The Bitter Lesson", floor: 1520, minCalls: 50, minTopics: 6, minHard: 10, gate: "Reading at 1520 · 50 calls · subtle-tier landed across four or more topics" },
+];
+
+const ML_BADGES: Badge[] = [
+  { code: "sweep", name: "CLEAN SWEEP", tier: "competence", criterion: "Eight consecutive calls, all correct." },
+  { code: "fine_print", name: "HELD OUT", tier: "competence", criterion: "Six subtle-tier calls landed, across three or more topics." },
+  { code: "specialist", name: "SPECIALIST", tier: "competence", criterion: "Five correct in a single topic, at least one above the easy tier." },
+  { code: "correction", name: "CONVERGED", tier: "competence", criterion: "A topic that was beating you, beaten: behind in it, then three straight." },
+  { code: "full_map", name: "THE FULL MAP", tier: "exploration", criterion: "Faced all six topics." },
+  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a subtle-tier call in four or more topics — landing it not required." },
+  ...CALIBRATION_BADGES,
+];
+
 export const TRACKS: Record<TrackId, Track> = {
   statistics: {
     id: "statistics",
@@ -399,12 +471,24 @@ export const TRACKS: Record<TrackId, Track> = {
     levels: DECISION_LEVELS,
     badges: DECISION_BADGES,
   },
+  ml: {
+    id: "ml",
+    name: "Machine Learning",
+    room: "THE TUNING ROOM",
+    tagline: "Trust the held-out set, not the vibe.",
+    blurb:
+      "The room for machine-learning judgment, classic and modern: know when more training starts hurting, when a metric is lying, how hard to pull the regularization leash, which LLM intervention a failure actually calls for, and how a compute budget wants to be split. Every call commits a number a practitioner really sets; the reveal draws the curve that was waiting.",
+    accentNote: "Rating moves like a chess ladder — the harder the call, the more it swings.",
+    topics: ML_TOPICS,
+    levels: ML_LEVELS,
+    badges: ML_BADGES,
+  },
 };
 
-export const TRACK_IDS: TrackId[] = ["statistics", "architecture", "economics", "decision"];
+export const TRACK_IDS: TrackId[] = ["statistics", "architecture", "economics", "decision", "ml"];
 
 export function isTrackId(x: string): x is TrackId {
-  return x === "statistics" || x === "architecture" || x === "economics" || x === "decision";
+  return x === "statistics" || x === "architecture" || x === "economics" || x === "decision" || x === "ml";
 }
 
 export function getTrack(id: string): Track | null {
