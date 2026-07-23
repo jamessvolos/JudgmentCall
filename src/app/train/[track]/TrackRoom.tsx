@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import Link from "next/link";
 import { getOrCreateSessionId, nowMs } from "@/lib/session-client";
+import { RUNG_LABELS, KIND_TEMPLATES, nextRungLine, AT_PRINCIPAL } from "@/lib/level";
 import { TRACKS, TRACK_IDS, topicOf, type TrackId, type Track } from "@/lib/train-tracks";
 
 // The client experience for one Training Room track (10x). A three-phase
@@ -80,11 +81,14 @@ type StandingDto = {
   topics: { id: string; faced: number; correct: number; hardFaced: number; hardCorrect: number }[];
   calibration: CalibrationDto;
   coverage: CoverageDto;
+  read: { rung: 0 | 1 | 2; window: number; principals: number; need: number } | null;
 };
 type GetDto = { item: ItemDto | null; remaining: number; liveRating: number; count: number; standing: StandingDto | null };
 type RevealChoice = { i: number; text: string; correct: boolean; rationale: string };
 type PostDto = {
   correct: boolean;
+  rung?: 0 | 1 | 2; // THE LADDER read for this call
+  why?: string;
   kind: "mcq" | "estimate" | "duel" | "bakeoff" | "flood" | "market" | "redline" | "pool" | "gap" | "payback";
   topic: string;
   confidence: number | null;
@@ -195,6 +199,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
 
   const [runIndex, setRunIndex] = useState(0);
   const [runCorrect, setRunCorrect] = useState(0);
+  const [runLevels, setRunLevels] = useState<(0 | 1 | 2)[]>([]);
   const [runMode, setRunMode] = useState<RunMode>("standard");
   const [pot, setPot] = useState(0);
   const [busted, setBusted] = useState(false);
@@ -281,6 +286,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
         setBusted(false);
         setRunIndex(0);
         setRunCorrect(0);
+        setRunLevels([]);
         setPoolDry(false);
         setReveal(null);
         setItem(next);
@@ -315,6 +321,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
         const data: PostDto = await res.json();
         setReveal(data);
         setRating(data.liveRating);
+        if (data.rung != null) setRunLevels((prev) => [...prev, data.rung!]);
         if (data.correct) {
           setRunCorrect((c) => c + 1);
           if (runMode === "descent") setPot((p) => p + rewardAt(runIndex + 1));
@@ -409,6 +416,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
         <Recap
           track={track}
           standing={standing}
+          runLevels={runLevels}
           runCorrect={runCorrect}
           runAnswered={poolDry ? runIndex : Math.min(runIndex + 1, RUN_LENGTH)}
           ratingDelta={standing.liveRating - runStart.rating}
@@ -617,6 +625,16 @@ function Dashboard({ track, standing, rating, otherId, onStart }: {
   return (
     <div className="rise mt-6">
       <LevelMeter track={track} standing={standing} rating={rating} />
+      {standing.read && standing.read.need === 0 && (
+        <p className="mt-2 text-center font-mono text-[0.65rem] text-muted">
+          Answering at <span className="font-semibold text-ink-strong">~{RUNG_LABELS[standing.read.rung]}</span> lately
+          {standing.read.principals > 0 && ` · ${standing.read.principals} Principal`} — over your last {standing.read.window} calls.
+          <span className="block text-muted/60">Your Level is what you&apos;ve earned; the read is how you&apos;re answering right now.</span>
+        </p>
+      )}
+      {standing.read && standing.read.need > 0 && standing.count > 0 && (
+        <p className="mt-2 text-center font-mono text-[0.65rem] text-muted/70">No seniority read yet — {standing.read.need} more graded calls.</p>
+      )}
 
       {/* Start is the one button that matters — keep it above the fold. */}
       <button onClick={() => onStart()} className="mt-6 w-full rounded-lg bg-accent px-5 py-4 text-center font-mono text-sm font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
@@ -745,9 +763,14 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
   // a standard run shows Next/Recap. Passed into each call so the reveal card is
   // agnostic to the mode driving it.
   const postReveal: ReactNode = reveal
-    ? descent
-      ? <DescentControls correct={reveal.correct} pot={pot} depth={position} nextReward={rewardAt(position + 1)} onBank={onBank} onDeeper={onNext} />
-      : <NextButton last={position >= total} onNext={onNext} />
+    ? (
+        <>
+          <LadderRead item={item} reveal={reveal} />
+          {descent
+            ? <DescentControls correct={reveal.correct} pot={pot} depth={position} nextReward={rewardAt(position + 1)} onBank={onBank} onDeeper={onNext} />
+            : <NextButton last={position >= total} onNext={onNext} />}
+        </>
+      )
     : null;
   return (
     <div className="mt-6">
@@ -1805,8 +1828,8 @@ function GapCall({ item, reveal, submitting, onSubmit, postReveal }: {
 }
 
 // ============================================================ Recap
-function Recap({ track, standing, runCorrect, runAnswered, ratingDelta, leveledUp, newBadges, poolDry, onAgain, onHome }: {
-  track: Track; standing: StandingDto; runCorrect: number; runAnswered: number; ratingDelta: number;
+function Recap({ track, standing, runLevels, runCorrect, runAnswered, ratingDelta, leveledUp, newBadges, poolDry, onAgain, onHome }: {
+  track: Track; standing: StandingDto; runLevels: (0 | 1 | 2)[]; runCorrect: number; runAnswered: number; ratingDelta: number;
   leveledUp: LevelDto | null; newBadges: StandingDto["badges"]; poolDry: boolean; onAgain: () => void; onHome: () => void;
 }) {
   return (
@@ -1824,6 +1847,8 @@ function Recap({ track, standing, runCorrect, runAnswered, ratingDelta, leveledU
           <p className="mt-1 text-lg font-semibold text-ink-strong">Level {leveledUp.roman} · {leveledUp.title}</p>
         </div>
       )}
+
+      {runLevels.length > 0 && <LadderStrip runLevels={runLevels} />}
 
       <div className="mt-6"><CalibrationCard cal={standing.calibration} coverage={standing.coverage} /></div>
 
@@ -2059,5 +2084,77 @@ function PaybackCall({ item, reveal, submitting, onSubmit, postReveal }: {
         </div>
       )}
     </>
+  );
+}
+
+// THE LADDER — the seniority read on every call (docs/LADDER-10X.md). The rung
+// is graded server-side with the call (stored like `correct`, re-derivable from
+// the numbers on this very card); the next-rung line is computed at render time
+// from the same payload that graded the item, so it can never drift.
+function LadderRail({ rung }: { rung: 0 | 1 | 2 }) {
+  return (
+    <span className="font-mono text-[0.6rem] uppercase tracking-[0.14em]">
+      {RUNG_LABELS.map((l, i) => (
+        <span key={l}>
+          {i > 0 && <span className="text-muted/40"> · </span>}
+          <span className={i === rung ? "font-semibold text-accent" : "text-muted/50"}>{l}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function LadderRead({ item, reveal }: { item: ItemDto; reveal: PostDto }) {
+  if (reveal.rung == null) return null;
+  const computed = nextRungLine(item.kind, item, reveal);
+  const body = reveal.rung === 2 ? `${AT_PRINCIPAL}${computed ? ` ${computed}` : ""}` : (computed ?? KIND_TEMPLATES[item.kind] ?? "");
+  return (
+    <div className="mt-4 border-t border-card-border pt-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-mono text-[0.6rem] uppercase tracking-[0.16em] text-muted">The ladder</span>
+        <LadderRail rung={reveal.rung} />
+      </div>
+      {reveal.why && <p className="mt-1.5 font-mono text-[0.65rem] leading-relaxed text-muted">{reveal.why}</p>}
+      {body && (
+        <p className="mt-2 text-[0.8125rem] leading-relaxed text-foreground text-pretty">
+          <span className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-accent">Scale it up · </span>
+          {body}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// The run's altitude, folded client-side from the graded rungs — modal rung
+// breaks ties DOWNWARD (a read is earned), one next-step line picked by the
+// binding constraint.
+function LadderStrip({ runLevels }: { runLevels: (0 | 1 | 2)[] }) {
+  const counts = [0, 0, 0];
+  for (const r of runLevels) counts[r]++;
+  const modal = counts.indexOf(Math.max(...counts)) as 0 | 1 | 2;
+  const line =
+    counts[0] * 2 >= runLevels.length
+      ? "The reflexes are still winning — the Scale-it-up line on each reveal is the drill."
+      : counts[2] === 0
+        ? "Senior across the board. Half-tolerance answers and committed calls on the subtle tier reach Principal."
+        : counts[0] === 0
+          ? "No reflex answers all run — now make Principal the habit, not the visit."
+          : "Mixed altitude — notice which topics pulled you to Entry; that's tomorrow's run.";
+  return (
+    <div className="mt-6 rounded-lg border border-card-border bg-card px-4 py-4">
+      <div className="flex items-center justify-between">
+        <p className="kicker text-muted">The ladder · this run</p>
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-ink-strong">You ran {RUNG_LABELS[modal]}</p>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+        {RUNG_LABELS.map((l, i) => (
+          <div key={l} className={`rounded-md border px-2 py-2 ${i === 2 && counts[2] > 0 ? "border-accent/50 bg-accent/5" : "border-card-border"}`}>
+            <p className="font-mono text-lg font-semibold tabular-nums text-ink-strong">{counts[i]}</p>
+            <p className={`font-mono text-[0.55rem] uppercase tracking-[0.14em] ${i === 2 && counts[2] > 0 ? "text-accent" : "text-muted"}`}>{l}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 font-mono text-[0.65rem] leading-relaxed text-muted">{line}</p>
+    </div>
   );
 }

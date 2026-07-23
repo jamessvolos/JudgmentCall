@@ -2,6 +2,14 @@ import { withTiming } from "@/lib/timing";
 import { parseChoices, isCorrectChoice, correctChoiceIndex } from "@/lib/drill-grade";
 import { NextResponse } from "next/server";
 import {
+  levelPick,
+  levelNumeric,
+  levelPaybackFinite,
+  levelPaybackNever,
+  levelEstimate,
+  type Read,
+} from "@/lib/level";
+import {
   getSession,
   getQuizItem,
   getNextQuizItem,
@@ -369,6 +377,11 @@ async function postHandler(request: Request) {
     };
   }
 
+  // THE LADDER — the seniority read, graded with the call from the same facts
+  // the reveal shows (docs/LADDER-10X.md). Stored on the attempt row exactly
+  // like `correct`: a grade-time derivation, re-derivable from the reveal.
+  const read = readOf(item.kind, item.difficulty, correct, confidence, reveal);
+
   const result = await recordQuizAttempt({
     sessionId,
     quizItemId: quizId,
@@ -379,6 +392,7 @@ async function postHandler(request: Request) {
     choiceIndex,
     confidence,
     captured: capturedFlag,
+    level: read.rung,
     latencyMs: latency,
   });
 
@@ -390,11 +404,48 @@ async function postHandler(request: Request) {
     kind: item.kind,
     topic: item.topic,
     confidence,
+    rung: read.rung,
+    why: read.why,
     ...reveal,
     liveRating: Math.round(result.liveRating),
     ratingDelta: Math.round(result.ratingDelta),
     count: result.count,
   });
+}
+
+// Maps a graded exchange to its ladder read. Every input is either a stored
+// attempt fact or a field the reveal is about to show the learner — the read
+// is re-derivable from the screen, by design. flood's tolerance is recomputed
+// here identically to its grade branch (it never ships a tol field).
+function readOf(
+  kind: string,
+  difficulty: number,
+  correct: boolean,
+  confidence: number | null,
+  r: Record<string, unknown>
+): Read {
+  if (kind === "estimate") {
+    const your = r.your as { lo: number; hi: number };
+    const good = r.good as { lo: number; hi: number };
+    return levelEstimate(correct, r.captured === true, your.hi - your.lo, good.hi - good.lo);
+  }
+  if (kind === "flood") {
+    const truth = r.truth as number;
+    const tol = Math.max(2.5, 0.2 * truth);
+    return levelNumeric(correct, false, Math.abs((r.yourPrev as number) - truth), tol);
+  }
+  if (kind === "market" || kind === "redline" || kind === "pool" || kind === "gap") {
+    const truth = r.truth as number;
+    return levelNumeric(correct, r.naiveTrap === true, Math.abs((r.yourValue as number) - truth), r.tol as number);
+  }
+  if (kind === "payback") {
+    const truthN = r.truthN as number | null;
+    if (truthN == null) return levelPaybackNever(r.never === true, confidence, difficulty);
+    const yv = r.yourValue as number | null;
+    const dexErr = yv != null && yv > 0 ? Math.abs(Math.log10(yv) - Math.log10(truthN)) : Infinity;
+    return levelPaybackFinite(correct, r.naiveTrap === true, dexErr, r.tolDex as number);
+  }
+  return levelPick(correct, confidence, difficulty); // mcq · duel · bakeoff
 }
 
 export const GET = withTiming("train", getHandler);

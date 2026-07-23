@@ -37,6 +37,8 @@ import {
   topicProgress,
   calibration,
   intervalCoverage,
+  recentRead,
+  type SeniorityRead,
   type QuizRow,
   type LevelStanding,
   type Conferral as QuizConferral,
@@ -1070,6 +1072,7 @@ async function quizRows(sessionId: string, track: string): Promise<QuizRow[]> {
       correct: true,
       confidence: true,
       captured: true,
+      level: true,
       ratingAfter: true,
       createdAt: true,
     },
@@ -1148,6 +1151,7 @@ export async function recordQuizAttempt(input: {
   choiceIndex: number;
   confidence: number | null;
   captured: boolean | null;
+  level: number | null;
   latencyMs: number;
 }): Promise<{ liveRating: number; ratingDelta: number; count: number }> {
   return withTxRetry(() =>
@@ -1171,6 +1175,7 @@ export async function recordQuizAttempt(input: {
           choiceIndex: input.choiceIndex,
           confidence: input.confidence,
           captured: input.captured,
+          level: input.level,
           latencyMs: input.latencyMs,
           ratingAfter: next.session,
         },
@@ -1195,6 +1200,7 @@ export type QuizStanding = {
   topics: TopicProgress[];
   calibration: Calibration;
   coverage: IntervalCoverage;
+  read: SeniorityRead | null;
 };
 
 /** The Record for a track — level, badges, topic map, calibration — a pure fold. */
@@ -1210,6 +1216,7 @@ export async function getQuizStanding(sessionId: string, track: string): Promise
     topics: topicProgress(t, rows),
     calibration: calibration(rows),
     coverage: intervalCoverage(rows),
+    read: recentRead(rows),
   };
 }
 

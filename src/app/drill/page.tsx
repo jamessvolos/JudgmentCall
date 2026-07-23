@@ -11,6 +11,7 @@ import {
   type SkillId,
 } from "@/lib/teaching";
 import { GRADE_META, CREDENTIAL_DEFS, CASE_META, EXAM_META } from "@/lib/drill-credentials-meta";
+import { levelDrill, RUNG_LABELS } from "@/lib/level";
 
 // The Training Room — a data-insight skills studio. A separate world from the
 // study: items never enter the voting pool, attempts never touch analytics, and
@@ -1051,6 +1052,29 @@ function Run({
                 <p className="mt-1.5 text-sm leading-relaxed text-muted text-pretty">
                   {verdict.explanation}
                 </p>
+                {/* THE LADDER — the seniority read, client-derived from facts on
+                    this card: caught it (correct) and named it (the active-recall
+                    beat). Renders only once naming has resolved, so the chip can
+                    never leak the answer to "name the move". */}
+                {(() => {
+                  const read = levelDrill(verdict.correct, named === item.skill);
+                  return (
+                    <div className="mt-3 border-t border-card-border/70 pt-2">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="font-mono text-[0.6rem] uppercase tracking-[0.16em] text-muted">The ladder</span>
+                        <span className="font-mono text-[0.6rem] uppercase tracking-[0.14em]">
+                          {RUNG_LABELS.map((l, i) => (
+                            <span key={l}>
+                              {i > 0 && <span className="text-muted/40"> · </span>}
+                              <span className={i === read.rung ? "font-semibold text-accent" : "text-muted/50"}>{l}</span>
+                            </span>
+                          ))}
+                        </span>
+                      </div>
+                      <p className="mt-1 font-mono text-[0.65rem] leading-relaxed text-muted">{read.why}</p>
+                    </div>
+                  );
+                })()}
               </>
             )}
           </div>

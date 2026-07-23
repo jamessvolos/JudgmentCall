@@ -224,6 +224,7 @@ model QuizAttempt {
   choiceIndex Int      @default(-1) // the picked original index (audit; grading re-checks server-side)
   confidence  Int? // conviction 25..99 the learner staked (mcq/duel); null = estimate/legacy
   captured    Boolean? // estimate calls only: did the truth fall in the stated 90% band? null otherwise
+  level       Int? // THE LADDER seniority read graded with the call: 0 Entry · 1 Senior · 2 Principal — a grade-time derivation stored as a fact of the exchange, same species as `correct`. null = pre-ladder legacy rows.
   latencyMs   Int      @default(0)
   ratingAfter Float? // per-track session rating after this attempt settled
   createdAt   DateTime @default(now())

@@ -25,15 +25,15 @@ const eq = (name: string, got: unknown, want: unknown) => {
 const T0 = new Date("2026-01-01T00:00:00Z").getTime();
 let seq = 0;
 function row(topic: string, difficulty: number, correct: boolean, ratingAfter: number | null, confidence: number | null = null): QuizRow {
-  return { quizItemId: `q${seq}`, topic, difficulty, correct, confidence, captured: null, ratingAfter, createdAt: new Date(T0 + seq++ * 1000) };
+  return { quizItemId: `q${seq}`, topic, difficulty, correct, confidence, captured: null, level: null, ratingAfter, createdAt: new Date(T0 + seq++ * 1000) };
 }
 // a staked row (confidence set) at a fixed rating, for calibration tests
 function staked(correct: boolean, confidence: number): QuizRow {
-  return { quizItemId: `q${seq}`, topic: "sampling", difficulty: 1, correct, confidence, captured: null, ratingAfter: 1210, createdAt: new Date(T0 + seq++ * 1000) };
+  return { quizItemId: `q${seq}`, topic: "sampling", difficulty: 1, correct, confidence, captured: null, level: null, ratingAfter: 1210, createdAt: new Date(T0 + seq++ * 1000) };
 }
 // an estimate row (captured set, no confidence) for interval-coverage tests
 function estimate(captured: boolean): QuizRow {
-  return { quizItemId: `q${seq}`, topic: "sampling", difficulty: 1, correct: captured, confidence: null, captured, ratingAfter: 1210, createdAt: new Date(T0 + seq++ * 1000) };
+  return { quizItemId: `q${seq}`, topic: "sampling", difficulty: 1, correct: captured, confidence: null, captured, level: null, ratingAfter: 1210, createdAt: new Date(T0 + seq++ * 1000) };
 }
 
 const stats = TRACKS.statistics;

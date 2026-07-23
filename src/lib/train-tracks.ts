@@ -73,6 +73,7 @@ export type QuizRow = {
   correct: boolean;
   confidence: number | null; // 25..99 conviction staked (mcq/duel); null = estimate/legacy
   captured: boolean | null; // estimate calls: truth fell in the 90% band? null otherwise
+  level: number | null; // THE LADDER rung graded with the call (0 Entry · 1 Senior · 2 Principal); null = pre-ladder rows
   ratingAfter: number | null;
   createdAt: Date;
 };
@@ -858,4 +859,26 @@ export function calibration(rows: QuizRow[]): Calibration {
     n < RATE_MIN_N ? "unrated" : gap > 0.07 ? "overconfident" : gap < -0.07 ? "underconfident" : "sharp";
   const score = n < SCORE_MIN_N ? null : Math.max(0, Math.min(100, Math.round(100 * skill)));
   return { n, brier, brierRef, skill, ece, reliability, resolution, accuracy, meanConf, tendency, score, gap, bins };
+}
+
+// ---------------------------------------------------------------------------
+// THE LADDER — the windowed seniority read: how you're answering LATELY, as
+// opposed to the room Level (what you've earned, which never goes backwards).
+// A pure fold over the last WINDOW leveled rows; thresholds break DOWNWARD so
+// a read is earned, and below MIN_READ rows there is no read at all — never a
+// fake Entry. Legacy (pre-ladder, level=null) rows are excluded entirely.
+
+export type SeniorityRead = { rung: 0 | 1 | 2; window: number; principals: number; need: number };
+
+const READ_WINDOW = 12;
+const READ_MIN = 6;
+
+export function recentRead(rows: QuizRow[]): SeniorityRead | null {
+  const leveled = rows.filter((r) => r.level != null).slice(-READ_WINDOW);
+  if (leveled.length < READ_MIN) {
+    return { rung: 0, window: leveled.length, principals: 0, need: READ_MIN - leveled.length };
+  }
+  const mean = leveled.reduce((s, r) => s + (r.level as number), 0) / leveled.length;
+  const rung: 0 | 1 | 2 = mean < 0.65 ? 0 : mean < 1.45 ? 1 : 2;
+  return { rung, window: leveled.length, principals: leveled.filter((r) => r.level === 2).length, need: 0 };
 }

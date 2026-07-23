@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx scripts/ingest-parse.test.ts && tsx scripts/teaching.test.ts && tsx scripts/generate-fatal.test.ts && tsx scripts/tx-retry.test.ts && tsx scripts/drill-grade.test.ts && tsx scripts/drill-credentials.test.ts && tsx scripts/drill-exam.test.ts && tsx scripts/drill-content.test.ts && tsx scripts/train-tracks.test.ts && tsx scripts/quiz-content.test.ts",
+    "test": "tsx scripts/ingest-parse.test.ts && tsx scripts/teaching.test.ts && tsx scripts/generate-fatal.test.ts && tsx scripts/tx-retry.test.ts && tsx scripts/drill-grade.test.ts && tsx scripts/drill-credentials.test.ts && tsx scripts/drill-exam.test.ts && tsx scripts/drill-content.test.ts && tsx scripts/level.test.ts && tsx scripts/train-tracks.test.ts && tsx scripts/quiz-content.test.ts",
     "guard": "bash scripts/bundle-guard.sh",
     "postinstall": "prisma generate",
     "analyze": "tsx scripts/analyze.ts",
