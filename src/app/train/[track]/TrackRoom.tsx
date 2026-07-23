@@ -626,7 +626,7 @@ function Dashboard({ track, standing, rating, otherId, onStart }: {
     <div className="rise mt-6">
       <LevelMeter track={track} standing={standing} rating={rating} />
       {standing.read && standing.read.need === 0 && (
-        <p className="mt-2 text-center font-mono text-[0.65rem] text-muted">
+        <p className="mt-4 rounded-md border border-card-border/60 bg-card/50 px-3 py-2 text-center font-mono text-[0.65rem] text-muted">
           Answering at <span className="font-semibold text-ink-strong">~{RUNG_LABELS[standing.read.rung]}</span> lately
           {standing.read.principals > 0 && ` · ${standing.read.principals} Principal`} — over your last {standing.read.window} calls.
           <span className="block text-muted/60">Your Level is what you&apos;ve earned; the read is how you&apos;re answering right now.</span>
@@ -949,9 +949,11 @@ function McqCall({ item, reveal, submitting, onSubmit, postReveal }: {
   );
 }
 function ConvictionEcho({ confidence, correct }: { confidence: number; correct: boolean }) {
+  // The 85 boundary is shared with THE LADDER's committed-conviction gate so
+  // this line and the rung can never disagree about the same stake.
   const msg = correct
-    ? confidence >= 90 ? "You were sure — and right. That's what conviction is for." : "Landed it while hedging — a little more conviction next time."
-    : confidence >= 90 ? "You were sure — and wrong. That's the expensive kind of miss." : "A hedged miss — your uncertainty was honest.";
+    ? confidence >= 85 ? "Committed — and right. That's what conviction is for." : "Landed it while hedging — a little more conviction next time."
+    : confidence >= 85 ? "Committed — and wrong. That's the expensive kind of miss." : "A hedged miss — your uncertainty was honest.";
   return <p className="mt-1 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted">Staked {confidence}% · {msg}</p>;
 }
 
@@ -2107,7 +2109,9 @@ function LadderRail({ rung }: { rung: 0 | 1 | 2 }) {
 function LadderRead({ item, reveal }: { item: ItemDto; reveal: PostDto }) {
   if (reveal.rung == null) return null;
   const computed = nextRungLine(item.kind, item, reveal);
-  const body = reveal.rung === 2 ? `${AT_PRINCIPAL}${computed ? ` ${computed}` : ""}` : (computed ?? KIND_TEMPLATES[item.kind] ?? "");
+  // At Principal a generic aphorism is worse than nothing (the user test's
+  // finding D2): the top rung sees the computed sensitivity or silence.
+  const body = reveal.rung === 2 ? (computed ? `${AT_PRINCIPAL} ${computed}` : "") : (computed ?? KIND_TEMPLATES[item.kind] ?? "");
   return (
     <div className="mt-4 border-t border-card-border pt-3">
       <div className="flex items-baseline justify-between gap-3">

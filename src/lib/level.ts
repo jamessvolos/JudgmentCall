@@ -81,7 +81,11 @@ export function levelEstimate(correct: boolean, captured: boolean, yourBand: num
 
 // ---- the drill room's six modes -------------------------------------------
 export function levelDrill(correct: boolean, namedRight: boolean): Read {
-  if (!correct) return { rung: 0, why: ENTRY_MISS };
+  // Neutral entry why: in the drill a miss can be an over-claim OR an
+  // under-claim (calibrate mode), so the line must diagnose neither (the user
+  // test's finding P2 — a deliberate under-claimer must never be scolded for
+  // headline-chasing).
+  if (!correct) return { rung: 0, why: "Missed the call. Senior answers stake the strongest claim the data supports — no more, no less." };
   if (namedRight) return { rung: 2, why: "Caught it and named it — the pattern is yours now." };
   return { rung: 1, why: "Caught it — but couldn't name the move. Principals name it before the reveal does." };
 }
