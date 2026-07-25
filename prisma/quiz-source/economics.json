@@ -79,7 +79,7 @@
    {
     "text": "$2M — the value the park produces.",
     "correct": false,
-    "rationale": "That's the park's benefit, not its cost."
+    "rationale": "The $2M is what the park produces. The question asks what choosing it gives up."
    },
    {
     "text": "$7M — the difference between the two.",
@@ -87,7 +87,7 @@
     "rationale": "The net loss is $7M, but the opportunity *cost* of the park is the full $9M forgone."
    }
   ],
-  "explanation": "Opportunity cost applies even to owned resources: the cost of any use is the most valuable alternative sacrificed — here, $9M of housing."
+  "explanation": "Opportunity cost applies even to owned resources. The cost of any use is the most valuable alternative sacrificed, which for this parcel is $9M of housing."
  },
  {
   "title": "econ-sunk-01",
@@ -117,7 +117,7 @@
     "rationale": "The refund is off the table; the decision turns purely on the value of your next 80 minutes."
    }
   ],
-  "explanation": "A sunk cost can't be recovered by any future action, so it should carry zero weight. Compare only future costs and benefits: 80 minutes here vs. elsewhere."
+  "explanation": "A sunk cost can't be recovered by any future action, so it should carry zero weight. The real comparison is between two futures: 80 more minutes in this seat, or 80 minutes spent on anything you'd enjoy more."
  },
  {
   "title": "econ-sunk-02",
@@ -139,7 +139,7 @@
    {
     "text": "Finish it — you're 80% done.",
     "correct": false,
-    "rationale": "Percent-complete is about sunk effort, not the forward $500k-for-$300k comparison."
+    "rationale": "Percent-complete measures sunk effort. The live question is the forward $500k-for-$300k trade."
    },
    {
     "text": "Finish it if morale would suffer otherwise.",
@@ -147,7 +147,7 @@
     "rationale": "Morale is a real but separate factor; on the economics alone, finishing loses another $200k."
    }
   ],
-  "explanation": "Ignore the $2M — it's sunk. The decision is $500k of future cost for $300k of future benefit, which is a net loss. Kill it."
+  "explanation": "The $2M has already been spent, so it gets no vote. What remains is a plain trade: pay $500k to receive $300k, and finishing the feature loses another $200k."
  },
  {
   "title": "econ-sunk-03",
@@ -289,7 +289,7 @@
    {
     "text": "Landlords simply accept lower profits with no other change.",
     "correct": false,
-    "rationale": "Many convert, defer maintenance, or exit — supply falls, the first-order view misses this."
+    "rationale": "Many convert, defer maintenance, or exit. Supply falls, which is exactly the part the first-order view misses."
    },
    {
     "text": "Housing quality improves as landlords compete.",
@@ -297,7 +297,7 @@
     "rationale": "With excess demand, landlords have less incentive to maintain quality, not more."
    }
   ],
-  "explanation": "A binding price ceiling doesn't just lower price — it contracts supply and creates a shortage, then rations it (queues, connections). The unseen effect dominates."
+  "explanation": "A binding ceiling lowers the posted rent and quietly shrinks the stock of apartments behind it. The result is a shortage, rationed by queues and connections instead of price, and that unseen effect swamps the visible discount."
  },
  {
   "title": "econ-unseen-02",
@@ -319,7 +319,7 @@
    {
     "text": "Demand falls because the low price signals low quality.",
     "correct": false,
-    "rationale": "The binding constraint is collapsing supply, not a demand-side quality signal."
+    "rationale": "What binds here is collapsing supply; any demand-side quality signal is a sideshow."
    },
    {
     "text": "Everyone who needs insulin now reliably gets it.",
@@ -327,7 +327,7 @@
     "rationale": "A shortage means the opposite: rationing, gray markets, and unmet need."
    }
   ],
-  "explanation": "Capping price below cost targets the visible price but triggers the unseen effect: supply dries up. Affordability on paper becomes unavailability in practice."
+  "explanation": "The cap fixes the visible number and breaks the invisible one: no firm keeps producing at a guaranteed loss, so supply contracts and the shortage gets rationed by queues and gray markets. The insulin is now affordable in exactly the sense that you cannot get it."
  },
  {
   "title": "econ-unseen-03",
@@ -354,10 +354,10 @@
    {
     "text": "Prices are irrelevant in emergencies.",
     "correct": false,
-    "rationale": "Prices matter most under scarcity — they're the mechanism that moves goods to where they're most valued."
+    "rationale": "Prices matter most under scarcity; they are the mechanism that moves goods to where they're most valued."
    }
   ],
-  "explanation": "The seen effect is a 'fair' low price; the unseen effect is that no one rushes water in and buyers hoard, deepening the shortage. Prices are a coordination signal, not just a number."
+  "explanation": "The seen effect is a fair-looking price. The unseen one is that nobody hauls water across a state line for pre-storm margins, while buyers with no reason to economize clear the shelves. Freezing the price freezes both signals at the moment they were doing their most useful work."
  },
  {
   "title": "econ-tax-01",
@@ -447,19 +447,19 @@
     "rationale": "Revenue collapsed precisely because elastic buyers left the market; builders bore the loss."
    }
   ],
-  "explanation": "The luxury tax is the classic case: elastic buyers dodged it, inelastic boatbuilders (and their laid-off workers) bore it. Incidence lands on whoever can't walk away."
+  "explanation": "The luxury tax is the classic case: buyers, being elastic, simply bought other toys, while the boatbuilders and their workers absorbed the burden in lost orders and layoffs. The side that can walk away from a market passes the tax to the side that can't."
  },
  {
   "title": "econ-trade-01",
   "topic": "comparative_advantage",
   "difficulty": 1,
-  "scenario": "Country A runs a persistent trade deficit with Country B — it imports more from B than it exports to B.",
+  "scenario": "Country A runs a persistent trade deficit with Country B: it imports more from B than it exports to B.",
   "prompt": "Which country is 'losing' from this trade?",
   "choices": [
    {
     "text": "Neither necessarily — both gain from voluntary exchange; the deficit is financed by offsetting capital inflows.",
     "correct": true,
-    "rationale": "Trade isn't zero-sum; a bilateral deficit reflects saving/investment flows, not a scoreboard loss."
+    "rationale": "Trade isn't zero-sum; a bilateral deficit reflects saving and investment flows rather than a scoreboard loss."
    },
    {
     "text": "Country A — money is leaving to buy imports.",
@@ -489,7 +489,7 @@
    {
     "text": "Yes — each specializes where its opportunity cost is lower (comparative advantage), and both end up with more.",
     "correct": true,
-    "rationale": "Gains from trade come from comparative, not absolute, advantage — differing opportunity costs suffice."
+    "rationale": "Gains from trade come from comparative rather than absolute advantage; differing opportunity costs suffice."
    },
    {
     "text": "No — A is better at everything, so it should make both and not trade.",

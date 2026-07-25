@@ -22,7 +22,7 @@
   "truth": 30,
   "naive": 24,
   "tol": 1.5,
-  "explanation": "Pre-tax the market cleared at P=24. A seller-side tax shifts effective supply up; the new consumer price solves 100−2P = −20+3(P−10), giving Pc=30. Consumers pay $6 of the $10 — most of it — even though sellers remit the tax, because demand here is less elastic than supply. The naive answer ($24, 'sellers just eat it') ignores that."
+  "explanation": "Pre-tax the market cleared at P=24. A seller-side tax shifts effective supply up; the new consumer price solves 100−2P = −20+3(P−10), giving Pc=30. Consumers pay $6 of the $10, most of it, even though sellers remit the tax: demand here is less elastic than supply, so buyers have nowhere to go. The naive answer ($24, 'sellers just eat it') assumes a generosity the market never asks of sellers."
  },
  {
   "title": "econ-mkt-02",
@@ -47,13 +47,13 @@
   "truth": 20,
   "naive": 15,
   "tol": 1.5,
-  "explanation": "Pre-tax P=15. With elastic supply and less-elastic demand, buyers bear more: 120−3P = 5(P−8) gives Pc=20, so consumers absorb $5 of the $8. The more elastic (escapable) side — here supply — shifts the burden onto the inelastic buyers. Naive '$15, unchanged' misses the incidence."
+  "explanation": "Pre-tax P=15. With elastic supply and less-elastic demand, buyers bear more: 120−3P = 5(P−8) gives Pc=20, so consumers absorb $5 of the $8. The side that can escape (here, supply) shifts the burden onto the side that can't. The naive '$15, unchanged' answer misses the incidence entirely."
  },
  {
   "title": "econ-mkt-03",
   "topic": "tax_incidence",
   "difficulty": 3,
-  "scenario": "Demand is Qd = 90 − P and supply is Qs = −10 + P — equal and opposite slopes, so demand and supply are equally elastic at the equilibrium. A $20 tax is collected from sellers.",
+  "scenario": "Demand is Qd = 90 − P and supply is Qs = −10 + P: equal and opposite slopes, so demand and supply are equally elastic at the equilibrium. A $20 tax is collected from sellers.",
   "prompt": "Predict the price consumers will pay after the $20 seller-side tax.",
   "unit": "$",
   "min": 40,
@@ -72,7 +72,7 @@
   "truth": 60,
   "naive": 50,
   "tol": 2,
-  "explanation": "Pre-tax P=50. With equal elasticities the tax splits exactly in half: the consumer price rises by $10 (half of $20) to $60, and sellers net $40. Equal elasticity is the one case where the 50/50 statutory feel is also the true split — a useful anchor for seeing why unequal elasticities tilt it."
+  "explanation": "Pre-tax P=50. With equal elasticities the tax splits exactly in half: the consumer price rises by $10 (half of $20) to $60, and sellers net $40. Equal elasticity is the one case where the 50/50 gut feel is also the true split, which makes it a useful anchor: any tilt in the elasticities tilts the split away from half."
  },
  {
   "title": "econ-mkt-04",
@@ -122,7 +122,7 @@
   "truth": 25,
   "naive": 70,
   "tol": 4,
-  "explanation": "The free market cleared at P=24, Q=52. At the $15 ceiling, quantity demanded jumps to 70 but quantity supplied falls to 25 — and the short side rules, so only 25 units are actually rented. The naive answer (70, 'everyone who wants one at $15 gets one') forgets that supply contracts; the ceiling creates a 45-unit shortage and houses fewer people than before."
+  "explanation": "The free market cleared at P=24, Q=52. At the $15 ceiling, quantity demanded jumps to 70 while quantity supplied falls to 25, and the short side rules: only 25 units are actually rented. The naive answer (70, 'everyone who wants one at $15 gets one') forgets that supply contracts; the ceiling creates a 45-unit shortage and houses fewer people than before."
  },
  {
   "title": "econ-mkt-06",
@@ -147,7 +147,7 @@
   "truth": 50,
   "naive": 90,
   "tol": 5,
-  "explanation": "Free equilibrium is P=15, Q=75. At the $10 ceiling, demand rises to 90 but supply falls to 50; the short side (supply) determines that just 50 trade. The gap of 40 is the shortage — the unseen cost of the 'affordable' price. Naive 90 counts wishful demand, not what suppliers will actually provide."
+  "explanation": "Free equilibrium is P=15, Q=75. At the $10 ceiling, demand rises to 90 but supply falls to 50; the short side (supply) determines that just 50 trade. The gap of 40 is the shortage, the unseen bill for the 'affordable' price. The naive 90 counts wishful demand; suppliers will actually provide 50."
  },
  {
   "title": "econ-mkt-07",
@@ -172,7 +172,7 @@
   "truth": 20,
   "naive": 40,
   "tol": 3,
-  "explanation": "The market would clear at P=50, Q=30. Hold price down to 40 and supply falls to 20 while demand rises to 40 — the short side means only 20 change hands, fewer than the free-market 30. A ceiling meant to help buyers shrinks the number who actually get the good."
+  "explanation": "The market would clear at P=50, Q=30. Hold the price down to 40 and supply falls to 20 while demand rises to 40; the short side means only 20 change hands, fewer than the free-market 30. A ceiling meant to help buyers leaves 10 fewer of them with the good."
  },
  {
   "title": "econ-mkt-08",
@@ -197,6 +197,6 @@
   "truth": 60,
   "naive": 120,
   "tol": 6,
-  "explanation": "Free equilibrium is P=10, Q=100. At the $6 ceiling, demand climbs to 120 but supply drops to 60; only 60 trade. The ceiling cuts quantity below the free-market level and rations a 60-unit shortage — the opposite of what its supporters intend."
+  "explanation": "Free equilibrium is P=10, Q=100. At the $6 ceiling, demand climbs to 120 but supply drops to 60; only 60 trade. The ceiling cuts quantity from the free-market 100 down to 60 and leaves a 60-unit shortage to be rationed, which is roughly the opposite of what its supporters had in mind."
  }
 ]
