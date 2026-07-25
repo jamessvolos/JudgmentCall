@@ -3,7 +3,7 @@
   "title": "dec-prob-01",
   "topic": "probability",
   "difficulty": 1,
-  "scenario": "Your hiring loop has three independent stages — screen, technical, panel — and a candidate you like has an 80% chance of passing each one.",
+  "scenario": "Your hiring loop runs three independent stages: screen, technical, panel. A candidate you like has an 80% chance of passing each one.",
   "prompt": "What is the probability she passes all three stages?",
   "choices": [
    {
@@ -24,16 +24,16 @@
    {
     "text": "48.8% — the chance the stages go her way.",
     "correct": false,
-    "rationale": "48.8% is the complement — the chance at least one stage fails (1 − 0.512). Passing all three is 51.2%."
+    "rationale": "48.8% is the complement: the chance at least one stage fails (1 − 0.512). Passing all three is 51.2%."
    }
   ],
-  "explanation": "Independent chances multiply, they don't add or average: 0.8³ = 51.2%. A chain of individually likely events is much less likely than any single link — which is why strong candidates die in long loops."
+  "explanation": "Independent chances multiply. They don't add or average: 0.8³ = 51.2%. A chain of individually likely events is much less likely than any single link, which is why strong candidates die in long loops."
  },
  {
   "title": "dec-prob-02",
   "topic": "probability",
   "difficulty": 2,
-  "scenario": "Your checkout flow calls three independent services — payments, inventory, fraud — and each one meets its latency SLA on 90% of requests.",
+  "scenario": "Your checkout flow calls three independent services: payments, inventory, fraud. Each one meets its latency SLA on 90% of requests.",
   "prompt": "What fraction of checkouts have at least one service blow its SLA?",
   "choices": [
    {
@@ -44,7 +44,7 @@
    {
     "text": "10% — the flow is only as slow as its weakest link.",
     "correct": false,
-    "rationale": "Each service alone misses 10% of the time, but the checkout is exposed to all three misses, not just one: 27.1%."
+    "rationale": "Each service alone misses 10% of the time. The checkout is exposed to all three misses at once: 27.1%."
    },
    {
     "text": "30% — add the three 10% miss rates.",
@@ -54,16 +54,16 @@
    {
     "text": "72.9% — multiply the reliabilities.",
     "correct": false,
-    "rationale": "0.9³ = 72.9% is the chance everything is fast — the complement of what was asked."
+    "rationale": "0.9³ = 72.9% is the chance everything is fast. That's the complement of what was asked."
    }
   ],
-  "explanation": "For 'at least one failure', don't add failure rates — take the complement of everything succeeding: 1 − 0.9³ = 27.1%. Chained dependencies quietly turn three reliable services into a flow that stumbles on 1 in 4 requests."
+  "explanation": "For 'at least one failure', don't add failure rates. Take the complement of everything succeeding: 1 − 0.9³ = 27.1%. Three reliable services chain into a flow that stumbles on 1 in 4 requests."
  },
  {
   "title": "dec-prob-03",
   "topic": "probability",
   "difficulty": 3,
-  "scenario": "Out of every 1,000 shipments your marketplace handles, 10 involve fraud (1%). Your detector flags 90% of fraudulent shipments — but also flags 10% of legitimate ones. A shipment just got flagged, and ops wants to freeze the seller's account on the spot.",
+  "scenario": "Out of every 1,000 shipments your marketplace handles, 10 involve fraud (1%). Your detector flags 90% of fraudulent shipments. It also flags 10% of legitimate ones. A shipment just got flagged, and ops wants to freeze the seller's account on the spot.",
   "prompt": "Given only the flag, what's the probability this shipment is actually fraudulent?",
   "choices": [
    {
@@ -84,10 +84,10 @@
    {
     "text": "1% — the flag doesn't change the underlying fraud rate.",
     "correct": false,
-    "rationale": "The flag is real evidence — it moves the probability from 1% up to 8.3%. It just doesn't move it anywhere near 90%."
+    "rationale": "The flag is real evidence. It moves the probability from 1% up to 8.3%. It just doesn't get anywhere near 90%."
    }
   ],
-  "explanation": "When the base rate is low, even a good test's alarms are mostly false: 9 true flags versus 99 false ones makes a flag only 1-in-12 fraud. Never read the test's accuracy as the alarm's accuracy — condition on the evidence, not the reverse."
+  "explanation": "When the base rate is low, even a good test's alarms are mostly false: 9 true flags against 99 false ones makes a flag only 1-in-12 fraud. Don't read the test's accuracy as the alarm's accuracy. Freeze on those odds and you punish eleven honest sellers for every cheat."
  },
  {
   "title": "dec-ev-01",
@@ -104,7 +104,7 @@
    {
     "text": "+$42,000 — $50,000 of revenue minus the $8,000 cost.",
     "correct": false,
-    "rationale": "That's the best case, not the expectation. The $50,000 only arrives 20% of the time, so it's worth $10,000 up front."
+    "rationale": "That's the best case. Expectation weights it: the $50,000 only arrives 20% of the time, so it's worth $10,000 up front."
    },
    {
     "text": "+$10,000 — 20% of $50,000.",
@@ -139,21 +139,21 @@
    {
     "text": "20% — the settlement net of fees, divided by the award.",
     "correct": false,
-    "rationale": "The fees are a cost of choosing trial, not a discount on the settlement — they make trial need a higher win rate, not a lower one."
+    "rationale": "The fees are a cost of choosing trial. They raise the win rate trial needs; they don't discount the settlement."
    },
    {
     "text": "50% — go to trial only if you're more likely to win than lose.",
     "correct": false,
-    "rationale": "The coin-flip threshold ignores the payoffs. A $200,000 award against a $60,000 offer makes trial correct well below 50% — from 40% up."
+    "rationale": "The coin-flip threshold ignores the payoffs. A $200,000 award against a $60,000 offer makes trial correct well below 50%: anywhere from 40% up."
    }
   ],
-  "explanation": "The break-even probability — where the EVs of the two options cross — is the real price of a gamble. Here p × 200,000 − 20,000 = 60,000 solves to 40%: your lawyer's job is to tell you which side of that line your case sits on."
+  "explanation": "The break-even probability is where the two EVs cross, and it's the real price of the gamble. Here p × 200,000 − 20,000 = 60,000 solves to 40%. Your lawyer's job is to tell you which side of that line your case sits on."
  },
  {
   "title": "dec-ev-03",
   "topic": "expected_value",
   "difficulty": 3,
-  "scenario": "Last quarter, with $10M in the bank, you chose launch plan A — a 60% chance of gaining $700,000, a 40% chance of losing $300,000 — over plan B, a guaranteed $150,000. Plan A missed: you lost $300,000. The board asks whether the decision was a mistake.",
+  "scenario": "Last quarter, with $10M in the bank, you chose launch plan A (a 60% chance of gaining $700,000, a 40% chance of losing $300,000) over plan B, a guaranteed $150,000. Plan A missed: you lost $300,000. The board asks whether the decision was a mistake.",
   "prompt": "Was choosing A a mistake?",
   "choices": [
    {
@@ -169,27 +169,27 @@
    {
     "text": "Yes — a guaranteed $150,000 should always be taken over a gamble.",
     "correct": false,
-    "rationale": "Certainty has some value, but not $150,000 of EV — and with $10M in the bank, a $300,000 downside is nowhere near the size where risk aversion should override expectation."
+    "rationale": "Certainty has some value, but not $150,000 of EV. With $10M in the bank, a $300,000 downside is nowhere near the size where risk aversion should override expectation."
    },
    {
     "text": "The loss itself proves the 60% estimate was inflated.",
     "correct": false,
-    "rationale": "One miss is almost no evidence against a 60% estimate — genuine 60/40 bets miss 40% of the time. It would take a run of outcomes to indict the number."
+    "rationale": "One miss is almost no evidence against a 60% estimate. Genuine 60/40 bets miss 40% of the time; it would take a run of outcomes to indict the number."
    }
   ],
-  "explanation": "Decision quality lives in the process — the odds, payoffs, and stakes as known at the time — not in the single outcome that happened to land. A +$300,000-EV bet the balance sheet can absorb was right before the coin flipped, and it's still right after."
+  "explanation": "Decision quality lives in the process: the odds, payoffs, and stakes as known at the time. One landed outcome doesn't rewrite it. A +$300,000-EV bet the balance sheet could absorb was right before the coin flipped, and it's still right after."
  },
  {
   "title": "dec-margin-01",
   "topic": "marginal_ev",
   "difficulty": 1,
-  "scenario": "You've spent $10,000 on ad channel A and it has returned $30,000 — a 3x average return. But the next $1,000 in A would bring back about $1,500, while the next $1,000 in untapped channel B would bring back about $2,500.",
+  "scenario": "You've spent $10,000 on ad channel A and it has returned $30,000, a 3x average return. The next $1,000 in A would bring back about $1,500. The next $1,000 in untapped channel B would bring back about $2,500.",
   "prompt": "Where should the next $1,000 go?",
   "choices": [
    {
     "text": "Channel B — the next dollar earns $2.50 there versus $1.50 in A, and the next dollar is the only one you're deciding about.",
     "correct": true,
-    "rationale": "Decisions are made at the margin. A's 3x history describes money already spent, not the dollar in your hand."
+    "rationale": "Decisions are made at the margin. A's 3x history describes money already spent. The dollar in your hand is still deciding."
    },
    {
     "text": "Channel A — it's returning 3x, the best number on the board.",
@@ -199,15 +199,15 @@
    {
     "text": "Split it $500 and $500 to stay diversified.",
     "correct": false,
-    "rationale": "Splitting earns roughly $750 + $1,250 = $2,000 — less than the $2,500 from putting the whole increment where its marginal return is highest."
+    "rationale": "Splitting earns roughly $750 + $1,250 = $2,000. Putting the whole increment where its marginal return is highest earns $2,500."
    },
    {
     "text": "Neither — A's declining returns mean the ad budget is exhausted.",
     "correct": false,
-    "rationale": "Declining isn't negative: A's marginal $1,500 on $1,000 still profits, and B's $2,500 certainly does. The question is ranking margins, not quitting."
+    "rationale": "Declining isn't negative: A's marginal $1,500 on $1,000 still profits, and B's $2,500 certainly does. Rank the margins before you quit the game."
    }
   ],
-  "explanation": "Allocate by marginal return, not average return: the only question the next dollar asks is where it earns the most, and past performance answers a different question. Here that's $2.50 in B against $1.50 in A."
+  "explanation": "Allocate by marginal return. The next dollar asks one question: where does it earn the most? Past performance answers a different one. Here the margin pays $2.50 in B against $1.50 in A."
  },
  {
   "title": "dec-margin-02",
@@ -229,7 +229,7 @@
    {
     "text": "Finish X — $150,000 back on $100,000 is a healthy 50% return.",
     "correct": false,
-    "rationale": "'Is it good?' is the wrong question — the question is 'is it better than the next-best use?' The pivot returns 120% on the same money."
+    "rationale": "'Is it good?' is the wrong question. Ask 'is it better than the next-best use?' The pivot returns 120% on the same money."
    },
    {
     "text": "Do neither and hold the $100,000 in reserve.",
@@ -237,7 +237,7 @@
     "rationale": "Holding returns $0 against forward gains of $50,000 or $120,000. Caution here is the worst-EV branch on the tree."
    }
   ],
-  "explanation": "Compare futures, not histories: every option shares the $400,000 already spent, so the decision reduces to $220,000 versus $150,000 for the same marginal $100,000. What you've invested is a fact about the past, not a reason."
+  "explanation": "Compare futures. Every option shares the $400,000 already spent, so the decision reduces to $220,000 versus $150,000 for the same marginal $100,000. What you've invested is a fact about the past, and the pivot wins by $70,000."
  },
  {
   "title": "dec-margin-03",
@@ -249,25 +249,25 @@
    {
     "text": "The small one — it clears +$50,000, while the flagship's true marginal profit is $500k − $440k − $80k = −$20,000. The felt winner loses money.",
     "correct": true,
-    "rationale": "Every cost that disappears when the client does is marginal — including the dedicated engineers. Counted fully, the flagship's sign flips negative."
+    "rationale": "Every cost that disappears when the client does is marginal, including the dedicated engineers. Counted fully, the flagship's sign flips negative."
    },
    {
     "text": "The flagship — $500,000 in revenue dwarfs $120,000.",
     "correct": false,
-    "rationale": "Top-line anchoring. Revenue isn't profit: the flagship spends $520,000 to collect $500,000, so its size measures the loss, not the win."
+    "rationale": "Top-line anchoring. Revenue isn't profit: the flagship spends $520,000 to collect $500,000. Its size just measures the loss."
    },
    {
     "text": "The flagship — before the support team it earns $500k − $440k = +$60,000, and dedicated staff belong in overhead.",
     "correct": false,
-    "rationale": "Those engineers were hired for this client and leave with it — that makes their $80,000 a marginal cost of keeping it, not shared overhead. Buried allocation is how losing accounts hide."
+    "rationale": "Those engineers were hired for this client and leave with it. That makes their $80,000 a marginal cost of keeping it, wherever the ledger files them. Buried allocation is how losing accounts hide."
    },
    {
     "text": "The flagship — a $500,000 logo is worth keeping for credibility alone.",
     "correct": false,
-    "rationale": "The prompt asks about the numbers, and the numbers say you'd pay $20,000 a year for the logo while turning away $50,000. If prestige is worth $70,000+, price it explicitly — don't smuggle it in."
+    "rationale": "The prompt asks about the numbers, and the numbers say you'd pay $20,000 a year for the logo while turning away $50,000. If prestige is worth $70,000+, price it explicitly instead of smuggling it in."
    }
   ],
-  "explanation": "The margin includes every cost that exists only because the option does. Move the dedicated team from 'overhead' to where it belongs and the flagship's profit flips from +$60k to −$20k — the delta doesn't just shrink, it changes sign against the intuitive winner."
+  "explanation": "The margin includes every cost that exists only because the option does. Move the dedicated team out of 'overhead' and the flagship's profit flips from +$60k to −$20k. The delta doesn't merely shrink; it changes sign against the felt winner."
  },
  {
   "title": "dec-gto-01",
@@ -294,7 +294,7 @@
    {
     "text": "75% — a river bet usually means it, so you need to be nearly sure.",
     "correct": false,
-    "rationale": "How sure you need to be is set by the pot, not by vibes: the $150 already out there subsidizes your call down to 25%."
+    "rationale": "The pot sets how sure you need to be. The $150 already out there subsidizes your call down to 25%."
    }
   ],
   "explanation": "The pot sets the price of a call: break-even equity = bet / (pot + bet + call) = 50/200 = 25%. Before asking whether he's bluffing, know the number the bluffing frequency has to beat."
@@ -303,7 +303,7 @@
   "title": "dec-gto-02",
   "topic": "equilibrium",
   "difficulty": 2,
-  "scenario": "A rival firm keeps threatening lawsuits over a disputed $100,000 escrow your company holds. Mounting a suit costs them $50,000 in non-refundable legal fees, and their standard settlement demand is the escrow plus those fees — so caving hands them a net $100,000, while fighting a hollow claim to judgment costs them their $50,000. Some of their claims are genuine; you can't tell which from the filing.",
+  "scenario": "A rival firm keeps threatening lawsuits over a disputed $100,000 escrow your company holds. Mounting a suit costs them $50,000 in non-refundable legal fees, and their standard settlement demand is the escrow plus those fees. Caving hands them a net $100,000; fighting a hollow claim to judgment costs them their $50,000. Some of their claims are genuine; you can't tell which from the filing.",
   "prompt": "At minimum, how often must you fight these claims so that a hollow one loses them money?",
   "choices": [
    {
@@ -314,7 +314,7 @@
    {
     "text": "One-third of the time — match their one-third cost-to-prize ratio.",
     "correct": false,
-    "rationale": "One-third is the most you may cave, not the least you must fight. Fighting only 1/3 lets a hollow claim earn 2/3 × 100k − 1/3 × 50k = +$50,000."
+    "rationale": "One-third is the most you may cave. Fight only 1/3 of the time and a hollow claim earns 2/3 × 100k − 1/3 × 50k = +$50,000."
    },
    {
     "text": "Half the time — split the difference so you're unpredictable.",
@@ -324,16 +324,16 @@
    {
     "text": "Every time — never reward a threat.",
     "correct": false,
-    "rationale": "Always fighting does kill hollow claims, but it isn't the minimum — and against their genuine claims it maximizes your own legal spend. Equilibrium prices deterrence, it doesn't buy it at any cost."
+    "rationale": "Always fighting kills hollow claims, but it isn't the minimum, and against their genuine claims it maximizes your own legal spend. Equilibrium prices deterrence; it doesn't buy it at any cost."
    }
   ],
-  "explanation": "To make empty aggression unprofitable, defend at least pot/(pot + bet) — here 100/(100 + 50) = 2/3. Fold more than a third and every bluff they fire is +EV, so they should fire them all; deterrence is a frequency, not a mood."
+  "explanation": "To make empty aggression unprofitable, defend at least pot/(pot + bet): here 100/(100 + 50) = 2/3. Fold more than a third and every bluff they fire is +EV, so they should fire them all. Deterrence is a frequency, and 2/3 is the floor."
  },
  {
   "title": "dec-gto-03",
   "topic": "equilibrium",
   "difficulty": 3,
-  "scenario": "At a negotiation workshop you play a bluffing game: $100 of chips sit in the pot, and on your turn you may push $100 while claiming the winning card — sometimes you have it, sometimes you don't. Your counterpart can call your $100 or fold. You want your pushes balanced so calling can't beat you.",
+  "scenario": "At a negotiation workshop you play a bluffing game: $100 of chips sit in the pot, and on your turn you may push $100 while claiming the winning card. Sometimes you have it, sometimes you don't. Your counterpart can call your $100 or fold. You want your pushes balanced so calling can't beat you.",
   "prompt": "What share of your pushes should be bluffs to make her calls exactly indifferent?",
   "choices": [
    {
@@ -357,13 +357,13 @@
     "rationale": "The never-bluff strategy is transparent: she correctly folds every time, your value pushes win only the pot and never her $100, and you've left the whole extra street on the table."
    }
   ],
-  "explanation": "Price your bluffs off the caller's odds: she risks B to win P + 2B, so bluff exactly B/(P + 2B) — here 100/300 = 1/3 — and her call and fold become equally worthless. Equilibrium isn't maximizing any one push; it's making the other side's options not matter."
+  "explanation": "Price your bluffs off the caller's odds. She risks B to win P + 2B, so bluff exactly B/(P + 2B), here 100/300 = 1/3, and her call and fold become equally worthless. Equilibrium doesn't maximize any one push; it makes the other side's options stop mattering."
  },
  {
   "title": "dec-bank-01",
   "topic": "bankroll",
   "difficulty": 1,
-  "scenario": "Your startup has $50,000 of runway. A supplier offers a deal that, for whatever you put in, has a 60% chance of doubling it and a 40% chance of losing it all — genuinely +EV at 20 cents per dollar committed.",
+  "scenario": "Your startup has $50,000 of runway. A supplier offers a deal that, for whatever you put in, has a 60% chance of doubling it and a 40% chance of losing it all. Genuinely +EV: 20 cents per dollar committed.",
   "prompt": "How much should you put in?",
   "choices": [
    {
@@ -379,15 +379,15 @@
    {
     "text": "Nothing — a 40% chance of losing the money is too dangerous.",
     "correct": false,
-    "rationale": "Risk alone isn't a veto. At $10,000 the worst case stings but doesn't kill, and refusing forgoes free expected value — knowing the bet is good is half the skill; sizing it is the other half."
+    "rationale": "Risk alone isn't a veto. At $10,000 the worst case stings but doesn't kill, and refusing forgoes free expected value. Knowing the bet is good is half the skill; sizing it is the other half."
    },
    {
     "text": "$30,000 — commit 60% of the runway to match the 60% win probability.",
     "correct": false,
-    "rationale": "'Bet your win probability' is a reflex, not a rule — win chance says nothing about how much downside you can absorb. Lose this one (40% of the time!) and $20,000 of runway remains."
+    "rationale": "'Bet your win probability' is a reflex with no math behind it. Win chance says nothing about how much downside you can absorb. Lose this one (40% of the time!) and $20,000 of runway remains."
    }
   ],
-  "explanation": "Whether a bet is +EV and how much to put on it are separate questions. Per-dollar edge is constant across sizes; ruin is not — the right stake is one whose losing branch leaves you in the game."
+  "explanation": "Whether a bet is +EV and how much to put on it are separate questions. Per-dollar edge is constant across sizes. Ruin is not. The right stake is one whose losing branch leaves you in the game."
  },
  {
   "title": "dec-bank-02",
@@ -404,12 +404,12 @@
    {
     "text": "60% — stake your win probability.",
     "correct": false,
-    "rationale": "Betting your win probability triples the Kelly fraction. A perfectly ordinary 3-loss run at 60% stakes turns $10,000 into $640 — the edge never gets a chance to work."
+    "rationale": "Betting your win probability triples the Kelly fraction. A perfectly ordinary 3-loss run at 60% stakes turns $10,000 into $640. The edge never gets a chance to work."
    },
    {
     "text": "100% — the edge is real, so compound it as hard as possible.",
     "correct": false,
-    "rationale": "At full stakes the first loss — 40% per bet — zeroes the bankroll, and ruin is permanent. Long-run growth at 100% staking is guaranteed zero."
+    "rationale": "At full stakes the first loss (40% per bet) zeroes the bankroll, and ruin is permanent. Long-run growth at 100% staking is guaranteed zero."
    },
    {
     "text": "40% — double the aggressive-looking 20% to press the advantage harder.",
@@ -417,7 +417,7 @@
     "rationale": "Growth peaks at Kelly and falls past it: at double-Kelly, long-run growth collapses back to roughly zero while the swings double. More stake stops meaning more growth."
    }
   ],
-  "explanation": "Growth is maximized at the Kelly fraction — for even money, p − q = 20% here — and it's a peak, not a floor: over-betting a real edge doesn't accelerate compounding, it destroys it. How much is a different question from whether."
+  "explanation": "Growth is maximized at the Kelly fraction, p − q for even money: 20% here. That's a peak. Over-bet a real edge and you don't accelerate compounding, you destroy it. How much to stake is a separate question from whether, and here its answer is 20%."
  },
  {
   "title": "dec-bank-03",
@@ -429,7 +429,7 @@
    {
     "text": "Don't take it at this size — insure the penalty, syndicate it, or renegotiate. It's +$220,000 in EV, and it still risks missing payroll one time in five.",
     "correct": true,
-    "rationale": "The losing branch leaves $100,000 against a $300,000 payroll — functional ruin. A bet can be clearly +EV and still be too big for the bankroll behind it."
+    "rationale": "The losing branch leaves $100,000 against a $300,000 payroll. Functional ruin. A bet can be clearly +EV and still be too big for the bankroll behind it."
    },
    {
     "text": "Sign it — +$220,000 of expected value is +$220,000; refusing positive EV is leaving money on the table.",
@@ -439,7 +439,7 @@
    {
     "text": "Sign it — it pays off 80% of the time, so you're overwhelmingly likely to be fine.",
     "correct": false,
-    "rationale": "Best-case reading. One-in-five is not remote — it's a die roll — and this die roll ends the firm. Likelihood of the good branch says nothing about survivability of the bad one."
+    "rationale": "Best-case reading. One-in-five isn't remote; it's a die roll, and this one ends the firm. Likelihood of the good branch says nothing about survivability of the bad one."
    },
    {
     "text": "Decline outright — a $900,000 downside against a $500,000 upside makes it a losing bet on its face.",
@@ -447,7 +447,7 @@
     "rationale": "Right instinct, wrong math: weighted by probability it's +$220,000, comfortably a winning bet. The problem is its size relative to your cash, which is why shrinking or laying off risk beats walking away."
    }
   ],
-  "explanation": "+EV is necessary, not sufficient: when the losing branch is ruin, no expectation justifies full exposure. The professional move isn't take-it-or-leave-it — it's resizing the bet (insurance, syndication, renegotiation) until the downside is survivable and the edge is still yours."
+  "explanation": "+EV alone doesn't clear a bet. When the losing branch is ruin, no expectation justifies full exposure. The professional move is resizing: insure, syndicate, or renegotiate until the downside is survivable and the +$220,000 edge is still yours."
  },
  {
   "title": "dec-exploit-01",
@@ -459,31 +459,31 @@
    {
     "text": "His right, every kick, until he shows he's adjusted.",
     "correct": true,
-    "rationale": "Against an opponent with a fixed pattern, the maximally exploitative line is a pure strategy at his weakness. Mixing is protection against adaptation — spend it only when he adapts."
+    "rationale": "Against an opponent with a fixed pattern, the maximally exploitative line is a pure strategy at his weakness. Mixing is protection against adaptation. Spend it only when he adapts."
    },
    {
     "text": "Keep mixing sides 50/50 — staying unpredictable always comes first.",
     "correct": false,
-    "rationale": "Unpredictability defends against an opponent who reads you. This one isn't reading anyone — mixing sends half your kicks into his dive for no defensive gain."
+    "rationale": "Unpredictability defends against an opponent who reads you. This one isn't reading anyone. Mixing sends half your kicks into his dive for no defensive gain."
    },
    {
     "text": "His left — he'll expect you to have scouted him and switch.",
     "correct": false,
-    "rationale": "That prices in a level of thinking he's shown no sign of. Eight-for-eight is evidence of a habit, not a trap; play the data, not the mind game you imagined."
+    "rationale": "That prices in a level of thinking he's shown no sign of. Eight-for-eight is evidence of a habit. Play the data, not the mind game you imagined."
    },
    {
     "text": "Down the middle as a compromise between the two reads.",
     "correct": false,
-    "rationale": "There's nothing to compromise between — the read points one way. Averaging a strong signal with its opposite just dilutes the edge."
+    "rationale": "There's nothing to compromise between. The read points one way. Averaging a strong signal with its opposite just dilutes the edge."
    }
   ],
-  "explanation": "When the opponent's strategy is fixed and known, the best response is pure: hammer the weakness until it moves. Balance is what you buy when they can punish you — against a pattern, it's paying for insurance you don't need."
+  "explanation": "When the opponent's strategy is fixed and known, the best response is pure: hammer the weakness until it moves. Balance is insurance against being punished, and a keeper who dives left eight times out of eight isn't punishing anyone."
  },
  {
   "title": "dec-exploit-02",
   "topic": "exploitation",
   "difficulty": 2,
-  "scenario": "Over a long online session you've confirmed a regular folds to river bets 80% of the time. Pots are running about $100 when you bet $50 — so a stone-cold bluff earns 0.8 × $100 − 0.2 × $50 = +$70. At equilibrium he'd need to fold no more than a third of the time.",
+  "scenario": "Over a long online session you've confirmed a regular folds to river bets 80% of the time. Pots are running about $100 when you bet $50, so a stone-cold bluff earns 0.8 × $100 − 0.2 × $50 = +$70. At equilibrium he'd need to fold no more than a third of the time.",
   "prompt": "How should you play rivers against him?",
   "choices": [
    {
@@ -494,7 +494,7 @@
    {
     "text": "Stay balanced — deviating from GTO is how you get exploited.",
     "correct": false,
-    "rationale": "Equilibrium is the fallback when you have no read, not the ceiling when you do. Refusing a confirmed +$70-per-bluff edge is its own leak."
+    "rationale": "Equilibrium is the fallback for when you have no read. You have one. Refusing a confirmed +$70-per-bluff edge is its own leak."
    },
    {
     "text": "Bluff every river from here on — the number says it prints money, so lock it in.",
@@ -504,10 +504,10 @@
    {
     "text": "Stop bluffing him — someone folding that much only continues with hands that beat you.",
     "correct": false,
-    "rationale": "Backwards: heavy folding is what makes bluffs profitable, not dangerous. His 20% continues do beat your air — which is priced in at +$70 a bet."
+    "rationale": "Backwards. Heavy folding is what makes bluffs profitable. His 20% continues do beat your air, and that's priced in at +$70 a bet."
    }
   ],
-  "explanation": "Exploitation is a bet on your read: deviate hard while the leak holds, and instrument for the moment it closes. Max-exploit without monitoring the counter-adjustment isn't aggression — it's leaving the door open with your money behind it."
+  "explanation": "Exploitation is a bet on your read. Deviate hard while the leak holds, and instrument for the moment it closes. Max-exploit without watching for the counter-adjustment leaves the door open with your money behind it: $50 per bluff once he starts calling."
  },
  {
   "title": "dec-exploit-03",
@@ -534,9 +534,9 @@
    {
     "text": "Fight half of them at random so claimants can't predict you.",
     "correct": false,
-    "rationale": "Unpredictability isn't free — each fight still runs −$35,000 on average, so mixing buys deterrence at half the full-fight loss. If the read is 10%, the EV-max response is pure."
+    "rationale": "Unpredictability isn't free. Each fight still runs −$35,000 on average; mixing buys deterrence at half the full-fight loss. If the read is 10%, the EV-max response is pure."
    }
   ],
-  "explanation": "The maximally exploitative response to a known population is pure: settle, because 10% fraud is far below the 1/3 break-even. But every deviation opens a door — a publicized never-fight policy invites the fraud rate to climb toward the threshold, so the read that justified the exploit must be re-audited, and the fights resumed the moment it stops being true."
+  "explanation": "The maximally exploitative response to a known population is pure: settle, because 10% fraud sits far below the 1/3 break-even. Every deviation opens a door, though. A publicized never-fight policy invites the fraud rate to climb, so keep auditing the 10%, and resume fighting the moment it crosses a third."
  }
 ]
