@@ -40,7 +40,7 @@ export type BadgeTier = "competence" | "exploration" | "calibration";
 // Calibration badges — shared across both rooms (calibration reads the same in
 // statistics and architecture). Folded over the conviction each call carried.
 const CALIBRATION_BADGES: Badge[] = [
-  { code: "honest_broker", name: "HONEST BROKER", tier: "calibration", criterion: "Thirty staked calls, confidence and accuracy within six points — and still holding." },
+  { code: "honest_broker", name: "HONEST BROKER", tier: "calibration", criterion: "Thirty staked calls, confidence and accuracy within six points, and still holding." },
   { code: "knows_knows", name: "KNOWS WHAT THEY KNOW", tier: "calibration", criterion: "Ten locked-in calls (90%+), nine in ten landed." },
   { code: "no_bluff", name: "NO BLUFF", tier: "calibration", criterion: "No confidence tier you couldn't back up, across fifteen-plus staked calls." },
 ];
@@ -87,7 +87,7 @@ const STATS_TOPICS: Topic[] = [
     name: "Sampling & representativeness",
     short: "Sampling",
     concept:
-      "A number only speaks for whoever it measured. Ask who is missing — the non-responders, the survivors, the self-selected — before you let a sample stand in for everyone.",
+      "A number only speaks for whoever it measured. Before you let a sample stand in for everyone, ask who is missing: the non-responders, the survivors, the self-selected.",
   },
   {
     id: "variation",
@@ -101,21 +101,21 @@ const STATS_TOPICS: Topic[] = [
     name: "Correlation & confounding",
     short: "Correlation",
     concept:
-      "Two series moving together can share a hidden third cause, or point the other way. A causal claim needs an experiment or a ruled-out alternative, not just a tight fit.",
+      "Two series moving together can share a hidden third cause, or point the other way. A tight fit alone earns no causal claim; that takes an experiment or a ruled-out alternative.",
   },
   {
     id: "base_rates",
     name: "Base rates & conditional probability",
     short: "Base rates",
     concept:
-      "A test's accuracy means little without the underlying rate. When the condition is rare, even a good test produces mostly false positives — the base rate rules the result.",
+      "A test's accuracy means little without the underlying rate. When the condition is rare, even a good test produces mostly false positives. The base rate rules the result.",
   },
   {
     id: "uncertainty",
     name: "Intervals & significance",
     short: "Uncertainty",
     concept:
-      "A confidence interval is a range the method captures most of the time, not a probability about one number. 'Significant' means detectable, not large — check the effect size.",
+      "A confidence interval is a range the method captures most of the time; it is not a probability statement about one number. 'Significant' means detectable, not large. Check the effect size.",
   },
   {
     id: "aggregation",
@@ -140,7 +140,7 @@ const STATS_BADGES: Badge[] = [
   { code: "specialist", name: "SPECIALIST", tier: "competence", criterion: "Five correct in a single topic, at least one above the easy tier." },
   { code: "correction", name: "THE CORRECTION", tier: "competence", criterion: "A topic that was beating you, beaten: behind in it, then three straight." },
   { code: "full_map", name: "THE FULL MAP", tier: "exploration", criterion: "Faced all six topics." },
-  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a subtle-tier call in four or more topics — landing it not required." },
+  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a subtle-tier call in four or more topics; landing it isn't required." },
   ...CALIBRATION_BADGES,
 ];
 
@@ -153,7 +153,7 @@ const ARCH_TOPICS: Topic[] = [
     name: "Storage & layout",
     short: "Storage",
     concept:
-      "Row stores serve whole records fast (OLTP); columnar stores scan a few fields over billions of rows (OLAP). Normalization trades write-simplicity for read-cost — pick for the query, not the diagram.",
+      "Row stores serve whole records fast (OLTP); columnar stores scan a few fields over billions of rows (OLAP). Normalization trades write-simplicity for read-cost: pick for the query the workload will actually run.",
   },
   {
     id: "processing",
@@ -167,7 +167,7 @@ const ARCH_TOPICS: Topic[] = [
     name: "Data modeling & schema",
     short: "Modeling",
     concept:
-      "A star schema and slowly-changing dimensions trade storage for queryability and history. Schemas evolve — design the migration path before the first column ships.",
+      "A star schema and slowly-changing dimensions trade storage for queryability and history. Schemas evolve; design the migration path before the first column ships.",
   },
   {
     id: "scaling",
@@ -181,7 +181,7 @@ const ARCH_TOPICS: Topic[] = [
     name: "Reliability & correctness",
     short: "Reliability",
     concept:
-      "At-least-once delivery plus idempotent writes beats chasing exactly-once. Late and out-of-order data is normal, not exceptional — backfills and quality checks are part of the design.",
+      "At-least-once delivery plus idempotent writes beats chasing exactly-once. Late and out-of-order data is normal, so backfills and quality checks are part of the design.",
   },
   {
     id: "cost",
@@ -206,7 +206,7 @@ const ARCH_BADGES: Badge[] = [
   { code: "specialist", name: "DOMAIN EXPERT", tier: "competence", criterion: "Five correct in a single topic, at least one above the easy tier." },
   { code: "correction", name: "THE CORRECTION", tier: "competence", criterion: "A topic that was beating you, beaten: behind in it, then three straight." },
   { code: "full_map", name: "THE FULL MAP", tier: "exploration", criterion: "Faced all six topics." },
-  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a senior-tier call in four or more topics — landing it not required." },
+  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a senior-tier call in four or more topics; landing it isn't required." },
   ...CALIBRATION_BADGES,
 ];
 
@@ -224,14 +224,14 @@ const ECON_TOPICS: Topic[] = [
     name: "Opportunity Cost",
     short: "Opp. Cost",
     concept:
-      "The true cost of any choice is the best alternative you gave up, not the cash you spent. Comparative advantage — and every real tradeoff — follows from it.",
+      "The true cost of any choice is the best alternative you gave up, not the cash you spent. Comparative advantage, and every real tradeoff, follows from it.",
   },
   {
     id: "sunk_cost",
     name: "Sunk Costs",
     short: "Sunk Cost",
     concept:
-      "Money already spent and unrecoverable is irrelevant to the next decision. Only future costs and benefits count — 'we've come too far to quit' is the fallacy talking.",
+      "Money already spent and unrecoverable is irrelevant to the next decision. Only future costs and benefits count; 'we've come too far to quit' is the fallacy talking.",
   },
   {
     id: "nominal_vs_real",
@@ -245,7 +245,7 @@ const ECON_TOPICS: Topic[] = [
     name: "The Unseen",
     short: "The Unseen",
     concept:
-      "Every intervention ripples past its visible first-order target. A price ceiling doesn't just lower price — it contracts supply and rations the shortage it created.",
+      "Every intervention ripples past its visible first-order target. A price ceiling lowers the price and also contracts supply, rationing the shortage it created.",
   },
   {
     id: "tax_incidence",
@@ -259,7 +259,7 @@ const ECON_TOPICS: Topic[] = [
     name: "Gains from Trade",
     short: "Trade",
     concept:
-      "Voluntary trade creates surplus; the pie isn't fixed. Advantage that matters is comparative, not absolute — a trade deficit is not a scoreboard you're losing.",
+      "Voluntary trade creates surplus; the pie isn't fixed. The advantage that matters is comparative rather than absolute, and a trade deficit is not a scoreboard you're losing.",
   },
 ];
 
@@ -277,7 +277,7 @@ const ECON_BADGES: Badge[] = [
   { code: "specialist", name: "SPECIALIST", tier: "competence", criterion: "Five correct in a single topic, at least one above the easy tier." },
   { code: "correction", name: "KILLED A DARLING", tier: "competence", criterion: "A topic that was beating you, beaten: behind in it, then three straight." },
   { code: "full_map", name: "THE FULL MAP", tier: "exploration", criterion: "Faced all six topics." },
-  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a subtle-tier call in four or more topics — landing it not required." },
+  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a subtle-tier call in four or more topics; landing it isn't required." },
   ...CALIBRATION_BADGES,
 ];
 
@@ -294,14 +294,14 @@ const DECISION_TOPICS: Topic[] = [
     name: "Compound Odds",
     short: "Odds",
     concept:
-      "Independent chances multiply, they don't add — and 'at least one' is the complement trick: 1 − (1−p)ⁿ. Most bad bets start with a mis-multiplied probability.",
+      "Independent chances multiply, they don't add. 'At least one' is the complement trick: 1 − (1−p)ⁿ. Most bad bets start with a mis-multiplied probability.",
   },
   {
     id: "expected_value",
     name: "Expected Value",
     short: "EV",
     concept:
-      "A decision's worth is the probability-weighted sum of its outcomes, not its best case or its last result. The break-even probability — where EV crosses zero — is the price of the bet.",
+      "A decision's worth is the probability-weighted sum of its outcomes rather than its best case or its last result. The break-even probability, where EV crosses zero, is the price of the bet.",
   },
   {
     id: "marginal_ev",
@@ -315,21 +315,21 @@ const DECISION_TOPICS: Topic[] = [
     name: "Unexploitable",
     short: "GTO",
     concept:
-      "At equilibrium your frequencies make the opponent's options equally worthless — bluffs priced by the pot, defenses set so aggression can't profit. GTO isn't the most profitable line; it's the one that can't be beaten.",
+      "At equilibrium your frequencies make the opponent's options equally worthless: bluffs priced by the pot, defenses set so aggression can't profit. GTO isn't the most profitable line; it's the one that can't be beaten.",
   },
   {
     id: "bankroll",
     name: "Sizing & Ruin",
     short: "Sizing",
     concept:
-      "Knowing a bet is +EV is half the skill; how much is the other half. Over-betting a winning edge is how winners go broke — growth peaks at the Kelly fraction and turns to ruin past it.",
+      "Knowing a bet is +EV is half the skill; how much is the other half. Over-betting a winning edge is how winners go broke: growth peaks at the Kelly fraction and turns to ruin past it.",
   },
   {
     id: "exploitation",
     name: "The Deviation",
     short: "Exploit",
     concept:
-      "Against a mistaken opponent, the maximally exploitative line beats the equilibrium one — but every deviation opens a door back at you. Exploit is a bet on your read; GTO is the fallback when the read runs out.",
+      "Against a mistaken opponent, the maximally exploitative line beats the equilibrium one, but every deviation opens a door back at you. Exploit is a bet on your read; GTO is the fallback when the read runs out.",
   },
 ];
 
@@ -347,7 +347,7 @@ const DECISION_BADGES: Badge[] = [
   { code: "specialist", name: "SPECIALIST", tier: "competence", criterion: "Five correct in a single topic, at least one above the easy tier." },
   { code: "correction", name: "OFF TILT", tier: "competence", criterion: "A topic that was beating you, beaten: behind in it, then three straight." },
   { code: "full_map", name: "THE FULL MAP", tier: "exploration", criterion: "Faced all six topics." },
-  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a subtle-tier call in four or more topics — landing it not required." },
+  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a subtle-tier call in four or more topics; landing it isn't required." },
   ...CALIBRATION_BADGES,
 ];
 
@@ -366,42 +366,42 @@ const ML_TOPICS: Topic[] = [
     name: "The Gap",
     short: "Gap",
     concept:
-      "Training performance is a promise; held-out performance is the product. The gap between them is overfitting, and every capacity knob — epochs, depth, features — widens it eventually.",
+      "Training performance is a promise; held-out performance is the product. The gap between them is overfitting, and every capacity knob (epochs, depth, features) widens it eventually.",
   },
   {
     id: "evaluation",
     name: "Honest Measurement",
     short: "Eval",
     concept:
-      "A metric is only as honest as its setup — leakage inflates it, class imbalance distorts it, and accuracy without a baseline is a number without a meaning. Measure like an adversary is checking.",
+      "A metric is only as honest as its setup: leakage inflates it, class imbalance distorts it, and accuracy without a baseline is a number without a meaning. Measure like an adversary is checking.",
   },
   {
     id: "optimization",
     name: "Learning Dynamics",
     short: "Optim",
     concept:
-      "Training is a dynamical system: the learning rate trades speed against stability, schedules bend the path, and a loss curve's shape — plateau, cliff, divergence — is a diagnosis, not a mood.",
+      "Training is a dynamical system: the learning rate trades speed against stability, schedules bend the path, and a loss curve's shape (plateau, cliff, divergence) is a diagnosis you can read.",
   },
   {
     id: "regularization",
     name: "The Leash",
     short: "Leash",
     concept:
-      "Regularization is deliberately fitting worse to generalize better — L1/L2 penalties, dropout, early stopping, pruning. The leash costs training accuracy and buys you the test set.",
+      "Regularization is deliberately fitting worse to generalize better: L1/L2 penalties, dropout, early stopping, pruning. The leash costs training accuracy and buys you the test set.",
   },
   {
     id: "llm_tuning",
     name: "Tuning the LLM",
     short: "LLM",
     concept:
-      "Prompting, retrieval, LoRA, full finetune, RLHF — a ladder of rising cost and rising control. The judgment is matching the intervention to the failure: knowledge gaps want retrieval, format gaps want tuning.",
+      "Prompting, retrieval, LoRA, full finetune, RLHF form a ladder of rising cost and rising control. The judgment is matching the intervention to the failure: knowledge gaps want retrieval, format gaps want tuning.",
   },
   {
     id: "scaling_laws",
     name: "Scale & Compute",
     short: "Scale",
     concept:
-      "Loss falls as a power law in parameters, data, and compute — and at a fixed budget the split between them has an optimum. Scale is a strategy with math, not a faith.",
+      "Loss falls as a power law in parameters, data, and compute, and at a fixed budget the split between them has an optimum. Scale is a strategy with math behind it.",
   },
 ];
 
@@ -419,7 +419,7 @@ const ML_BADGES: Badge[] = [
   { code: "specialist", name: "SPECIALIST", tier: "competence", criterion: "Five correct in a single topic, at least one above the easy tier." },
   { code: "correction", name: "CONVERGED", tier: "competence", criterion: "A topic that was beating you, beaten: behind in it, then three straight." },
   { code: "full_map", name: "THE FULL MAP", tier: "exploration", criterion: "Faced all six topics." },
-  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a subtle-tier call in four or more topics — landing it not required." },
+  { code: "deep_end", name: "THE DEEP END", tier: "exploration", criterion: "Took a subtle-tier call in four or more topics; landing it isn't required." },
   ...CALIBRATION_BADGES,
 ];
 
@@ -430,8 +430,8 @@ export const TRACKS: Record<TrackId, Track> = {
     room: "THE STATS ROOM",
     tagline: "Read the numbers the way the data actually supports.",
     blurb:
-      "Six ways a true number gets misread — a biased sample, a lucky streak, a confounded correlation, a neglected base rate, a misheard interval, a pooling trap. Each call is one scenario and one question; the reveal names the principle so you carry it to the next one.",
-    accentNote: "Rating moves like a chess ladder — the harder the call, the more it swings.",
+      "Six ways a true number gets misread: a biased sample, a lucky streak, a confounded correlation, a neglected base rate, a misheard interval, a pooling trap. Each call is one scenario and one question; the reveal names the principle so you carry it to the next one.",
+    accentNote: "Rating moves like a chess ladder: the harder the call, the more it swings.",
     topics: STATS_TOPICS,
     levels: STATS_LEVELS,
     badges: STATS_BADGES,
@@ -442,8 +442,8 @@ export const TRACKS: Record<TrackId, Track> = {
     room: "THE ARCHITECTURE ROOM",
     tagline: "Pick the design the constraints actually call for.",
     blurb:
-      "Every call states a real constraint — a latency budget, a scan bill, a read/write ratio, a partition tolerance — and asks which design fits. The wrong answers are good engineering in the wrong context. The reveal names the tradeoff axis, so the judgment transfers.",
-    accentNote: "Rating moves like a chess ladder — the harder the call, the more it swings.",
+      "Every call states a real constraint (a latency budget, a scan bill, a read/write ratio, a partition tolerance) and asks which design fits. The wrong answers are good engineering in the wrong context. The reveal names the tradeoff axis, so the judgment transfers.",
+    accentNote: "Rating moves like a chess ladder: the harder the call, the more it swings.",
     topics: ARCH_TOPICS,
     levels: ARCH_LEVELS,
     badges: ARCH_BADGES,
@@ -454,8 +454,8 @@ export const TRACKS: Record<TrackId, Track> = {
     room: "THE MARKET ROOM",
     tagline: "Catch the fallacy before it catches you.",
     blurb:
-      "Economics is a minefield of seductive first answers — the seller pays the tax, the price cap helps everyone, a raise is a raise, sunk money must be recouped. Each call makes you commit a number and stake how sure you are; then the second-order consequence overruns your intuition, in motion, beside where you guessed.",
-    accentNote: "Rating moves like a chess ladder — the harder the call, the more it swings.",
+      "Economics is a minefield of seductive first answers: the seller pays the tax, the price cap helps everyone, a raise is a raise, sunk money must be recouped. Each call makes you commit a number and stake how sure you are; then the second-order consequence overruns your intuition, in motion, beside where you guessed.",
+    accentNote: "Rating moves like a chess ladder: the harder the call, the more it swings.",
     topics: ECON_TOPICS,
     levels: ECON_LEVELS,
     badges: ECON_BADGES,
@@ -467,7 +467,7 @@ export const TRACKS: Record<TrackId, Track> = {
     tagline: "Play the odds, not the outcome.",
     blurb:
       "The specialist room for decisions under uncertainty: compound the odds without averaging them, price a bet at its break-even, weigh the margin between the two best lines, size the stake so a winning edge can't ruin you, and hold the frequencies no opponent can exploit. Every call commits a number; the reveal shows the math that was waiting.",
-    accentNote: "Rating moves like a chess ladder — the harder the call, the more it swings.",
+    accentNote: "Rating moves like a chess ladder: the harder the call, the more it swings.",
     topics: DECISION_TOPICS,
     levels: DECISION_LEVELS,
     badges: DECISION_BADGES,
@@ -479,7 +479,7 @@ export const TRACKS: Record<TrackId, Track> = {
     tagline: "Trust the held-out set, not the vibe.",
     blurb:
       "The room for machine-learning judgment, classic and modern: know when more training starts hurting, when a metric is lying, how hard to pull the regularization leash, which LLM intervention a failure actually calls for, and how a compute budget wants to be split. Every call commits a number a practitioner really sets; the reveal draws the curve that was waiting.",
-    accentNote: "Rating moves like a chess ladder — the harder the call, the more it swings.",
+    accentNote: "Rating moves like a chess ladder: the harder the call, the more it swings.",
     topics: ML_TOPICS,
     levels: ML_LEVELS,
     badges: ML_BADGES,

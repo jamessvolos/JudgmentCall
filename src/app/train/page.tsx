@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 export const metadata: Metadata = {
   title: "Training Rooms · Judgment Call",
   description:
-    "How well-calibrated are you? Answer, stake how sure you are, and see whether your confidence matches your accuracy — across statistics, economics, data architecture, decision science, machine learning, and data storytelling. ~2 min.",
+    "How well-calibrated are you? Answer, stake how sure you are, and see whether your confidence matches your accuracy, across statistics, economics, data architecture, decision science, machine learning, and data storytelling. ~2 min.",
 };
 
 // The Training Rooms hub — the doorway to all three skills studios. Each room is
@@ -28,7 +28,7 @@ export default function TrainHub() {
           are, and each room draws the gap between your confidence and your accuracy.
         </p>
         <p className="mx-auto mt-2 max-w-md text-center text-sm leading-relaxed text-muted">
-          Every rating and badge is recomputed from your calls, never granted — your calibration can go
+          Every rating and badge is recomputed from your calls, never granted. Your calibration can go
           down if your confidence outruns your accuracy.
         </p>
 
@@ -49,7 +49,7 @@ export default function TrainHub() {
             href="/drill"
             kicker="THE ORIGINAL ROOM"
             title="Data Storytelling"
-            blurb="Tell the data straight — and catch the telling that outruns it. The five overclaim moves and five craft flaws, across five modes, case files, and a checkpoint exam."
+            blurb="Tell the data straight, and catch the telling that outruns it. The five overclaim moves and five craft flaws, across five modes, case files, and a checkpoint exam."
           />
         </div>
 

@@ -270,7 +270,7 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
       try {
         const next = await fetchItem(topic);
         if (!next) {
-          setError(topic ? "You've cleared every call in that topic." : "You've cleared every call in this room — check back after the next edition.");
+          setError(topic ? "You've cleared every call in that topic." : "You've cleared every call in this room. Check back after the next edition.");
           return;
         }
         setRunStart({
@@ -454,14 +454,14 @@ function LevelMeter({ track, standing, rating }: { track: Track; standing: Stand
           Level {cur.roman} · {cur.title}
           <span className="ml-2 font-normal normal-case tracking-normal text-muted">· {standing.count} calls logged</span>
         </p>
-        <p className="mt-1 font-mono text-[0.6rem] text-muted/70">your rating — everyone starts at 1200; it moves like a chess ladder</p>
+        <p className="mt-1 font-mono text-[0.6rem] text-muted/70">your rating · everyone starts at 1200; it moves like a chess ladder</p>
       </div>
       {nextLevel && toNext ? (
         <div className="mx-auto mt-4 max-w-sm">
           <div className="h-1 w-full overflow-hidden rounded-full bg-card-border">
             <div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${Math.round(pct * 100)}%` }} />
           </div>
-          <p className="mt-2 font-mono text-[0.7rem] text-muted">Level {nextLevel.roman} · {nextLevel.title} — {nextLevel.gate}</p>
+          <p className="mt-2 font-mono text-[0.7rem] text-muted">Level {nextLevel.roman} · {nextLevel.title}: {nextLevel.gate}</p>
           <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 font-mono text-[0.65rem] text-muted/70">
             <GateChip label="rating" have={toNext.rating} need={toNext.floor ?? 0} />
             <GateChip label="calls" have={toNext.calls} need={toNext.minCalls} />
@@ -470,7 +470,7 @@ function LevelMeter({ track, standing, rating }: { track: Track; standing: Stand
           </div>
         </div>
       ) : (
-        <p className="mt-3 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-accent">Top of the ladder — the room is yours.</p>
+        <p className="mt-3 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-accent">Top of the ladder. The room is yours.</p>
       )}
     </div>
   );
@@ -491,20 +491,20 @@ function CalibrationCard({ cal, coverage }: { cal: CalibrationDto; coverage: Cov
   const active = cal.bins.filter((b) => b.count > 0);
   const tendencyCopy =
     cal.tendency === "overconfident"
-      ? "You lean overconfident — your sureness runs ahead of your accuracy."
+      ? "You lean overconfident: your sureness runs ahead of your accuracy."
       : cal.tendency === "underconfident"
-        ? "You lean underconfident — you're right more often than you claim."
+        ? "You lean underconfident: you're right more often than you claim."
         : cal.tendency === "sharp"
-          ? "Sharp — your confidence tracks your accuracy."
+          ? "Sharp: your confidence tracks your accuracy."
           : "Stake conviction on a few more calls to read your calibration.";
   // Cold start: a fresh room has no staked calls, so the diagram would be an
   // empty box. Show an inviting placeholder that says what will appear instead.
   if (cal.n === 0) {
     return (
       <div className="rounded-lg border border-dashed border-card-border bg-card px-4 py-5 text-center">
-        <p className="kicker text-muted">Calibration — is your confidence honest?</p>
+        <p className="kicker text-muted">Calibration: is your confidence honest?</p>
         <p className="mt-3 text-sm leading-relaxed text-foreground">
-          Your reliability curve is drawn here — how sure you said vs. how often you were right — the moment you stake conviction on your first call.
+          Your reliability curve is drawn here (how sure you said vs. how often you were right) the moment you stake conviction on your first call.
         </p>
         <p className="mt-2 font-mono text-[0.65rem] text-muted/70">Most people find they lean overconfident. Start a run to find out where you land.</p>
       </div>
@@ -513,7 +513,7 @@ function CalibrationCard({ cal, coverage }: { cal: CalibrationDto; coverage: Cov
   return (
     <div className="rounded-lg border border-card-border bg-card px-4 py-4">
       <div className="flex items-baseline justify-between">
-        <p className="kicker text-muted">Calibration — is your confidence honest?</p>
+        <p className="kicker text-muted">Calibration: is your confidence honest?</p>
         {cal.score != null ? (
           <span className="font-mono text-xs tabular-nums text-accent">{cal.score}<span className="text-muted">/100</span></span>
         ) : (
@@ -544,11 +544,11 @@ function CalibrationCard({ cal, coverage }: { cal: CalibrationDto; coverage: Cov
             <p className="mt-2 font-mono text-[0.65rem] text-muted">{cal.n} staked · accuracy {Math.round(cal.accuracy * 100)}% · avg conviction {Math.round(cal.meanConf * 100)}%</p>
           )}
           {cal.n >= 8 && cal.resolution < 0.02 && (
-            <p className="mt-1 font-mono text-[0.6rem] text-muted/70">Low sharpness — you&apos;re staking one flat number. Vary conviction: be bolder when you know, humbler when you don&apos;t.</p>
+            <p className="mt-1 font-mono text-[0.6rem] text-muted/70">Low sharpness: you&apos;re staking one flat number. Vary conviction, bolder when you know, humbler when you don&apos;t.</p>
           )}
           {coverage.n >= 3 && (
             <p className="mt-2 border-t border-card-border pt-2 font-mono text-[0.65rem] text-muted">
-              Your 90% bands caught the truth in {Math.round(coverage.rate * 100)}% of {coverage.n} estimates —{" "}
+              Your 90% bands caught the truth in {Math.round(coverage.rate * 100)}% of {coverage.n} estimates ·{" "}
               <span className={Math.abs(coverage.rate - 0.9) <= 0.15 ? "text-accent" : "text-muted/70"}>aim for ~90%{coverage.rate < 0.75 ? " (draw them wider)" : coverage.rate > 0.98 ? " (you can tighten)" : ""}</span>.
             </p>
           )}
@@ -598,7 +598,7 @@ function CredentialShare({ trackId }: { trackId: TrackId }) {
   return (
     <div className="rounded-lg border border-card-border bg-card px-4 py-4">
       <p className="kicker text-muted">Your calibration credential</p>
-      <p className="mt-2 text-sm leading-relaxed text-muted">A shareable card — your score, your reliability curve, the honesty badges you hold. Recomputed from your record every time it&apos;s opened.</p>
+      <p className="mt-2 text-sm leading-relaxed text-muted">A shareable card: your score, your reliability curve, the honesty badges you hold. Recomputed from your record every time it&apos;s opened.</p>
       {!url ? (
         <button onClick={publish} disabled={busy} className="mt-3 w-full rounded-md border border-accent/50 bg-accent/5 px-4 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-accent transition-colors hover:border-accent disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
           {busy ? "Publishing…" : "Publish & copy link →"}
@@ -609,7 +609,7 @@ function CredentialShare({ trackId }: { trackId: TrackId }) {
             <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} className="min-w-0 flex-1 rounded-md border border-card-border bg-background/50 px-3 py-2 font-mono text-[0.7rem] text-foreground" aria-label="Your credential link" />
             <a href={url} target="_blank" rel="noreferrer" className="shrink-0 rounded-md border border-card-border px-3 py-2 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-strong transition-colors hover:border-rule-strong">View</a>
           </div>
-          <p className="mt-2 font-mono text-[0.65rem] text-accent">{copied ? "Copied to your clipboard — drop it anywhere; it unfurls with a card." : "Link ready — copy it and share."}</p>
+          <p className="mt-2 font-mono text-[0.65rem] text-accent">{copied ? "Copied to your clipboard. Drop it anywhere; it unfurls with a card." : "Link ready. Copy it and share."}</p>
         </div>
       )}
     </div>
@@ -628,12 +628,12 @@ function Dashboard({ track, standing, rating, otherId, onStart }: {
       {standing.read && standing.read.need === 0 && (
         <p className="mt-4 rounded-md border border-card-border/60 bg-card/50 px-3 py-2 text-center font-mono text-[0.65rem] text-muted">
           Answering at <span className="font-semibold text-ink-strong">~{RUNG_LABELS[standing.read.rung]}</span> lately
-          {standing.read.principals > 0 && ` · ${standing.read.principals} Principal`} — over your last {standing.read.window} calls.
+          {standing.read.principals > 0 && ` · ${standing.read.principals} Principal`}, over your last {standing.read.window} calls.
           <span className="block text-muted/60">Your Level is what you&apos;ve earned; the read is how you&apos;re answering right now.</span>
         </p>
       )}
       {standing.read && standing.read.need > 0 && standing.count > 0 && (
-        <p className="mt-2 text-center font-mono text-[0.65rem] text-muted/70">No seniority read yet — {standing.read.need} more graded calls.</p>
+        <p className="mt-2 text-center font-mono text-[0.65rem] text-muted/70">No seniority read yet: {standing.read.need} more graded calls.</p>
       )}
 
       {/* Start is the one button that matters — keep it above the fold. */}
@@ -645,7 +645,7 @@ function Dashboard({ track, standing, rating, otherId, onStart }: {
       {/* The Descent — push-your-luck alt mode. Secondary so a first-timer takes
           the measured run; the daredevil path is one tap away. */}
       <button onClick={() => onStart(undefined, "descent")} className="mt-3 w-full rounded-lg border border-danger/40 bg-danger/5 px-5 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-danger transition-colors hover:border-danger/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger">
-        ↓ The Descent — bank or push, one miss busts the pot
+        ↓ The Descent · bank or push, one miss busts the pot
       </button>
 
       {/* calibration */}
@@ -665,7 +665,7 @@ function Dashboard({ track, standing, rating, otherId, onStart }: {
       {/* topic map */}
       <div className="mt-8">
         <div className="flex items-center gap-3">
-          <p className="kicker text-muted">The curriculum</p>
+          <p className="kicker text-muted">Curriculum</p>
           <span className="h-px flex-1 bg-rule-strong/25" aria-hidden />
         </div>
         <p className="mt-2 font-mono text-[0.7rem] text-muted/70">Tap a topic to drill it on its own.</p>
@@ -690,10 +690,10 @@ function Dashboard({ track, standing, rating, otherId, onStart }: {
       {/* The Record */}
       <div className="mt-8">
         <div className="flex items-center gap-3">
-          <p className="kicker text-muted">The Record</p>
+          <p className="kicker text-muted">Badges</p>
           <span className="h-px flex-1 bg-rule-strong/25" aria-hidden />
         </div>
-        <p className="mt-2 font-mono text-[0.7rem] text-muted/70">Every badge is recomputed from your calls — nothing is granted, only recorded.</p>
+        <p className="mt-2 font-mono text-[0.7rem] text-muted/70">Every badge is recomputed from your calls. Nothing is granted, only recorded.</p>
         <BadgeLedger badges={standing.badges} />
       </div>
 
@@ -707,7 +707,7 @@ function Dashboard({ track, standing, rating, otherId, onStart }: {
           </Link>
           <Link href="/drill" className="rounded-md border border-card-border px-3 py-2 text-sm text-ink-strong transition-colors hover:border-rule-strong">
             <span className="font-semibold">Data Storytelling</span>
-            <span className="mt-0.5 block font-mono text-[0.65rem] text-muted">The original room — tell the data straight, and catch the telling that outruns it</span>
+            <span className="mt-0.5 block font-mono text-[0.65rem] text-muted">The original room: tell the data straight, and catch the telling that outruns it</span>
           </Link>
         </div>
       </div>
@@ -740,9 +740,9 @@ function BadgeGroup({ label, items }: { label: string; items: StandingDto["badge
 function BadgeLedger({ badges }: { badges: StandingDto["badges"] }) {
   return (
     <>
-      <BadgeGroup label="Calibration — do you know how sure to be?" items={badges.filter((b) => b.tier === "calibration")} />
+      <BadgeGroup label="Calibration: do you know how sure to be?" items={badges.filter((b) => b.tier === "calibration")} />
       <BadgeGroup label="Competence" items={badges.filter((b) => b.tier === "competence")} />
-      <BadgeGroup label="Exploration — coverage, not skill" items={badges.filter((b) => b.tier === "exploration")} />
+      <BadgeGroup label="Exploration: coverage, not skill" items={badges.filter((b) => b.tier === "exploration")} />
     </>
   );
 }
@@ -779,8 +779,8 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
           <div className="flex items-start justify-between gap-3">
             <p className="text-sm leading-relaxed text-foreground">
               <span className="font-semibold text-ink-strong">New here?</span>{" "}
-              Answer, then stake how sure you are. Being right isn&apos;t the whole game — being{" "}
-              <em>calibrated</em>{" "}is. The calibration card shows whether your confidence matches how often
+              Answer, then stake how sure you are. The room grades both the call and the stake:
+              the calibration card shows whether your confidence matches how often
               you&apos;re actually right.
             </p>
             <button onClick={() => setHintOpen(false)} aria-label="dismiss" className="shrink-0 font-mono text-xs text-muted hover:text-foreground">✕</button>
@@ -829,7 +829,7 @@ function DescentControls({ correct, pot, depth, nextReward, onBank, onDeeper }: 
     return (
       <div className="mt-4 rounded-lg border border-danger/50 bg-danger/10 px-4 py-4 text-center">
         <p className="font-mono text-sm font-semibold uppercase tracking-[0.14em] text-danger">Busted</p>
-        <p className="mt-1 font-mono text-[0.65rem] text-muted">You fell at depth {depth}. A miss takes the whole unbanked pot — that&apos;s the wager.</p>
+        <p className="mt-1 font-mono text-[0.65rem] text-muted">You fell at depth {depth}. A miss takes the whole unbanked pot; that&apos;s the wager.</p>
         <button onClick={onBank} className="mt-3 w-full rounded-md bg-foreground px-4 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
           Surface →
         </button>
@@ -838,7 +838,7 @@ function DescentControls({ correct, pot, depth, nextReward, onBank, onDeeper }: 
   }
   return (
     <div className="mt-4">
-      <p className="text-center font-mono text-[0.7rem] text-muted">Bank {pot} now — or risk all {pot} one call deeper (it pays +{nextReward}).</p>
+      <p className="text-center font-mono text-[0.7rem] text-muted">Bank {pot} now, or risk all {pot} one call deeper (it pays +{nextReward}).</p>
       <div className="mt-2 grid grid-cols-2 gap-2">
         <button onClick={onBank} className="rounded-md border border-accent/50 bg-accent/5 px-4 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-accent transition-colors hover:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
           Bank {pot} →
@@ -871,7 +871,7 @@ function ConvictionBar({ floor, conviction, setConviction, onCommit, submitting 
           </button>
         ))}
       </div>
-      <p className="mt-2 font-mono text-[0.6rem] text-muted/70">A confident miss stings your calibration more than a hedged one. Report what you actually believe — {floor}% is chance.</p>
+      <p className="mt-2 font-mono text-[0.6rem] text-muted/70">A confident miss stings your calibration more than a hedged one. Report what you actually believe; {floor}% is chance.</p>
       <button onClick={onCommit} disabled={submitting || conviction == null} className="mt-3 w-full rounded-md bg-foreground px-4 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
         Lock it in →
       </button>
@@ -907,7 +907,7 @@ function McqCall({ item, reveal, submitting, onSubmit, postReveal }: {
   return (
     <>
       <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
-        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The scenario</p>
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">Scenario</p>
         <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
       </div>
       <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
@@ -952,8 +952,8 @@ function ConvictionEcho({ confidence, correct }: { confidence: number; correct: 
   // The 85 boundary is shared with THE LADDER's committed-conviction gate so
   // this line and the rung can never disagree about the same stake.
   const msg = correct
-    ? confidence >= 85 ? "Committed — and right. That's what conviction is for." : "Landed it while hedging — a little more conviction next time."
-    : confidence >= 85 ? "Committed — and wrong. That's the expensive kind of miss." : "A hedged miss — your uncertainty was honest.";
+    ? confidence >= 85 ? "Committed and right. That's what conviction is for." : "Landed it while hedging. A little more conviction next time."
+    : confidence >= 85 ? "Committed and wrong. That's the expensive kind of miss." : "A hedged miss; your uncertainty was honest.";
   return <p className="mt-1 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted">Staked {confidence}% · {msg}</p>;
 }
 
@@ -991,7 +991,7 @@ function EstimateCall({ item, reveal, submitting, onSubmit, postReveal }: {
   return (
     <>
       <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
-        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The scenario</p>
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">Scenario</p>
         <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
       </div>
       <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
@@ -1063,7 +1063,7 @@ function EstimateCall({ item, reveal, submitting, onSubmit, postReveal }: {
         <div className="verdict-card-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
           <RevealHeader correct={reveal.correct} delta={reveal.ratingDelta} rating={reveal.liveRating} />
           <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted">
-            {reveal.captured ? (reveal.notLazy ? "Captured the truth with a sharp band" : "Captured — but your band was lazily wide") : "The truth fell outside your interval"}
+            {reveal.captured ? (reveal.notLazy ? "Captured the truth with a sharp band" : "Captured, but your band was lazily wide") : "The truth fell outside your interval"}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
           {postReveal}
@@ -1145,12 +1145,12 @@ function DuelCall({ item, reveal, submitting, onSubmit, postReveal }: {
               reveal.room.total >= 5 ? (
                 <VerdictRow label="The Room" value={`${Math.round((reveal.room.a / reveal.room.total) * 100)}% A · ${Math.round((reveal.room.b / reveal.room.total) * 100)}% B (${reveal.room.total})`} tone="muted" />
               ) : reveal.room.total <= 1 ? (
-                <VerdictRow label="The Room" value="you're the first to call this — the crowd tally opens at five" tone="accent" />
+                <VerdictRow label="The Room" value="you're the first to call this; the crowd tally opens at five" tone="accent" />
               ) : (
-                <VerdictRow label="The Room" value={`vote ${reveal.room.total} of 5 — the crowd tally opens at five`} tone="muted" />
+                <VerdictRow label="The Room" value={`vote ${reveal.room.total} of 5; the crowd tally opens at five`} tone="muted" />
               )
             )}
-            <VerdictRow label="The Desk" value={`Design ${reveal.better} — ${reveal.failureMode}`} tone="ink" />
+            <VerdictRow label="The Desk" value={`Design ${reveal.better}: ${reveal.failureMode}`} tone="ink" />
           </dl>
           <p className="mt-3 border-t border-card-border pt-3 text-sm leading-relaxed text-foreground">{reveal.deskRationale}</p>
           {reveal.alsoFits && (
@@ -1203,11 +1203,11 @@ function BakeoffCall({ item, reveal, submitting, onSubmit, postReveal }: {
   return (
     <>
       <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
-        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The workload</p>
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">Workload</p>
         <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
       </div>
       <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
-      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">The key decides your hot shards. Predict which spreads load evenly — then see the histograms.</p>
+      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">The key decides your hot shards. Predict which spreads load evenly, then see the histograms.</p>
 
       {!reveal ? (
         <ul className="mt-4 space-y-2">
@@ -1281,7 +1281,7 @@ function FloodCall({ item, reveal, submitting, onSubmit, postReveal }: {
   return (
     <>
       <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
-        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The screen</p>
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">Screen</p>
         <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
       </div>
       <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
@@ -1309,7 +1309,7 @@ function FloodCall({ item, reveal, submitting, onSubmit, postReveal }: {
               <span className="tabular-nums text-ink-strong">{prev}%</span>
             </div>
             <input type="range" min={f.min} max={f.max} step={0.1} value={prev} onChange={(e) => setPrev(Number(e.target.value))} aria-label="prevalence" className="mt-1 w-full accent-[var(--accent)]" />
-            <p className="mt-1 font-mono text-[0.6rem] text-muted/70">Drag until a positive result is a coin flip — P(has it | positive) = 50%.</p>
+            <p className="mt-1 font-mono text-[0.6rem] text-muted/70">Drag until a positive result is a coin flip: P(has it | positive) = 50%.</p>
           </div>
           <button disabled={submitting} onClick={() => onSubmit({ prevalence: prev }, null)}
             className="mt-4 w-full rounded-lg bg-accent px-5 py-3 text-center font-mono text-sm font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
@@ -1400,11 +1400,11 @@ function MarketCall({ item, reveal, submitting, onSubmit, postReveal }: {
   return (
     <>
       <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
-        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The market</p>
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">Market</p>
         <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
       </div>
       <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
-      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">Predict from the setup — the supply &amp; demand curves are revealed after you commit.</p>
+      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">Predict from the setup; the supply &amp; demand curves are revealed after you commit.</p>
 
       {!reveal ? (
         <>
@@ -1432,7 +1432,7 @@ function MarketCall({ item, reveal, submitting, onSubmit, postReveal }: {
             {!within && <span className="text-muted/70"> · off by {fmt(off)}</span>}
           </p>
           {reveal.naiveTrap && (
-            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">You landed on the intuition — the seductive first-order answer.</p>
+            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">You landed on the intuition, the seductive first-order answer.</p>
           )}
           {/* caliper strip: your guess · the intuition · the truth, distance-shaded */}
           <div className="relative mt-4 h-9">
@@ -1524,12 +1524,12 @@ function RedlineCall({ item, reveal, submitting, onSubmit, postReveal }: {
   return (
     <>
       <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
-        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The queue</p>
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">Queue</p>
         <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
         <p className="mt-2 font-mono text-[0.65rem] text-muted/70">μ = {r.mu} req/s · SLA {pctl} &lt; {r.slaMs} ms</p>
       </div>
       <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
-      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">Predict from the setup — the p99 curve is revealed after you commit.</p>
+      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">Predict from the setup; the p99 curve is revealed after you commit.</p>
 
       {!reveal ? (
         <>
@@ -1556,10 +1556,10 @@ function RedlineCall({ item, reveal, submitting, onSubmit, postReveal }: {
             You said {your}% · the knee is at {reveal.truth}%
           </p>
           {reveal.naiveTrap && (
-            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">You&apos;d run it near full — past the knee the p99 tail goes vertical.</p>
+            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">You&apos;d run it near full. Past the knee the p99 tail goes vertical.</p>
           )}
           {tooLow && !reveal.naiveTrap && (
-            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-muted/70">Safe — but well under the knee is idle capacity you&apos;re paying for. Over-provisioning is the other failure mode.</p>
+            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-muted/70">Safe, but well under the knee is idle capacity you&apos;re paying for. Over-provisioning is the other failure mode.</p>
           )}
           {/* caliper strip: you · ≈full · knee, distance-shaded */}
           <div className="relative mt-4 h-9">
@@ -1615,7 +1615,7 @@ function PoolCall({ item, reveal, submitting, onSubmit, postReveal }: {
   return (
     <>
       <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
-        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The breakdown</p>
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">Breakdown</p>
         <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
         {/* subgroup table — the learner needs the rates AND the sizes to weight */}
         <div className="mt-3 space-y-2.5">
@@ -1635,7 +1635,7 @@ function PoolCall({ item, reveal, submitting, onSubmit, postReveal }: {
         </div>
       </div>
       <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
-      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">{tName} leads in every subgroup — but predict the OVERALL rate across all its cases.</p>
+      <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">{tName} leads in every subgroup, but predict the OVERALL rate across all its cases.</p>
 
       {!reveal ? (
         <>
@@ -1662,7 +1662,7 @@ function PoolCall({ item, reveal, submitting, onSubmit, postReveal }: {
             You said {fmt(your)} · pooled {tName} is {fmt(reveal.truth ?? 0)} · pooled {cName} is {fmt(reveal.pooledC ?? 0)}
           </p>
           {reveal.naiveTrap && (
-            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">You took the simple average — it ignores the group sizes.</p>
+            <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">You took the simple average, which ignores the group sizes.</p>
           )}
           {(reveal.pooledC ?? 0) > (reveal.truth ?? 0) && (
             <p className="mt-2 rounded-md border border-danger/40 bg-danger/5 px-3 py-2 text-center font-mono text-[0.65rem] uppercase tracking-[0.1em] text-danger">
@@ -1740,14 +1740,14 @@ function GapCall({ item, reveal, submitting, onSubmit, postReveal }: {
   return (
     <>
       <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
-        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The two lines · {pl.unit}</p>
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">Two lines · {pl.unit}</p>
         <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
         {lineBlock(pl.lineA)}
         {lineBlock(pl.lineB)}
       </div>
       <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
       <p className="mt-1 text-center font-mono text-[0.65rem] text-muted/70">
-        Slide right if {pl.lineA.name} wins, left if {pl.lineB.name} does — the distance is your price.
+        Slide right if {pl.lineA.name} wins, left if {pl.lineB.name} does; the distance is your price.
       </p>
 
       {!reveal ? (
@@ -1783,7 +1783,7 @@ function GapCall({ item, reveal, submitting, onSubmit, postReveal }: {
           </p>
           {reveal.naiveTrap && (
             <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">
-              You priced the felt gap — headline outcomes compared, probability weights dropped.
+              You priced the felt gap: headline outcomes compared, probability weights dropped.
             </p>
           )}
           {flipped && (
@@ -1818,7 +1818,7 @@ function GapCall({ item, reveal, submitting, onSubmit, postReveal }: {
           </div>
           {(reveal.swing ?? 0) > 0 && (
             <p className="mt-3 rounded-md border border-card-border bg-wash px-3 py-2 text-center font-mono text-[0.65rem] text-muted">
-              Headline swing {Math.round((reveal.swing ?? 0) * 10) / 10} · true margin {Math.round(Math.abs(truth) * 10) / 10} — agony index {reveal.agonyPct}%
+              Headline swing {Math.round((reveal.swing ?? 0) * 10) / 10} · true margin {Math.round(Math.abs(truth) * 10) / 10} · agony index {reveal.agonyPct}%
             </p>
           )}
           <p className="mt-3 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
@@ -1868,7 +1868,7 @@ function Recap({ track, standing, runLevels, runCorrect, runAnswered, ratingDelt
         </div>
       )}
 
-      {poolDry && <p className="mt-6 text-center text-sm text-muted">You&apos;ve reached the end of the current pool for this slice — every call here is on your record.</p>}
+      {poolDry && <p className="mt-6 text-center text-sm text-muted">You&apos;ve reached the end of the current pool for this slice; every call here is on your record.</p>}
 
       <div className="mt-8 space-y-2.5">
         <button onClick={onAgain} className="w-full rounded-lg bg-accent px-5 py-4 text-center font-mono text-sm font-semibold uppercase tracking-[0.14em] text-background transition-transform hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Another run →</button>
@@ -1923,8 +1923,8 @@ function DescentRecap({ trackId, track, busted, pot, depth, onAgain, onHome }: {
 
       <p className="mx-auto mt-6 max-w-md text-center text-sm leading-relaxed text-muted">
         {busted
-          ? "One miss took the pot — that's the wager. The calls still counted toward your record and calibration; only the streak was lost."
-          : "You read the moment and cashed out. Every call still counted toward your record and calibration — the Descent just added stakes."}
+          ? "One miss took the pot; that's the wager. The calls still counted toward your record and calibration; only the streak was lost."
+          : "You read the moment and cashed out. Every call still counted toward your record and calibration; the Descent just added stakes."}
       </p>
 
       <div className="mt-8 space-y-2.5">
@@ -1975,7 +1975,7 @@ function PaybackCall({ item, reveal, submitting, onSubmit, postReveal }: {
   return (
     <>
       <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
-        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">The workload</p>
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted">Workload</p>
         <p className="mt-2 text-[0.95rem] leading-relaxed text-foreground">{item.scenario}</p>
         <div className="mt-3 space-y-1 rounded-md border border-card-border/70 px-3 py-2">
           {ledgerRow("prompt today", `${pl.pLong.toLocaleString()} tok`, `${r2((pl.price * pl.pLong) / 1000)} cr`)}
@@ -2033,8 +2033,8 @@ function PaybackCall({ item, reveal, submitting, onSubmit, postReveal }: {
           {reveal.naiveTrap && (
             <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-danger">
               {reveal.naiveRule === "headline"
-                ? "You amortized the headline bill — only the marginal saving repays a fixed cost."
-                : "You ignored the serving premium — it taxes every tuned token, output included."}
+                ? "You amortized the headline bill. Only the marginal saving repays a fixed cost."
+                : "You ignored the serving premium. It taxes every tuned token, output included."}
             </p>
           )}
           {truthN == null && (
@@ -2044,7 +2044,7 @@ function PaybackCall({ item, reveal, submitting, onSubmit, postReveal }: {
           )}
           {truthN != null && saidNever && (
             <p className="mt-2 rounded-md border border-card-border bg-wash px-3 py-2 text-center font-mono text-[0.65rem] text-muted">
-              It does pay — the saving is {reveal.saving} cr per call; the bill clears at ≈ {fmtCalls(truthN)} calls.
+              It does pay: the saving is {reveal.saving} cr per call; the bill clears at ≈ {fmtCalls(truthN)} calls.
             </p>
           )}
           {/* the decade rail: you · felt · true on a log axis */}

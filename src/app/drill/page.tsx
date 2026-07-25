@@ -410,7 +410,7 @@ export default function TrainingRoom() {
     return (
       <main className="mx-auto flex min-h-dvh max-w-2xl items-center justify-center px-5">
         <div className="text-center">
-          <p className="text-muted">Something went sideways loading the room.</p>
+          <p className="text-muted">Couldn&apos;t load the room.</p>
           <button
             onClick={() => location.reload()}
             className="mt-3 rounded-chip border border-card-border px-4 py-2 font-mono text-sm hover:border-rule-strong"
@@ -551,7 +551,7 @@ function Dashboard({
           <p className="mt-2 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-ink-strong">
             Grade {grade.roman} · {grade.title}
             <span className="ml-2 font-normal normal-case tracking-normal text-muted">
-              — reading at {rating} · {count} call{count === 1 ? "" : "s"} logged
+              · reading at {rating} · {count} call{count === 1 ? "" : "s"} logged
             </span>
           </p>
           {/* the ladder rail: five ticks, criterion always visible */}
@@ -593,7 +593,7 @@ function Dashboard({
             </span>
           </div>
           <p className="mt-1 text-sm text-muted">
-            Today&apos;s edition — three calls to a full recap.
+            Today&apos;s edition: three calls to a full recap.
             <span className="ml-1 text-accent group-hover:underline">Open it →</span>
           </p>
         </button>
@@ -645,7 +645,7 @@ function Dashboard({
             const blockedToday = !midForm && exam.satToday;
             const exhausted = examBlocked?.reason === "exhausted";
             const stateLine = exhausted
-              ? `THE FORM CAN'T PRINT — nothing unseen left in ${
+              ? `THE FORM CAN'T PRINT: nothing unseen left in ${
                   SKILLS[(examBlocked as { reason: "exhausted"; skill: string }).skill as SkillId]?.short ??
                   (examBlocked as { skill: string }).skill
                 }. New editions restock the room.`
@@ -735,14 +735,14 @@ function Dashboard({
           Tap any skill to drill it on its own.
         </p>
         <SkillGroup
-          title="Fidelity — is the claim honest?"
+          title="Fidelity: is the claim honest?"
           ids={FIDELITY_SKILLS}
           progressFor={progressFor}
           onFocus={(id) => onStart("", id)}
         />
         <div className="mt-5">
           <SkillGroup
-            title="Craft — is the insight well told?"
+            title="Craft: is the insight well told?"
             ids={CRAFT_SKILLS}
             progressFor={progressFor}
             onFocus={(id) => onStart("", id)}
@@ -757,7 +757,7 @@ function Dashboard({
           <span className="h-px flex-1 bg-card-border" aria-hidden />
         </div>
         <p className="mb-3 font-mono text-[0.6875rem] text-muted">
-          Every stamp is recomputed from your calls — nothing is granted, only recorded.
+          Every stamp is recomputed from your calls. Nothing is granted, only recorded.
         </p>
         <TheRecord credentials={credentials} />
       </div>
@@ -844,7 +844,7 @@ function TheRecord({ credentials }: { credentials: ConferralDto[] }) {
       <p className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">Competence</p>
       <div className="mt-2 space-y-2">{rows("competence")}</div>
       <p className="mt-5 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">
-        Exploration — coverage, not skill
+        Exploration: coverage, not skill
       </p>
       <div className="mt-2 space-y-2">{rows("exploration")}</div>
     </div>
@@ -1579,7 +1579,7 @@ function Recap({
   const openComp = CREDENTIAL_DEFS.find(
     (d) => d.tier === "competence" && !credentials.find((c) => c.code === d.code)?.earnedAt
   );
-  const nextOnDesk = nextGate ?? (openComp ? `${openComp.name} — ${openComp.criterion}` : null);
+  const nextOnDesk = nextGate ?? (openComp ? `${openComp.name}: ${openComp.criterion}` : null);
   const gradeMeta = newGrade ? GRADE_META.find((g) => g.n === newGrade.n) : null;
   return (
     <div className="rise mt-6">
@@ -1599,8 +1599,8 @@ function Recap({
         <p className="mt-3 font-sans text-2xl font-semibold text-ink-strong tracking-[-0.02em]">
           {runKind === "exam" && (examPassedNow || examFailedNow)
             ? examPassedNow
-              ? `${examScore} of 10 — the form passes`
-              : `${examScore} of 10 — the rule is 8`
+              ? `${examScore} of 10 · the form passes`
+              : `${examScore} of 10 · the rule is 8`
             : done === 0
               ? "No calls this round"
               : `${correct} of ${done} caught`}

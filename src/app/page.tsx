@@ -56,7 +56,7 @@ const SURFACES: {
     n: "04",
     label: "The Desk's Calls",
     href: "/results#desk-calls",
-    benefit: "Agree — or overrule the desk.",
+    benefit: "Agree, or overrule the desk.",
     mode: `${HOUSE_VIEW_COUNT} preregistered calls on the record`,
     group: "study",
   },
@@ -73,7 +73,7 @@ const SURFACES: {
     label: "Data Storytelling",
     href: "/drill",
     benefit: "Tell the data straight.",
-    mode: "The original room — spot, fix, compose · levels & badges",
+    mode: "The original room · spot, fix, compose · levels & badges",
     group: "rooms",
   },
   {
@@ -243,7 +243,7 @@ export default function Landing() {
               Find out what your taste actually is.
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Same finding, told two ways, ten times over — then see exactly where your eye and the
+              Same finding, told two ways, ten times over. Then see exactly where your eye and the
               crowd&apos;s part ways.
             </p>
             <div className="mt-auto pt-5">
@@ -255,7 +255,7 @@ export default function Landing() {
                 {pending
                   ? "Starting…"
                   : returning
-                    ? `Continue your run — ${returning.voteCount} calls so far`
+                    ? `Continue your run · ${returning.voteCount} calls so far`
                     : "Show me my taste →"}
               </button>
               <p className="mt-2 text-center font-mono text-[0.7rem] text-muted">
@@ -274,7 +274,7 @@ export default function Landing() {
               Get better at knowing when you&apos;re right.
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Six studios — statistics, economics, architecture, decision science, machine
+              Six studios: statistics, economics, architecture, decision science, machine
               learning, data storytelling. Answer, stake how sure you are, and watch the gap between confidence
               and accuracy close.
             </p>
