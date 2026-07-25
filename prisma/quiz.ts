@@ -39,7 +39,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "4,000 responses is too few to estimate an average with any precision.",
         "correct": false,
-        "rationale": "4,000 is actually a large sample; precision is not the problem here. The problem is who chose to respond, not how many did."
+        "rationale": "4,000 is a large sample; precision is not the problem here. The issue is who chose to respond, not how many did."
       },
       {
         "text": "A 1-to-5 rating scale cannot produce a meaningful average like 4.7.",
@@ -53,7 +53,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "A low response rate opens the door to non-response bias: the people who answer can differ systematically from those who don't. Large raw counts don't fix a biased selection process — ask who is missing from the data."
+    "explanation": "A low response rate invites non-response bias: the people who answer can differ systematically from those who don't. A large raw count does not repair a biased selection process. Here 96,000 of 100,000 users went unobserved."
   },
   {
     "track": "statistics",
@@ -86,7 +86,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Survivorship bias arises when your data only contains the cases that 'made it,' hiding the failures that dropped out. Armor belongs where returned engines are undamaged — because hits there were fatal. Always ask what's systematically absent."
+    "explanation": "Survivorship bias: the data contain only engines that made it back, so the most damaging hit locations are missing. Armor belongs where returned engines show no damage, since hits there were fatal. The first question for any sample is what dropped out before collection."
   },
   {
     "track": "statistics",
@@ -105,7 +105,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "200 people is far too small a sample to say anything about a whole city.",
         "correct": false,
-        "rationale": "200 can yield a usable estimate if the sample is representative; the fatal issue is where and who, not the count."
+        "rationale": "200 can yield a usable estimate from a representative sample; the problem is where and who, not how many."
       },
       {
         "text": "Saturday interviews are invalid because opinions change during the week.",
@@ -115,11 +115,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Face-to-face interviews always make people answer more positively.",
         "correct": false,
-        "rationale": "Social-desirability effects can exist, but the dominant, structural problem here is the biased sampling frame, not the interview mode."
+        "rationale": "Social-desirability effects exist, but the structural problem here is the sampling frame, which stacks the pool with cyclists."
       }
     ],
     "payload": null,
-    "explanation": "The sampling frame — where and how you recruit — determines representativeness. Sampling at a location correlated with the opinion you're measuring builds bias into the estimate no matter how many people you ask."
+    "explanation": "The sampling frame (where and how you recruit) determines representativeness. A location correlated with the opinion being measured builds bias into the estimate, and no sample size removes it. The 78% describes Saturday bike-shop traffic, at best."
   },
   {
     "track": "statistics",
@@ -143,7 +143,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Feature preferences can't be ranked meaningfully in a survey.",
         "correct": false,
-        "rationale": "Preferences are routinely and usefully ranked; the issue is who you asked, not the ranking format."
+        "rationale": "Preferences are routinely and usefully ranked; the issue is who was asked."
       },
       {
         "text": "The sample is biased only if fewer than half of customers respond.",
@@ -152,7 +152,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "The population you sample defines the questions you can answer. To learn why you lose deals, you must include the people who left or never joined — optimizing only for existing customers can quietly entrench a niche and stall growth."
+    "explanation": "The population you sample defines the questions the data can answer. Learning why deals are lost requires asking the people who left or never bought. A roadmap tuned only to current customers can entrench a niche and stall growth."
   },
   {
     "track": "statistics",
@@ -185,7 +185,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Distinguish signal from noise. Single-day extremes in a naturally variable series usually reflect random variation and tend to revert. Before hunting for a cause, ask whether the swing is larger than the metric's normal day-to-day range."
+    "explanation": "Distinguish signal from noise. Single-day extremes in a naturally variable series usually reflect random variation and tend to revert. Before hunting for a cause, check whether the swing exceeds the metric's normal day-to-day range; a 22% day may sit well inside it."
   },
   {
     "track": "statistics",
@@ -204,7 +204,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Top stores get complacent and worst stores try harder, causing the reshuffle.",
         "correct": false,
-        "rationale": "A behavioral story is tempting, but regression to the mean produces this pattern even with zero change in effort — you don't need it."
+        "rationale": "A behavioral story is tempting, but regression to the mean produces this pattern even with zero change in effort; the story is unnecessary."
       },
       {
         "text": "The ranking method is broken and should be discarded.",
@@ -218,7 +218,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Regression to the mean: whenever a measurement combines a stable component and random noise, selecting the most extreme cases selects for extreme luck too — which won't recur. Reversion of top and bottom performers is expected, not a story about effort or intervention."
+    "explanation": "Regression to the mean: when a measurement mixes a stable component and random noise, selecting the most extreme cases also selects for extreme luck, which does not recur. Across 500 stores, reversion of the top and bottom performers is the expected pattern under noise alone."
   },
   {
     "track": "statistics",
@@ -251,7 +251,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Small samples produce high-variance rates. The fewer the observations behind a percentage, the wider its true range could be. Weight your confidence by sample size before acting on an eye-catching rate from a small denominator."
+    "explanation": "Small samples produce high-variance rates. The fewer the observations behind a percentage, the wider its true range could be. Weight your confidence by sample size before acting on an eye-catching rate from a denominator of 20."
   },
   {
     "track": "statistics",
@@ -275,7 +275,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Cancer registries undercount cases in rural areas, faking low rates.",
         "correct": false,
-        "rationale": "Undercounting is speculative; the statistical explanation — extreme rates from tiny denominators — accounts for the pattern without assuming data errors."
+        "rationale": "Undercounting is speculative; extreme rates from tiny denominators account for the pattern without assuming data errors."
       },
       {
         "text": "Rural counties are older, and age lowers cancer rates.",
@@ -317,7 +317,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Correlation does not imply causation. When two things move together, look for a confounder — a third variable that influences both. A shared cause can create a strong association with no direct link between the two measured quantities."
+    "explanation": "Correlation does not imply causation. When two things move together, look for a confounder, a third variable that influences both. A shared cause can create a strong association with no direct link between the two measured quantities."
   },
   {
     "track": "statistics",
@@ -350,7 +350,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Self-selection creates confounding: people who opt into a treatment often differ in ways that also affect the outcome. A randomized comparison — assigning the workshop regardless of ambition — is what would isolate the workshop's true causal effect."
+    "explanation": "Self-selection creates confounding: people who opt into a treatment often differ in ways that also affect the outcome. Isolating the workshop's own effect requires randomized assignment, with attendance decided independently of ambition."
   },
   {
     "track": "statistics",
@@ -383,7 +383,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Randomized assignment is what buys you causation. By making the groups comparable except for the treatment, it removes confounding on average, so an observed difference can be attributed to the intervention — something no observational correlation can deliver on its own."
+    "explanation": "Randomized assignment buys the causal claim. It makes the groups comparable except for the treatment, removing confounding on average, so the observed 5% gap can be credited to the redesign. An observational correlation cannot support that step on its own."
   },
   {
     "track": "statistics",
@@ -402,7 +402,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "The sample size must be too small to detect a real effect.",
         "correct": false,
-        "rationale": "The problem isn't sample size — a large study would show the same association. The issue is why sicker people take the drug."
+        "rationale": "Sample size is not the problem; a large study would show the same association. The issue is why sicker people take the drug."
       },
       {
         "text": "Mortality over five years is too long a window to be meaningful.",
@@ -445,11 +445,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "About 50%, since Amir either has it or doesn't.",
         "correct": false,
-        "rationale": "'Either/or' is not a probability. The base rate and error rates, not a coin-flip framing, determine the answer."
+        "rationale": "'Either/or' is not a probability. The answer comes from the base rate and the error rates; a coin-flip framing has no standing."
       }
     ],
     "payload": null,
-    "explanation": "The false-positive paradox: when a condition is rare, even an accurate test yields mostly false positives, because the healthy group is so much larger. Always combine the base rate with the test's error rates before trusting a positive result."
+    "explanation": "The false-positive paradox: when a condition is rare, even an accurate test yields mostly false positives, because the healthy group is so much larger. Combine the base rate with the test's error rates before trusting a positive; here that works out to roughly 1 true case per 51 positives."
   },
   {
     "track": "statistics",
@@ -482,7 +482,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "The probability that a flag is correct (precision) depends heavily on the base rate, not just the detector's accuracy. When the target event is rare, a small false-positive rate applied to a large negative population swamps the true positives. Compute with counts, not with the accuracy figure alone."
+    "explanation": "Precision (the chance a flag is correct) depends on the base rate, and no detector accuracy figure substitutes for it. When the target event is rare, a small false-positive rate applied to the large legitimate population swamps the true positives. Counting it out gives about 180 true flags among roughly 2,176."
   },
   {
     "track": "statistics",
@@ -515,7 +515,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "With rare conditions, the false-positive rate — not just sensitivity — dominates a test's predictive value. Reducing false positives can multiply the reliability of a positive result, yet the low base rate can still keep most positives false. Interpret positives relative to prevalence."
+    "explanation": "With rare conditions the false-positive rate dominates a test's predictive value. Cutting it from 5% to 1% lifts precision from about 2% to about 9%, yet 10 of 11 positives remain false; sensitivity never entered that calculation."
   },
   {
     "track": "statistics",
@@ -539,7 +539,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "The signal is useless because most people who have it aren't stars.",
         "correct": false,
-        "rationale": "It's not useless — it lifts the probability sevenfold (2% to 14%); low absolute precision doesn't mean zero information."
+        "rationale": "It lifts the probability sevenfold, from 2% to 14%; low absolute precision is not zero information."
       },
       {
         "text": "About 80% likely, because that's the signal's hit rate among stars.",
@@ -548,7 +548,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Don't confuse P(evidence | trait) with P(trait | evidence). A signal common among a rare group can still be dominated by the much larger common group. A useful signal shifts the odds without necessarily making the trait likely in absolute terms — update from the base rate, don't replace it."
+    "explanation": "P(signal | star) is 80%; P(star | signal) is about 14%. The two differ because stars are only 1 in 50 of the pool. A useful signal moves the odds without making the trait likely in absolute terms: update from the base rate rather than replacing it."
   },
   {
     "track": "statistics",
@@ -562,17 +562,17 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "It gives a plausible range for the true preference; because that range includes 50%, we can't be confident a majority actually prefers the new logo.",
         "correct": true,
-        "rationale": "The interval spans 48–56%, so values at or below 50% are plausible — the data don't establish a real majority preference."
+        "rationale": "The interval spans 48–56%, so values at or below 50% are plausible; the data don't establish a real majority preference."
       },
       {
         "text": "There is a 95% probability that exactly 52% of all customers prefer the new logo.",
         "correct": false,
-        "rationale": "The interval is a range, not a claim that the point estimate is 95% certain; and 52% is just the sample estimate, not a probability about the truth."
+        "rationale": "The interval is a range of plausible values; it does not assign 95% probability to the exact 52%, which is only the sample estimate."
       },
       {
         "text": "95% of customers fall between 48% and 56% on some preference scale.",
         "correct": false,
-        "rationale": "A CI describes uncertainty about the estimated proportion, not the spread of individual customers."
+        "rationale": "A CI describes uncertainty about the estimated proportion; it says nothing about the spread of individual customers."
       },
       {
         "text": "The true value is definitely between 48% and 56%.",
@@ -581,7 +581,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "A confidence interval expresses uncertainty about an estimate, giving a range of plausible true values. If a meaningful threshold (like 50%) falls inside the interval, the data don't clearly rule out the other side. Read the whole interval, not just the point estimate."
+    "explanation": "A confidence interval expresses uncertainty about an estimate, giving a range of plausible true values. When a meaningful threshold falls inside the interval, the data don't rule out the other side. Here the interval runs 48% to 56%, and 50% sits inside it."
   },
   {
     "track": "statistics",
@@ -610,11 +610,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Because the effect is tiny, the result must be a fluke.",
         "correct": false,
-        "rationale": "With millions of users the estimate is precise; the effect is probably real — it's just small, which is different from being a fluke."
+        "rationale": "With millions of users the estimate is precise. The effect is probably real; it is simply small, which is a different claim from being a fluke."
       }
     ],
     "payload": null,
-    "explanation": "Statistical significance and practical significance are different questions. Large samples can make trivial differences significant. Always ask about effect size and cost/benefit — 'is it real?' is not the same as 'is it big enough to act on?'"
+    "explanation": "Statistical significance and practical significance are different questions. Large samples make tiny effects significant. 'Is it real?' and 'is it big enough to act on?' need separate answers, and the second turns on what a 0.3-point lift is worth."
   },
   {
     "track": "statistics",
@@ -647,7 +647,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Judging significance by whether two confidence intervals overlap is unreliable and usually too conservative. To compare two estimates, test the difference itself (which has its own, narrower uncertainty). Don't let side-by-side error bars stand in for a real comparison."
+    "explanation": "Judging significance by whether two confidence intervals overlap is unreliable and usually too conservative. To compare two estimates, test the difference itself (which has its own, narrower uncertainty). Side-by-side error bars are no substitute for that test."
   },
   {
     "track": "statistics",
@@ -680,7 +680,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "On skewed data, the mean and median tell different stories. A few extreme values drag the mean away from the typical case, while the median stays near the center. Choose the summary that matches the distribution's shape, and be suspicious of a lone 'average' on skewed data."
+    "explanation": "On skewed data the mean and median tell different stories. One $2,000,000 salary drags the mean to $254,000 while nine of ten employees earn about $60,000. The median matches the typical case; pick the summary that fits the distribution's shape."
   },
   {
     "track": "statistics",
@@ -699,7 +699,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "One of the two claims must be a calculation error; they can't both hold.",
         "correct": false,
-        "rationale": "They can both hold — Simpson's paradox is exactly when a within-group pattern reverses in the aggregate. No error is required."
+        "rationale": "They can both hold; Simpson's paradox is exactly a within-group pattern reversing in the aggregate. No error is required."
       },
       {
         "text": "The overall rate is the only figure that matters, so bias against women is proven.",
@@ -713,7 +713,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Simpson's paradox: a trend within every subgroup can reverse when the groups are combined, because of how the groups are weighted. Before trusting an aggregate comparison, disaggregate — a lurking grouping variable can flip the conclusion entirely."
+    "explanation": "Simpson's paradox: a trend within every subgroup can reverse when the groups are combined, because of how the groups are weighted. Before trusting an aggregate comparison, disaggregate; a lurking grouping variable can flip the conclusion entirely."
   },
   {
     "track": "statistics",
@@ -746,7 +746,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Averaging rates requires weighting by their denominators. Taking a plain mean of two percentages silently assumes equal group sizes. When groups differ in size, compute a weighted average (or pool the raw counts) to avoid a badly distorted total."
+    "explanation": "Averaging rates requires weighting by their denominators. A plain mean of two percentages silently assumes equal group sizes; here Team Y handled 9x the volume, and the true combined rate is 72%, eight points under the manager's 80%."
   },
   {
     "track": "statistics",
@@ -779,7 +779,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Average speed is total distance divided by total time, not the mean of the speeds. When rates are combined, the quantity you average over (here, time) does the weighting — averaging over equal distances overweights the fast segment. Match the average to the right base."
+    "explanation": "Average speed is total distance over total time. The quantity you average over (here, time) does the weighting; equal distances overweight the fast leg. The slow leg consumed 1 hour of the 1 hour 20 minutes, so it dominates and the answer is 45 mph."
   },
   {
     "track": "statistics",
@@ -803,7 +803,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "The effect is large and clinically important.",
         "correct": false,
-        "rationale": "Significance is about ruling out chance, not about effect size or clinical importance — a tiny effect can be significant with enough data."
+        "rationale": "Significance is about ruling out chance, not about effect size or clinical importance: a tiny effect can be significant with enough data."
       },
       {
         "text": "There's a 4% chance the result was a fluke.",
@@ -812,7 +812,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "A p-value measures how surprising the data would be if there were no effect — not the probability the effect is real, and not its size. Small p rules out chance as an easy explanation; it doesn't prove importance."
+    "explanation": "A p-value measures how surprising the data would be under a true null of no effect. It is neither the probability the effect is real nor a statement about its size. p = 0.04 rules out chance as an easy explanation; importance is a separate question."
   },
   {
     "track": "statistics",
@@ -841,11 +841,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "The correlation must be a coincidence with no explanation.",
         "correct": false,
-        "rationale": "A strong, repeatable seasonal pattern isn't coincidence — it points to a common cause."
+        "rationale": "A strong, repeatable seasonal pattern is not coincidence; it points to a common cause."
       }
     ],
     "payload": null,
-    "explanation": "Correlation between two effects of a common cause is classic confounding. Before believing X causes Y, ask what third variable could drive both — here, warm weather."
+    "explanation": "Correlation between two effects of a common cause is classic confounding. Before believing X causes Y, ask what third variable could drive both; here, warm weather drives swimming and ice-cream sales alike."
   },
   {
     "track": "statistics",
@@ -853,7 +853,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "variation",
     "kind": "mcq",
     "difficulty": 2,
-    "scenario": "Rookies who win 'Player of the Year' often perform worse the next season — the so-called sophomore slump. Commentators blame complacency and pressure.",
+    "scenario": "Rookies who win 'Player of the Year' often perform worse the next season, the so-called sophomore slump. Commentators blame complacency and pressure.",
     "prompt": "What's the simplest statistical explanation?",
     "choices": [
       {
@@ -878,7 +878,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Whenever you select the extreme (best rookie season), the next measurement tends to move back toward average because the extreme was partly luck. No motivational story required."
+    "explanation": "Selecting on an extreme (the best rookie season) selects for favorable noise, and the next measurement drifts back toward the player's underlying level. The pattern requires no motivational story; it follows from the selection alone."
   },
   {
     "track": "statistics",
@@ -886,7 +886,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "aggregation",
     "kind": "mcq",
     "difficulty": 2,
-    "scenario": "A drug beats placebo among mild patients and, separately, among severe patients — but in the combined data the drug looks worse than placebo overall.",
+    "scenario": "A drug beats placebo among mild patients and, separately, among severe patients. Yet in the combined data the drug looks worse than placebo overall.",
     "prompt": "What's the safest conclusion?",
     "choices": [
       {
@@ -902,7 +902,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "The subgroup results must be a calculation error, since they contradict the total.",
         "correct": false,
-        "rationale": "They don't contradict it — Simpson's paradox means a consistent subgroup effect can genuinely reverse when pooled."
+        "rationale": "They don't contradict it; under Simpson's paradox a consistent subgroup effect can genuinely reverse when pooled."
       },
       {
         "text": "Average the two subgroup rates to get the real effect.",
@@ -911,7 +911,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Simpson's paradox: an effect present in every subgroup can flip in the aggregate when group sizes are confounded with the outcome. Stratify — trust the within-group comparison, not the pooled one, unless you've adjusted for the confounder."
+    "explanation": "Simpson's paradox: an effect present in every subgroup can flip in the aggregate when group sizes are confounded with the outcome. Unless the confounder has been adjusted for, the within-group comparison is the honest one; the pooled number answers a different, confounded question."
   },
   {
     "track": "statistics",
@@ -944,7 +944,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "A pooled rate is Σ(nᵢ·rateᵢ)/Σnᵢ, not the simple mean of the rates. With a 9×-larger 60% group, the pool (63%) sits far from the midpoint (75%). Ignoring the weights is the single most common aggregation error."
+    "explanation": "A pooled rate is Σ(nᵢ·rateᵢ)/Σnᵢ. The simple mean of the rates assumes equal sizes; with the 60% group 9× larger, the pool lands at 63%, twelve points below the 75% midpoint."
   },
   {
     "track": "architecture",
@@ -980,7 +980,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "storage",
     "kind": "mcq",
     "difficulty": 2,
-    "scenario": "An analytics team queries a 5-billion-row events table. Typical queries are 'SUM(revenue) and COUNT(*) grouped by country over a date range' — touching 3 of the table's 60 columns. Query latency for these dashboards must stay under a few seconds.",
+    "scenario": "An analytics team queries a 5-billion-row events table. Typical queries are 'SUM(revenue) and COUNT(*) grouped by country over a date range', touching 3 of the table's 60 columns. Query latency for these dashboards must stay under a few seconds.",
     "prompt": "Which physical storage choice best serves these scan-heavy aggregations?",
     "choices": [
       {
@@ -991,7 +991,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Row-oriented store with a B-tree on country",
         "correct": false,
-        "rationale": "The index helps point lookups, but a range aggregation over billions of rows still reads every full 60-column row from disk — enormous wasted I/O."
+        "rationale": "The index helps point lookups, but a range aggregation over billions of rows still reads every full 60-column row from disk. Enormous wasted I/O."
       },
       {
         "text": "A key-value store keyed by event ID",
@@ -1024,7 +1024,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "You gain both cheaper reads and simpler writes with no downside",
         "correct": false,
-        "rationale": "There is no free lunch — duplicated data makes writes and updates harder to keep consistent, which is the cost you accept."
+        "rationale": "No free lunch: duplicated data makes writes and updates harder to keep consistent. That is the cost you accept."
       }
     ],
     "payload": null,
@@ -1042,12 +1042,12 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "A hybrid/HTAP-style engine with a columnar analytical store plus an indexed row-oriented delta for recent writes and point reads",
         "correct": true,
-        "rationale": "The columnar side serves scans while the indexed row delta absorbs frequent CDC writes and answers point lookups, merging results at query time — directly targeting the mixed pattern."
+        "rationale": "The columnar side serves scans while the indexed row delta absorbs frequent CDC writes and answers point lookups, merging results at query time. That targets the mixed pattern directly."
       },
       {
         "text": "A pure columnar warehouse and accept full-column scans for point lookups",
         "correct": false,
-        "rationale": "Columnar stores have no cheap per-key access, so 'find one record' degrades to scanning a column — violating the sub-second point-lookup need."
+        "rationale": "Columnar stores have no cheap per-key access, so 'find one record' degrades to scanning a column, which breaks the sub-second point-lookup requirement."
       },
       {
         "text": "A pure row-oriented OLTP database and accept slow aggregations",
@@ -1092,7 +1092,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "processing",
     "kind": "mcq",
     "difficulty": 2,
-    "scenario": "A fraud system must block a suspicious card transaction before it completes — an end-to-end decision within a few hundred milliseconds of the swipe. Each decision depends on features computed from the last few seconds of that card's activity.",
+    "scenario": "A fraud system must block a suspicious card transaction before it completes: an end-to-end decision within a few hundred milliseconds of the swipe. Each decision depends on features computed from the last few seconds of that card's activity.",
     "prompt": "Which processing model is required here?",
     "choices": [
       {
@@ -1126,7 +1126,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Micro-batching: process small batches on a short interval (e.g. every 30–60s)",
         "correct": true,
-        "rationale": "Micro-batching hits ~1-minute freshness while amortizing overhead across each batch and giving batch-style checkpoint/replay recovery — matching the relaxed SLA."
+        "rationale": "Micro-batching hits ~1-minute freshness while amortizing overhead across each batch and giving batch-style checkpoint/replay recovery. That matches the relaxed SLA."
       },
       {
         "text": "Per-event streaming with exactly-once state",
@@ -1154,7 +1154,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Keep batch scoring; real-time adds cost and complexity with no signal to act on",
         "correct": true,
-        "rationale": "When inputs change slowly and the model updates weekly, real-time recomputation refreshes numbers that are effectively identical — spend nowhere returns value."
+        "rationale": "When inputs change slowly and the model updates weekly, real-time recomputation refreshes numbers that are effectively identical. Cost with no return."
       },
       {
         "text": "Rebuild as a streaming pipeline to satisfy the 'real-time' request",
@@ -1164,11 +1164,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Move to 5-minute micro-batches as a compromise",
         "correct": false,
-        "rationale": "Even 5-minute recompute is pointless when the 30-day inputs are stable and the model only changes weekly — it's cost without benefit."
+        "rationale": "Even 5-minute recompute is pointless when the 30-day inputs are stable and the model only changes weekly. Cost without benefit."
       }
     ],
     "payload": null,
-    "explanation": "Real-time is only worth it when the underlying signal actually changes within the freshness window and a faster decision changes an outcome. When inputs are slow-moving, streaming trades real cost for imperceptible freshness — the mature call is not to build it."
+    "explanation": "Real-time is only worth it when the underlying signal actually changes within the freshness window and a faster decision changes an outcome. When inputs are slow-moving, streaming trades real cost for imperceptible freshness, and the mature call is not to build it."
   },
   {
     "track": "architecture",
@@ -1196,7 +1196,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Dimensional (star) modeling trades some storage redundancy in dimensions for query simplicity and speed — the right call for read-heavy BI. Normalization minimizes redundancy but multiplies join hops, which analytics doesn't want."
+    "explanation": "Dimensional (star) modeling trades some storage redundancy in dimensions for query simplicity and speed. The right call for read-heavy BI. Normalization minimizes redundancy but multiplies join hops, which analytics doesn't want."
   },
   {
     "track": "architecture",
@@ -1243,7 +1243,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Rename or retype existing columns in place as needs change",
         "correct": false,
-        "rationale": "Renaming or retyping breaks old readers and old files, forcing coordinated consumer upgrades and expensive rewrites — exactly what's ruled out."
+        "rationale": "Renaming or retyping breaks old readers and old files, forcing coordinated consumer upgrades and expensive rewrites. Exactly what's ruled out."
       },
       {
         "text": "Freeze the schema and encode all new attributes inside one opaque JSON blob column",
@@ -1252,7 +1252,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Schema evolution trades change flexibility against consumer stability. Additive/backward-compatible changes preserve old readers and old files (no rewrite), while destructive changes force lock-step migration — so favor additive evolution when many independent consumers and large history exist."
+    "explanation": "Schema evolution trades change flexibility against consumer stability. Additive/backward-compatible changes preserve old readers and old files (no rewrite), while destructive changes force lock-step migration. Favor additive evolution when many independent consumers and large history exist."
   },
   {
     "track": "architecture",
@@ -1316,7 +1316,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "scaling",
     "kind": "mcq",
     "difficulty": 2,
-    "scenario": "A shopping-cart service must stay writable during a network partition between data-center replicas — customers must always be able to add items, even if two replicas briefly diverge. Occasional merge of divergent carts is acceptable to the business.",
+    "scenario": "A shopping-cart service must stay writable during a network partition between data-center replicas: customers must always be able to add items, even if two replicas briefly diverge. Occasional merge of divergent carts is acceptable to the business.",
     "prompt": "Given a network partition, which tradeoff does this requirement demand?",
     "choices": [
       {
@@ -1327,7 +1327,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Favor strong consistency over availability (CP): reject writes on the minority side until the partition heals",
         "correct": false,
-        "rationale": "CP preserves a single consistent view but makes part of the system unavailable for writes during the partition — the opposite of the stated must-stay-writable need."
+        "rationale": "CP preserves a single consistent view but makes part of the system unavailable for writes during the partition. The opposite of the stated must-stay-writable requirement."
       },
       {
         "text": "Use a single-leader synchronous system and route all writes through the leader",
@@ -1392,7 +1392,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Hot partitions arise when a single key value carries disproportionate load; hashing more nodes doesn't help because the value still maps to one place. Adding a second key dimension trades some query locality for load distribution — the standard whale-customer remedy."
+    "explanation": "Hot partitions arise when a single key value carries disproportionate load; hashing more nodes doesn't help because the value still maps to one place. The standard whale-customer remedy is a second key dimension, trading some query locality for load distribution."
   },
   {
     "track": "architecture",
@@ -1416,7 +1416,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Increase the retry backoff so duplicates are rarer",
         "correct": false,
-        "rationale": "Backoff reduces frequency but never eliminates duplicates, so a double charge remains possible — unacceptable for payments."
+        "rationale": "Backoff reduces frequency but never eliminates duplicates, so a double charge remains possible. Unacceptable for payments."
       }
     ],
     "payload": null,
@@ -1462,7 +1462,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Idempotent per-partition overwrite: each day's rerun atomically replaces (overwrites) that day's output partition",
         "correct": true,
-        "rationale": "Overwriting a partition makes reruns idempotent — running twice yields the same result — and swapping partitions atomically keeps dashboards consistent."
+        "rationale": "Overwriting a partition makes reruns idempotent (running twice yields the same result), and swapping partitions atomically keeps dashboards consistent."
       },
       {
         "text": "Append the recomputed rows to the existing table",
@@ -1495,7 +1495,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Load everything and log warnings for later review",
         "correct": false,
-        "rationale": "Warn-and-continue lets the malformed rows into the totals immediately — precisely the wrong-numbers outcome leadership wants to avoid."
+        "rationale": "Warn-and-continue lets the malformed rows into the totals immediately. Precisely the wrong-numbers outcome leadership wants to avoid."
       },
       {
         "text": "Silently drop rows that fail checks and keep loading",
@@ -1546,7 +1546,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Store as compressed columnar files (Parquet) partitioned by event_date",
         "correct": true,
-        "rationale": "Date partitioning lets the engine prune to only the needed days, and columnar+compression cuts bytes read per column — directly lowering bytes scanned."
+        "rationale": "Date partitioning lets the engine prune to only the needed days, and columnar+compression cuts bytes read per column. Both directly lower the bytes scanned."
       },
       {
         "text": "Add more compute nodes to scan the JSON faster",
@@ -1579,12 +1579,12 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Add read replicas so more nodes can run the aggregation",
         "correct": false,
-        "rationale": "Replicas let you run the same expensive query in more places — it scales the waste rather than eliminating the redundant recomputation."
+        "rationale": "Replicas let you run the same expensive query in more places. That scales the waste rather than eliminating the redundant recomputation."
       },
       {
         "text": "Precompute nothing but buy a larger warehouse to make each recompute faster",
         "correct": false,
-        "rationale": "Faster-but-still-per-request recomputation still pays for the aggregation thousands of times a minute; the redundancy, not the speed, is the cost driver."
+        "rationale": "Faster-but-still-per-request recomputation still pays for the aggregation thousands of times a minute; the cost driver is redundancy, not speed."
       }
     ],
     "payload": null,
@@ -1612,7 +1612,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Build it daily but add extensive monitoring and alerting up front",
         "correct": false,
-        "rationale": "This compounds the mistake — more infrastructure to maintain around a pipeline that shouldn't exist yet given the low, unstable usage."
+        "rationale": "This compounds the mistake: more infrastructure to maintain around a pipeline that shouldn't exist yet given the low, unstable usage."
       }
     ],
     "payload": null,
@@ -1635,7 +1635,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Stop retrying failed requests entirely.",
         "correct": false,
-        "rationale": "Timeouts are ambiguous — the call may have failed — so never retrying drops legitimate payments; retries need to be safe, not banned."
+        "rationale": "Timeouts are ambiguous (the call may have failed), so never retrying drops legitimate payments; retries need to be safe, not banned."
       },
       {
         "text": "Make the network faster so timeouts never happen.",
@@ -1682,7 +1682,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Storage cost should track access frequency. Lifecycle tiering — hot for recent, cold/archive for old — is the standard lever, cutting cost by an order of magnitude while keeping cold data restorable."
+    "explanation": "Storage cost should track access frequency. Lifecycle tiering (hot for recent, cold/archive for old) is the standard lever, cutting cost by an order of magnitude while keeping cold data restorable."
   },
   {
     "track": "architecture",
@@ -1690,7 +1690,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "modeling",
     "kind": "mcq",
     "difficulty": 3,
-    "scenario": "To 'stay flexible,' a team stores every product attribute as generic (entity, attribute, value) rows — an EAV table — even though products have a well-known, stable set of fields.",
+    "scenario": "To 'stay flexible,' a team stores every product attribute as generic (entity, attribute, value) rows: an EAV table. Products actually have a well-known, stable set of fields.",
     "prompt": "What's the main problem with EAV here?",
     "choices": [
       {
@@ -1706,12 +1706,12 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "EAV can't store more than a few attributes.",
         "correct": false,
-        "rationale": "It can store many — that's not the limitation; the limitation is how painfully you query and validate them."
+        "rationale": "It can store many. The limitation is how painfully you query and validate them."
       },
       {
         "text": "Relational databases can't store key-value pairs at all.",
         "correct": false,
-        "rationale": "They can; EAV is exactly that pattern — the problem is misapplying it to a known schema."
+        "rationale": "They can; EAV is exactly that pattern. The problem is misapplying it to a known schema."
       }
     ],
     "payload": null,
@@ -1734,12 +1734,12 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "500 — one per request per second.",
         "correct": false,
-        "rationale": "That's the arrival rate, not the number resident; you must multiply by the time each stays (W)."
+        "rationale": "That's the arrival rate. Multiply by the time each request stays (W) to get the resident count."
       },
       {
         "text": "40 — the mean time in the system.",
         "correct": false,
-        "rationale": "40 ms is a latency, not a count; concurrency is λ·W."
+        "rationale": "40 ms is a latency. Concurrency is a count: λ·W."
       },
       {
         "text": "It depends on the number of CPU cores, not λ or W.",
@@ -1748,7 +1748,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Little's Law (L = λW) links the three quantities: at 500 req/s and 40 ms each, ~20 requests are resident on average. This is why thread-pool / connection-pool sizing must equal λ·W, not a round number someone liked."
+    "explanation": "Little's Law (L = λW) links the three quantities: at 500 req/s and 40 ms each, ~20 requests are resident on average. This is why thread-pool / connection-pool sizing must equal λ·W rather than a round number someone liked."
   },
   {
     "track": "architecture",
@@ -1781,7 +1781,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "L = ρ/(1−ρ) is a hockey stick: 0.9→9, 0.95→19, 0.99→99. The last few points of utilization are the expensive ones — 'we're only at 90%' is exactly where a small load rise doubles your latency."
+    "explanation": "L = ρ/(1−ρ) is a hockey stick: 0.9→9, 0.95→19, 0.99→99. The last few points of utilization are the expensive ones. 'We're only at 90%' is exactly where a small load rise doubles your latency."
   },
   {
     "track": "economics",
@@ -1871,7 +1871,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "$2M — the value the park produces.",
         "correct": false,
-        "rationale": "That's the park's benefit, not its cost."
+        "rationale": "The $2M is what the park produces. The question asks what choosing it gives up."
       },
       {
         "text": "$7M — the difference between the two.",
@@ -1880,7 +1880,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Opportunity cost applies even to owned resources: the cost of any use is the most valuable alternative sacrificed — here, $9M of housing."
+    "explanation": "Opportunity cost applies even to owned resources. The cost of any use is the most valuable alternative sacrificed, which for this parcel is $9M of housing."
   },
   {
     "track": "economics",
@@ -1913,7 +1913,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "A sunk cost can't be recovered by any future action, so it should carry zero weight. Compare only future costs and benefits: 80 minutes here vs. elsewhere."
+    "explanation": "A sunk cost can't be recovered by any future action, so it should carry zero weight. The real comparison is between two futures: 80 more minutes in this seat, or 80 minutes spent on anything you'd enjoy more."
   },
   {
     "track": "economics",
@@ -1937,7 +1937,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Finish it — you're 80% done.",
         "correct": false,
-        "rationale": "Percent-complete is about sunk effort, not the forward $500k-for-$300k comparison."
+        "rationale": "Percent-complete measures sunk effort. The live question is the forward $500k-for-$300k trade."
       },
       {
         "text": "Finish it if morale would suffer otherwise.",
@@ -1946,7 +1946,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Ignore the $2M — it's sunk. The decision is $500k of future cost for $300k of future benefit, which is a net loss. Kill it."
+    "explanation": "The $2M has already been spent, so it gets no vote. What remains is a plain trade: pay $500k to receive $300k, and finishing the feature loses another $200k."
   },
   {
     "track": "economics",
@@ -2102,7 +2102,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Landlords simply accept lower profits with no other change.",
         "correct": false,
-        "rationale": "Many convert, defer maintenance, or exit — supply falls, the first-order view misses this."
+        "rationale": "Many convert, defer maintenance, or exit. Supply falls, which is exactly the part the first-order view misses."
       },
       {
         "text": "Housing quality improves as landlords compete.",
@@ -2111,7 +2111,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "A binding price ceiling doesn't just lower price — it contracts supply and creates a shortage, then rations it (queues, connections). The unseen effect dominates."
+    "explanation": "A binding ceiling lowers the posted rent and quietly shrinks the stock of apartments behind it. The result is a shortage, rationed by queues and connections instead of price, and that unseen effect swamps the visible discount."
   },
   {
     "track": "economics",
@@ -2135,7 +2135,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Demand falls because the low price signals low quality.",
         "correct": false,
-        "rationale": "The binding constraint is collapsing supply, not a demand-side quality signal."
+        "rationale": "What binds here is collapsing supply; any demand-side quality signal is a sideshow."
       },
       {
         "text": "Everyone who needs insulin now reliably gets it.",
@@ -2144,7 +2144,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Capping price below cost targets the visible price but triggers the unseen effect: supply dries up. Affordability on paper becomes unavailability in practice."
+    "explanation": "The cap fixes the visible number and breaks the invisible one: no firm keeps producing at a guaranteed loss, so supply contracts and the shortage gets rationed by queues and gray markets. The insulin is now affordable in exactly the sense that you cannot get it."
   },
   {
     "track": "economics",
@@ -2173,11 +2173,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Prices are irrelevant in emergencies.",
         "correct": false,
-        "rationale": "Prices matter most under scarcity — they're the mechanism that moves goods to where they're most valued."
+        "rationale": "Prices matter most under scarcity; they are the mechanism that moves goods to where they're most valued."
       }
     ],
     "payload": null,
-    "explanation": "The seen effect is a 'fair' low price; the unseen effect is that no one rushes water in and buyers hoard, deepening the shortage. Prices are a coordination signal, not just a number."
+    "explanation": "The seen effect is a fair-looking price. The unseen one is that nobody hauls water across a state line for pre-storm margins, while buyers with no reason to economize clear the shelves. Freezing the price freezes both signals at the moment they were doing their most useful work."
   },
   {
     "track": "economics",
@@ -2276,7 +2276,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "The luxury tax is the classic case: elastic buyers dodged it, inelastic boatbuilders (and their laid-off workers) bore it. Incidence lands on whoever can't walk away."
+    "explanation": "The luxury tax is the classic case: buyers, being elastic, simply bought other toys, while the boatbuilders and their workers absorbed the burden in lost orders and layoffs. The side that can walk away from a market passes the tax to the side that can't."
   },
   {
     "track": "economics",
@@ -2284,13 +2284,13 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "comparative_advantage",
     "kind": "mcq",
     "difficulty": 1,
-    "scenario": "Country A runs a persistent trade deficit with Country B — it imports more from B than it exports to B.",
+    "scenario": "Country A runs a persistent trade deficit with Country B: it imports more from B than it exports to B.",
     "prompt": "Which country is 'losing' from this trade?",
     "choices": [
       {
         "text": "Neither necessarily — both gain from voluntary exchange; the deficit is financed by offsetting capital inflows.",
         "correct": true,
-        "rationale": "Trade isn't zero-sum; a bilateral deficit reflects saving/investment flows, not a scoreboard loss."
+        "rationale": "Trade isn't zero-sum; a bilateral deficit reflects saving and investment flows rather than a scoreboard loss."
       },
       {
         "text": "Country A — money is leaving to buy imports.",
@@ -2323,7 +2323,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Yes — each specializes where its opportunity cost is lower (comparative advantage), and both end up with more.",
         "correct": true,
-        "rationale": "Gains from trade come from comparative, not absolute, advantage — differing opportunity costs suffice."
+        "rationale": "Gains from trade come from comparative rather than absolute advantage; differing opportunity costs suffice."
       },
       {
         "text": "No — A is better at everything, so it should make both and not trade.",
@@ -2383,7 +2383,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "probability",
     "kind": "mcq",
     "difficulty": 1,
-    "scenario": "Your hiring loop has three independent stages — screen, technical, panel — and a candidate you like has an 80% chance of passing each one.",
+    "scenario": "Your hiring loop runs three independent stages: screen, technical, panel. A candidate you like has an 80% chance of passing each one.",
     "prompt": "What is the probability she passes all three stages?",
     "choices": [
       {
@@ -2404,11 +2404,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "48.8% — the chance the stages go her way.",
         "correct": false,
-        "rationale": "48.8% is the complement — the chance at least one stage fails (1 − 0.512). Passing all three is 51.2%."
+        "rationale": "48.8% is the complement: the chance at least one stage fails (1 − 0.512). Passing all three is 51.2%."
       }
     ],
     "payload": null,
-    "explanation": "Independent chances multiply, they don't add or average: 0.8³ = 51.2%. A chain of individually likely events is much less likely than any single link — which is why strong candidates die in long loops."
+    "explanation": "Independent chances multiply. They don't add or average: 0.8³ = 51.2%. A chain of individually likely events is much less likely than any single link, which is why strong candidates die in long loops."
   },
   {
     "track": "decision",
@@ -2416,7 +2416,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "probability",
     "kind": "mcq",
     "difficulty": 2,
-    "scenario": "Your checkout flow calls three independent services — payments, inventory, fraud — and each one meets its latency SLA on 90% of requests.",
+    "scenario": "Your checkout flow calls three independent services: payments, inventory, fraud. Each one meets its latency SLA on 90% of requests.",
     "prompt": "What fraction of checkouts have at least one service blow its SLA?",
     "choices": [
       {
@@ -2427,7 +2427,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "10% — the flow is only as slow as its weakest link.",
         "correct": false,
-        "rationale": "Each service alone misses 10% of the time, but the checkout is exposed to all three misses, not just one: 27.1%."
+        "rationale": "Each service alone misses 10% of the time. The checkout is exposed to all three misses at once: 27.1%."
       },
       {
         "text": "30% — add the three 10% miss rates.",
@@ -2437,11 +2437,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "72.9% — multiply the reliabilities.",
         "correct": false,
-        "rationale": "0.9³ = 72.9% is the chance everything is fast — the complement of what was asked."
+        "rationale": "0.9³ = 72.9% is the chance everything is fast. That's the complement of what was asked."
       }
     ],
     "payload": null,
-    "explanation": "For 'at least one failure', don't add failure rates — take the complement of everything succeeding: 1 − 0.9³ = 27.1%. Chained dependencies quietly turn three reliable services into a flow that stumbles on 1 in 4 requests."
+    "explanation": "For 'at least one failure', don't add failure rates. Take the complement of everything succeeding: 1 − 0.9³ = 27.1%. Three reliable services chain into a flow that stumbles on 1 in 4 requests."
   },
   {
     "track": "decision",
@@ -2449,7 +2449,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "probability",
     "kind": "mcq",
     "difficulty": 3,
-    "scenario": "Out of every 1,000 shipments your marketplace handles, 10 involve fraud (1%). Your detector flags 90% of fraudulent shipments — but also flags 10% of legitimate ones. A shipment just got flagged, and ops wants to freeze the seller's account on the spot.",
+    "scenario": "Out of every 1,000 shipments your marketplace handles, 10 involve fraud (1%). Your detector flags 90% of fraudulent shipments. It also flags 10% of legitimate ones. A shipment just got flagged, and ops wants to freeze the seller's account on the spot.",
     "prompt": "Given only the flag, what's the probability this shipment is actually fraudulent?",
     "choices": [
       {
@@ -2470,11 +2470,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "1% — the flag doesn't change the underlying fraud rate.",
         "correct": false,
-        "rationale": "The flag is real evidence — it moves the probability from 1% up to 8.3%. It just doesn't move it anywhere near 90%."
+        "rationale": "The flag is real evidence. It moves the probability from 1% up to 8.3%. It just doesn't get anywhere near 90%."
       }
     ],
     "payload": null,
-    "explanation": "When the base rate is low, even a good test's alarms are mostly false: 9 true flags versus 99 false ones makes a flag only 1-in-12 fraud. Never read the test's accuracy as the alarm's accuracy — condition on the evidence, not the reverse."
+    "explanation": "When the base rate is low, even a good test's alarms are mostly false: 9 true flags against 99 false ones makes a flag only 1-in-12 fraud. Don't read the test's accuracy as the alarm's accuracy. Freeze on those odds and you punish eleven honest sellers for every cheat."
   },
   {
     "track": "decision",
@@ -2493,7 +2493,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "+$42,000 — $50,000 of revenue minus the $8,000 cost.",
         "correct": false,
-        "rationale": "That's the best case, not the expectation. The $50,000 only arrives 20% of the time, so it's worth $10,000 up front."
+        "rationale": "That's the best case. Expectation weights it: the $50,000 only arrives 20% of the time, so it's worth $10,000 up front."
       },
       {
         "text": "+$10,000 — 20% of $50,000.",
@@ -2531,16 +2531,16 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "20% — the settlement net of fees, divided by the award.",
         "correct": false,
-        "rationale": "The fees are a cost of choosing trial, not a discount on the settlement — they make trial need a higher win rate, not a lower one."
+        "rationale": "The fees are a cost of choosing trial. They raise the win rate trial needs; they don't discount the settlement."
       },
       {
         "text": "50% — go to trial only if you're more likely to win than lose.",
         "correct": false,
-        "rationale": "The coin-flip threshold ignores the payoffs. A $200,000 award against a $60,000 offer makes trial correct well below 50% — from 40% up."
+        "rationale": "The coin-flip threshold ignores the payoffs. A $200,000 award against a $60,000 offer makes trial correct well below 50%: anywhere from 40% up."
       }
     ],
     "payload": null,
-    "explanation": "The break-even probability — where the EVs of the two options cross — is the real price of a gamble. Here p × 200,000 − 20,000 = 60,000 solves to 40%: your lawyer's job is to tell you which side of that line your case sits on."
+    "explanation": "The break-even probability is where the two EVs cross, and it's the real price of the gamble. Here p × 200,000 − 20,000 = 60,000 solves to 40%. Your lawyer's job is to tell you which side of that line your case sits on."
   },
   {
     "track": "decision",
@@ -2548,7 +2548,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "expected_value",
     "kind": "mcq",
     "difficulty": 3,
-    "scenario": "Last quarter, with $10M in the bank, you chose launch plan A — a 60% chance of gaining $700,000, a 40% chance of losing $300,000 — over plan B, a guaranteed $150,000. Plan A missed: you lost $300,000. The board asks whether the decision was a mistake.",
+    "scenario": "Last quarter, with $10M in the bank, you chose launch plan A (a 60% chance of gaining $700,000, a 40% chance of losing $300,000) over plan B, a guaranteed $150,000. Plan A missed: you lost $300,000. The board asks whether the decision was a mistake.",
     "prompt": "Was choosing A a mistake?",
     "choices": [
       {
@@ -2564,16 +2564,16 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Yes — a guaranteed $150,000 should always be taken over a gamble.",
         "correct": false,
-        "rationale": "Certainty has some value, but not $150,000 of EV — and with $10M in the bank, a $300,000 downside is nowhere near the size where risk aversion should override expectation."
+        "rationale": "Certainty has some value, but not $150,000 of EV. With $10M in the bank, a $300,000 downside is nowhere near the size where risk aversion should override expectation."
       },
       {
         "text": "The loss itself proves the 60% estimate was inflated.",
         "correct": false,
-        "rationale": "One miss is almost no evidence against a 60% estimate — genuine 60/40 bets miss 40% of the time. It would take a run of outcomes to indict the number."
+        "rationale": "One miss is almost no evidence against a 60% estimate. Genuine 60/40 bets miss 40% of the time; it would take a run of outcomes to indict the number."
       }
     ],
     "payload": null,
-    "explanation": "Decision quality lives in the process — the odds, payoffs, and stakes as known at the time — not in the single outcome that happened to land. A +$300,000-EV bet the balance sheet can absorb was right before the coin flipped, and it's still right after."
+    "explanation": "Decision quality lives in the process: the odds, payoffs, and stakes as known at the time. One landed outcome doesn't rewrite it. A +$300,000-EV bet the balance sheet could absorb was right before the coin flipped, and it's still right after."
   },
   {
     "track": "decision",
@@ -2581,13 +2581,13 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "marginal_ev",
     "kind": "mcq",
     "difficulty": 1,
-    "scenario": "You've spent $10,000 on ad channel A and it has returned $30,000 — a 3x average return. But the next $1,000 in A would bring back about $1,500, while the next $1,000 in untapped channel B would bring back about $2,500.",
+    "scenario": "You've spent $10,000 on ad channel A and it has returned $30,000, a 3x average return. The next $1,000 in A would bring back about $1,500. The next $1,000 in untapped channel B would bring back about $2,500.",
     "prompt": "Where should the next $1,000 go?",
     "choices": [
       {
         "text": "Channel B — the next dollar earns $2.50 there versus $1.50 in A, and the next dollar is the only one you're deciding about.",
         "correct": true,
-        "rationale": "Decisions are made at the margin. A's 3x history describes money already spent, not the dollar in your hand."
+        "rationale": "Decisions are made at the margin. A's 3x history describes money already spent. The dollar in your hand is still deciding."
       },
       {
         "text": "Channel A — it's returning 3x, the best number on the board.",
@@ -2597,16 +2597,16 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Split it $500 and $500 to stay diversified.",
         "correct": false,
-        "rationale": "Splitting earns roughly $750 + $1,250 = $2,000 — less than the $2,500 from putting the whole increment where its marginal return is highest."
+        "rationale": "Splitting earns roughly $750 + $1,250 = $2,000. Putting the whole increment where its marginal return is highest earns $2,500."
       },
       {
         "text": "Neither — A's declining returns mean the ad budget is exhausted.",
         "correct": false,
-        "rationale": "Declining isn't negative: A's marginal $1,500 on $1,000 still profits, and B's $2,500 certainly does. The question is ranking margins, not quitting."
+        "rationale": "Declining isn't negative: A's marginal $1,500 on $1,000 still profits, and B's $2,500 certainly does. Rank the margins before you quit the game."
       }
     ],
     "payload": null,
-    "explanation": "Allocate by marginal return, not average return: the only question the next dollar asks is where it earns the most, and past performance answers a different question. Here that's $2.50 in B against $1.50 in A."
+    "explanation": "Allocate by marginal return. The next dollar asks one question: where does it earn the most? Past performance answers a different one. Here the margin pays $2.50 in B against $1.50 in A."
   },
   {
     "track": "decision",
@@ -2630,7 +2630,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Finish X — $150,000 back on $100,000 is a healthy 50% return.",
         "correct": false,
-        "rationale": "'Is it good?' is the wrong question — the question is 'is it better than the next-best use?' The pivot returns 120% on the same money."
+        "rationale": "'Is it good?' is the wrong question. Ask 'is it better than the next-best use?' The pivot returns 120% on the same money."
       },
       {
         "text": "Do neither and hold the $100,000 in reserve.",
@@ -2639,7 +2639,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Compare futures, not histories: every option shares the $400,000 already spent, so the decision reduces to $220,000 versus $150,000 for the same marginal $100,000. What you've invested is a fact about the past, not a reason."
+    "explanation": "Compare futures. Every option shares the $400,000 already spent, so the decision reduces to $220,000 versus $150,000 for the same marginal $100,000. What you've invested is a fact about the past, and the pivot wins by $70,000."
   },
   {
     "track": "decision",
@@ -2653,26 +2653,26 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "The small one — it clears +$50,000, while the flagship's true marginal profit is $500k − $440k − $80k = −$20,000. The felt winner loses money.",
         "correct": true,
-        "rationale": "Every cost that disappears when the client does is marginal — including the dedicated engineers. Counted fully, the flagship's sign flips negative."
+        "rationale": "Every cost that disappears when the client does is marginal, including the dedicated engineers. Counted fully, the flagship's sign flips negative."
       },
       {
         "text": "The flagship — $500,000 in revenue dwarfs $120,000.",
         "correct": false,
-        "rationale": "Top-line anchoring. Revenue isn't profit: the flagship spends $520,000 to collect $500,000, so its size measures the loss, not the win."
+        "rationale": "Top-line anchoring. Revenue isn't profit: the flagship spends $520,000 to collect $500,000. Its size just measures the loss."
       },
       {
         "text": "The flagship — before the support team it earns $500k − $440k = +$60,000, and dedicated staff belong in overhead.",
         "correct": false,
-        "rationale": "Those engineers were hired for this client and leave with it — that makes their $80,000 a marginal cost of keeping it, not shared overhead. Buried allocation is how losing accounts hide."
+        "rationale": "Those engineers were hired for this client and leave with it. That makes their $80,000 a marginal cost of keeping it, wherever the ledger files them. Buried allocation is how losing accounts hide."
       },
       {
         "text": "The flagship — a $500,000 logo is worth keeping for credibility alone.",
         "correct": false,
-        "rationale": "The prompt asks about the numbers, and the numbers say you'd pay $20,000 a year for the logo while turning away $50,000. If prestige is worth $70,000+, price it explicitly — don't smuggle it in."
+        "rationale": "The prompt asks about the numbers, and the numbers say you'd pay $20,000 a year for the logo while turning away $50,000. If prestige is worth $70,000+, price it explicitly instead of smuggling it in."
       }
     ],
     "payload": null,
-    "explanation": "The margin includes every cost that exists only because the option does. Move the dedicated team from 'overhead' to where it belongs and the flagship's profit flips from +$60k to −$20k — the delta doesn't just shrink, it changes sign against the intuitive winner."
+    "explanation": "The margin includes every cost that exists only because the option does. Move the dedicated team out of 'overhead' and the flagship's profit flips from +$60k to −$20k. The delta doesn't merely shrink; it changes sign against the felt winner."
   },
   {
     "track": "decision",
@@ -2701,7 +2701,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "75% — a river bet usually means it, so you need to be nearly sure.",
         "correct": false,
-        "rationale": "How sure you need to be is set by the pot, not by vibes: the $150 already out there subsidizes your call down to 25%."
+        "rationale": "The pot sets how sure you need to be. The $150 already out there subsidizes your call down to 25%."
       }
     ],
     "payload": null,
@@ -2713,7 +2713,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "equilibrium",
     "kind": "mcq",
     "difficulty": 2,
-    "scenario": "A rival firm keeps threatening lawsuits over a disputed $100,000 escrow your company holds. Mounting a suit costs them $50,000 in non-refundable legal fees, and their standard settlement demand is the escrow plus those fees — so caving hands them a net $100,000, while fighting a hollow claim to judgment costs them their $50,000. Some of their claims are genuine; you can't tell which from the filing.",
+    "scenario": "A rival firm keeps threatening lawsuits over a disputed $100,000 escrow your company holds. Mounting a suit costs them $50,000 in non-refundable legal fees, and their standard settlement demand is the escrow plus those fees. Caving hands them a net $100,000; fighting a hollow claim to judgment costs them their $50,000. Some of their claims are genuine; you can't tell which from the filing.",
     "prompt": "At minimum, how often must you fight these claims so that a hollow one loses them money?",
     "choices": [
       {
@@ -2724,7 +2724,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "One-third of the time — match their one-third cost-to-prize ratio.",
         "correct": false,
-        "rationale": "One-third is the most you may cave, not the least you must fight. Fighting only 1/3 lets a hollow claim earn 2/3 × 100k − 1/3 × 50k = +$50,000."
+        "rationale": "One-third is the most you may cave. Fight only 1/3 of the time and a hollow claim earns 2/3 × 100k − 1/3 × 50k = +$50,000."
       },
       {
         "text": "Half the time — split the difference so you're unpredictable.",
@@ -2734,11 +2734,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Every time — never reward a threat.",
         "correct": false,
-        "rationale": "Always fighting does kill hollow claims, but it isn't the minimum — and against their genuine claims it maximizes your own legal spend. Equilibrium prices deterrence, it doesn't buy it at any cost."
+        "rationale": "Always fighting kills hollow claims, but it isn't the minimum, and against their genuine claims it maximizes your own legal spend. Equilibrium prices deterrence; it doesn't buy it at any cost."
       }
     ],
     "payload": null,
-    "explanation": "To make empty aggression unprofitable, defend at least pot/(pot + bet) — here 100/(100 + 50) = 2/3. Fold more than a third and every bluff they fire is +EV, so they should fire them all; deterrence is a frequency, not a mood."
+    "explanation": "To make empty aggression unprofitable, defend at least pot/(pot + bet): here 100/(100 + 50) = 2/3. Fold more than a third and every bluff they fire is +EV, so they should fire them all. Deterrence is a frequency, and 2/3 is the floor."
   },
   {
     "track": "decision",
@@ -2746,7 +2746,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "equilibrium",
     "kind": "mcq",
     "difficulty": 3,
-    "scenario": "At a negotiation workshop you play a bluffing game: $100 of chips sit in the pot, and on your turn you may push $100 while claiming the winning card — sometimes you have it, sometimes you don't. Your counterpart can call your $100 or fold. You want your pushes balanced so calling can't beat you.",
+    "scenario": "At a negotiation workshop you play a bluffing game: $100 of chips sit in the pot, and on your turn you may push $100 while claiming the winning card. Sometimes you have it, sometimes you don't. Your counterpart can call your $100 or fold. You want your pushes balanced so calling can't beat you.",
     "prompt": "What share of your pushes should be bluffs to make her calls exactly indifferent?",
     "choices": [
       {
@@ -2771,7 +2771,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Price your bluffs off the caller's odds: she risks B to win P + 2B, so bluff exactly B/(P + 2B) — here 100/300 = 1/3 — and her call and fold become equally worthless. Equilibrium isn't maximizing any one push; it's making the other side's options not matter."
+    "explanation": "Price your bluffs off the caller's odds. She risks B to win P + 2B, so bluff exactly B/(P + 2B), here 100/300 = 1/3, and her call and fold become equally worthless. Equilibrium doesn't maximize any one push; it makes the other side's options stop mattering."
   },
   {
     "track": "decision",
@@ -2779,7 +2779,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "bankroll",
     "kind": "mcq",
     "difficulty": 1,
-    "scenario": "Your startup has $50,000 of runway. A supplier offers a deal that, for whatever you put in, has a 60% chance of doubling it and a 40% chance of losing it all — genuinely +EV at 20 cents per dollar committed.",
+    "scenario": "Your startup has $50,000 of runway. A supplier offers a deal that, for whatever you put in, has a 60% chance of doubling it and a 40% chance of losing it all. Genuinely +EV: 20 cents per dollar committed.",
     "prompt": "How much should you put in?",
     "choices": [
       {
@@ -2795,16 +2795,16 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Nothing — a 40% chance of losing the money is too dangerous.",
         "correct": false,
-        "rationale": "Risk alone isn't a veto. At $10,000 the worst case stings but doesn't kill, and refusing forgoes free expected value — knowing the bet is good is half the skill; sizing it is the other half."
+        "rationale": "Risk alone isn't a veto. At $10,000 the worst case stings but doesn't kill, and refusing forgoes free expected value. Knowing the bet is good is half the skill; sizing it is the other half."
       },
       {
         "text": "$30,000 — commit 60% of the runway to match the 60% win probability.",
         "correct": false,
-        "rationale": "'Bet your win probability' is a reflex, not a rule — win chance says nothing about how much downside you can absorb. Lose this one (40% of the time!) and $20,000 of runway remains."
+        "rationale": "'Bet your win probability' is a reflex with no math behind it. Win chance says nothing about how much downside you can absorb. Lose this one (40% of the time!) and $20,000 of runway remains."
       }
     ],
     "payload": null,
-    "explanation": "Whether a bet is +EV and how much to put on it are separate questions. Per-dollar edge is constant across sizes; ruin is not — the right stake is one whose losing branch leaves you in the game."
+    "explanation": "Whether a bet is +EV and how much to put on it are separate questions. Per-dollar edge is constant across sizes. Ruin is not. The right stake is one whose losing branch leaves you in the game."
   },
   {
     "track": "decision",
@@ -2823,12 +2823,12 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "60% — stake your win probability.",
         "correct": false,
-        "rationale": "Betting your win probability triples the Kelly fraction. A perfectly ordinary 3-loss run at 60% stakes turns $10,000 into $640 — the edge never gets a chance to work."
+        "rationale": "Betting your win probability triples the Kelly fraction. A perfectly ordinary 3-loss run at 60% stakes turns $10,000 into $640. The edge never gets a chance to work."
       },
       {
         "text": "100% — the edge is real, so compound it as hard as possible.",
         "correct": false,
-        "rationale": "At full stakes the first loss — 40% per bet — zeroes the bankroll, and ruin is permanent. Long-run growth at 100% staking is guaranteed zero."
+        "rationale": "At full stakes the first loss (40% per bet) zeroes the bankroll, and ruin is permanent. Long-run growth at 100% staking is guaranteed zero."
       },
       {
         "text": "40% — double the aggressive-looking 20% to press the advantage harder.",
@@ -2837,7 +2837,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Growth is maximized at the Kelly fraction — for even money, p − q = 20% here — and it's a peak, not a floor: over-betting a real edge doesn't accelerate compounding, it destroys it. How much is a different question from whether."
+    "explanation": "Growth is maximized at the Kelly fraction, p − q for even money: 20% here. That's a peak. Over-bet a real edge and you don't accelerate compounding, you destroy it. How much to stake is a separate question from whether, and here its answer is 20%."
   },
   {
     "track": "decision",
@@ -2851,7 +2851,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Don't take it at this size — insure the penalty, syndicate it, or renegotiate. It's +$220,000 in EV, and it still risks missing payroll one time in five.",
         "correct": true,
-        "rationale": "The losing branch leaves $100,000 against a $300,000 payroll — functional ruin. A bet can be clearly +EV and still be too big for the bankroll behind it."
+        "rationale": "The losing branch leaves $100,000 against a $300,000 payroll. Functional ruin. A bet can be clearly +EV and still be too big for the bankroll behind it."
       },
       {
         "text": "Sign it — +$220,000 of expected value is +$220,000; refusing positive EV is leaving money on the table.",
@@ -2861,7 +2861,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Sign it — it pays off 80% of the time, so you're overwhelmingly likely to be fine.",
         "correct": false,
-        "rationale": "Best-case reading. One-in-five is not remote — it's a die roll — and this die roll ends the firm. Likelihood of the good branch says nothing about survivability of the bad one."
+        "rationale": "Best-case reading. One-in-five isn't remote; it's a die roll, and this one ends the firm. Likelihood of the good branch says nothing about survivability of the bad one."
       },
       {
         "text": "Decline outright — a $900,000 downside against a $500,000 upside makes it a losing bet on its face.",
@@ -2870,7 +2870,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "+EV is necessary, not sufficient: when the losing branch is ruin, no expectation justifies full exposure. The professional move isn't take-it-or-leave-it — it's resizing the bet (insurance, syndication, renegotiation) until the downside is survivable and the edge is still yours."
+    "explanation": "+EV alone doesn't clear a bet. When the losing branch is ruin, no expectation justifies full exposure. The professional move is resizing: insure, syndicate, or renegotiate until the downside is survivable and the +$220,000 edge is still yours."
   },
   {
     "track": "decision",
@@ -2884,26 +2884,26 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "His right, every kick, until he shows he's adjusted.",
         "correct": true,
-        "rationale": "Against an opponent with a fixed pattern, the maximally exploitative line is a pure strategy at his weakness. Mixing is protection against adaptation — spend it only when he adapts."
+        "rationale": "Against an opponent with a fixed pattern, the maximally exploitative line is a pure strategy at his weakness. Mixing is protection against adaptation. Spend it only when he adapts."
       },
       {
         "text": "Keep mixing sides 50/50 — staying unpredictable always comes first.",
         "correct": false,
-        "rationale": "Unpredictability defends against an opponent who reads you. This one isn't reading anyone — mixing sends half your kicks into his dive for no defensive gain."
+        "rationale": "Unpredictability defends against an opponent who reads you. This one isn't reading anyone. Mixing sends half your kicks into his dive for no defensive gain."
       },
       {
         "text": "His left — he'll expect you to have scouted him and switch.",
         "correct": false,
-        "rationale": "That prices in a level of thinking he's shown no sign of. Eight-for-eight is evidence of a habit, not a trap; play the data, not the mind game you imagined."
+        "rationale": "That prices in a level of thinking he's shown no sign of. Eight-for-eight is evidence of a habit. Play the data, not the mind game you imagined."
       },
       {
         "text": "Down the middle as a compromise between the two reads.",
         "correct": false,
-        "rationale": "There's nothing to compromise between — the read points one way. Averaging a strong signal with its opposite just dilutes the edge."
+        "rationale": "There's nothing to compromise between. The read points one way. Averaging a strong signal with its opposite just dilutes the edge."
       }
     ],
     "payload": null,
-    "explanation": "When the opponent's strategy is fixed and known, the best response is pure: hammer the weakness until it moves. Balance is what you buy when they can punish you — against a pattern, it's paying for insurance you don't need."
+    "explanation": "When the opponent's strategy is fixed and known, the best response is pure: hammer the weakness until it moves. Balance is insurance against being punished, and a keeper who dives left eight times out of eight isn't punishing anyone."
   },
   {
     "track": "decision",
@@ -2911,7 +2911,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "exploitation",
     "kind": "mcq",
     "difficulty": 2,
-    "scenario": "Over a long online session you've confirmed a regular folds to river bets 80% of the time. Pots are running about $100 when you bet $50 — so a stone-cold bluff earns 0.8 × $100 − 0.2 × $50 = +$70. At equilibrium he'd need to fold no more than a third of the time.",
+    "scenario": "Over a long online session you've confirmed a regular folds to river bets 80% of the time. Pots are running about $100 when you bet $50, so a stone-cold bluff earns 0.8 × $100 − 0.2 × $50 = +$70. At equilibrium he'd need to fold no more than a third of the time.",
     "prompt": "How should you play rivers against him?",
     "choices": [
       {
@@ -2922,7 +2922,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Stay balanced — deviating from GTO is how you get exploited.",
         "correct": false,
-        "rationale": "Equilibrium is the fallback when you have no read, not the ceiling when you do. Refusing a confirmed +$70-per-bluff edge is its own leak."
+        "rationale": "Equilibrium is the fallback for when you have no read. You have one. Refusing a confirmed +$70-per-bluff edge is its own leak."
       },
       {
         "text": "Bluff every river from here on — the number says it prints money, so lock it in.",
@@ -2932,11 +2932,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Stop bluffing him — someone folding that much only continues with hands that beat you.",
         "correct": false,
-        "rationale": "Backwards: heavy folding is what makes bluffs profitable, not dangerous. His 20% continues do beat your air — which is priced in at +$70 a bet."
+        "rationale": "Backwards. Heavy folding is what makes bluffs profitable. His 20% continues do beat your air, and that's priced in at +$70 a bet."
       }
     ],
     "payload": null,
-    "explanation": "Exploitation is a bet on your read: deviate hard while the leak holds, and instrument for the moment it closes. Max-exploit without monitoring the counter-adjustment isn't aggression — it's leaving the door open with your money behind it."
+    "explanation": "Exploitation is a bet on your read. Deviate hard while the leak holds, and instrument for the moment it closes. Max-exploit without watching for the counter-adjustment leaves the door open with your money behind it: $50 per bluff once he starts calling."
   },
   {
     "track": "decision",
@@ -2965,11 +2965,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Fight half of them at random so claimants can't predict you.",
         "correct": false,
-        "rationale": "Unpredictability isn't free — each fight still runs −$35,000 on average, so mixing buys deterrence at half the full-fight loss. If the read is 10%, the EV-max response is pure."
+        "rationale": "Unpredictability isn't free. Each fight still runs −$35,000 on average; mixing buys deterrence at half the full-fight loss. If the read is 10%, the EV-max response is pure."
       }
     ],
     "payload": null,
-    "explanation": "The maximally exploitative response to a known population is pure: settle, because 10% fraud is far below the 1/3 break-even. But every deviation opens a door — a publicized never-fight policy invites the fraud rate to climb toward the threshold, so the read that justified the exploit must be re-audited, and the fights resumed the moment it stops being true."
+    "explanation": "The maximally exploitative response to a known population is pure: settle, because 10% fraud sits far below the 1/3 break-even. Every deviation opens a door, though. A publicized never-fight policy invites the fraud rate to climb, so keep auditing the 10%, and resume fighting the moment it crosses a third."
   },
   {
     "track": "decision",
@@ -3019,7 +3019,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 10,
       "tol": 2
     },
-    "explanation": "EV(ship) = 35 + 5 − 6 = $34k. EV(harden) = 36 + 1 = $37k. Harden first wins — by $3k. The reflex compares what will probably happen (50 vs 40, ship by +10) because the 5% outage 'won't happen' — but its −$6k contribution is real and it flips the sign. The felt winner is the loser, and the whole agonizing debate is a $3k decision."
+    "explanation": "EV(ship) = 35 + 5 − 6 = $34k. EV(harden) = 36 + 1 = $37k. Harden first wins, by $3k. The reflex compares what will probably happen (50 vs 40, ship by +10) because the 5% outage 'won't happen'. Its −$6k contribution is real, and it flips the sign. The felt winner loses, and the whole agonizing debate is a $3k decision."
   },
   {
     "track": "decision",
@@ -3065,7 +3065,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 30,
       "tol": 4
     },
-    "explanation": "EV(startup) = 108 + 36 = $144k. EV(BigCo) = 142.5 + 6 = $148.5k. BigCo wins by $4.5k. The reflex compares headline outcomes — 180 vs 150, startup by +30 — but the 40% downside branch does $36k of quiet work. A close call either way; the $30k gap you felt was never real."
+    "explanation": "EV(startup) = 108 + 36 = $144k. EV(BigCo) = 142.5 + 6 = $148.5k. BigCo wins by $4.5k. The reflex compares headline outcomes (180 vs 150, startup by +30) while the 40% downside branch does $36k of quiet work. A close call either way; the $30k gap you felt was never real."
   },
   {
     "track": "decision",
@@ -3111,7 +3111,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 55,
       "tol": 8
     },
-    "explanation": "EV(decline) = 0.92·0 + 0.08·(−400) = −$32. EV(buy) = 0.92·(−55) + 0.08·(−105) = −$59. Declining wins by $27 — the direction the reflex guessed, at half the size it felt. 'The warranty is wasted money' compares the most-likely branches (0 vs −55) and claims $55; the 8% failure quietly claws back half of that. Right call, wrong price — and pricing it is the skill."
+    "explanation": "EV(decline) = 0.92·0 + 0.08·(−400) = −$32. EV(buy) = 0.92·(−55) + 0.08·(−105) = −$59. Declining wins by $27: the direction the reflex guessed, at half the size it felt. 'The warranty is wasted money' compares the most-likely branches (0 vs −55) and claims $55; the 8% failure quietly claws back half of that. Right call, wrong price. The skill is pricing it at $27."
   },
   {
     "track": "decision",
@@ -3157,7 +3157,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 5,
       "tol": 3
     },
-    "explanation": "EV(A) = 45 + 4 = $49k. EV(B) = 40.5 − 8 = $32.5k. A wins by $16.5k — more than three times the $5k sticker gap everyone compares. The 10% tail is where this decision lives: a branch you'd round to 'unlikely' carries −$8k of expected value all by itself. Quiet blowouts hide in tails; the sticker comparison never sees them."
+    "explanation": "EV(A) = 45 + 4 = $49k. EV(B) = 40.5 − 8 = $32.5k. A wins by $16.5k, more than three times the $5k sticker gap everyone compares. The 10% tail is where this decision lives: a branch you'd round to 'unlikely' carries −$8k of expected value by itself, and the sticker comparison never looks there."
   },
   {
     "track": "decision",
@@ -3166,7 +3166,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "kind": "gap",
     "difficulty": 2,
     "scenario": "River, $120 pot, opponent bets $60. From their timing and history you put them on a bluff 30% of the time. Call and you win $180 when they're bluffing, lose your $60 when they're not. Folding is free.",
-    "prompt": "Set the margin: calling versus folding — which wins, and by how much per hand?",
+    "prompt": "Set the margin: which action wins, calling or folding, and by how much per hand?",
     "choices": [],
     "payload": {
       "lineA": {
@@ -3199,7 +3199,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": -60,
       "tol": 6
     },
-    "explanation": "EV(call) = 0.3·180 − 0.7·60 = 54 − 42 = +$12. EV(fold) = 0. Calling wins by $12 per hand — even though it LOSES seven times in ten. The reflex reads the most-likely outcome (−$60, 'calling usually burns the bet') and folds. But a 30% bluff rate against 3:1 pot odds is a profitable call all day: you only needed to be right 25% of the time. The felt loser is the winner."
+    "explanation": "EV(call) = 0.3·180 − 0.7·60 = 54 − 42 = +$12. EV(fold) = 0. Calling wins by $12 per hand even though it LOSES seven times in ten. The reflex reads the most-likely outcome (−$60, 'calling usually burns the bet') and folds. A 30% bluff rate against 3:1 pot odds is a profitable call all day: you only needed to be right 25% of the time."
   },
   {
     "track": "decision",
@@ -3245,7 +3245,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 110,
       "tol": 10
     },
-    "explanation": "EV(all-in) = 180 − 80 = $100k. EV(half) = 114 − 16 = $98k. The margin is $2k — on a decision with a $500k swing between best and worst case. Three weeks of board agony over a coin-flip-close call: in pure EV the two plans are the same plan. Which means the REAL decision criterion is the one EV doesn't price — the −$200k branch nearly kills the company, and the −$40k one doesn't. When the margin is this thin, survival, not expectation, should cast the deciding vote."
+    "explanation": "EV(all-in) = 180 − 80 = $100k. EV(half) = 114 − 16 = $98k. The margin is $2k, on a decision with a $500k swing between best and worst case. Three weeks of board agony over a coin-flip-close call: in pure EV the two plans are the same plan. So the real criterion is the one EV doesn't price. The −$200k branch nearly kills the company; the −$40k branch doesn't. When the margin is this thin, let survival cast the deciding vote."
   },
   {
     "track": "decision",
@@ -3287,7 +3287,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 25,
       "tol": 4
     },
-    "explanation": "EV(rebate) = $25. EV(drawing) = 0.02·1000 = $20. The rebate wins by $5 — a much closer call than it feels. The reflex compares the most-likely outcomes ($25 vs $0) and claims the drawing is worthless; a 2% shot at $1,000 is quietly worth $20. Small probabilities times big numbers are still real money — in both directions."
+    "explanation": "EV(rebate) = $25. EV(drawing) = 0.02·1000 = $20. The rebate wins by $5, a much closer call than it feels. The reflex compares the most-likely outcomes ($25 vs $0) and calls the drawing worthless; a 2% shot at $1,000 is quietly worth $20. Small probabilities times big numbers are still real money, in both directions."
   },
   {
     "track": "decision",
@@ -3333,7 +3333,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 50,
       "tol": 4
     },
-    "explanation": "EV(star) = 84 − 18 = $66k. EV(steady) = 66.5 − 0.5 = $66k. The margin is zero — this is a genuine coin flip in expectation, though it doesn't feel like one: the reflex compares 120 to 70 and hands the star a $50k lead. When the EV margin is a true wash, the decision should be made on the axes EV doesn't see — variance tolerance, team state, what a miss costs you personally. Knowing a decision is a tie is knowing something."
+    "explanation": "EV(star) = 84 − 18 = $66k. EV(steady) = 66.5 − 0.5 = $66k. The margin is zero. A genuine coin flip in expectation, though it doesn't feel like one: the reflex compares 120 to 70 and hands the star a $50k lead. When the EV margin is a true wash, decide on the axes EV doesn't see: variance tolerance, team state, what a miss costs you personally. A measured tie is real information; the $50k lead wasn't."
   },
   {
     "track": "ml",
@@ -3362,11 +3362,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Average them — the true accuracy is about 85%.",
         "correct": false,
-        "rationale": "The two numbers measure different things — fit versus generalization — and averaging them estimates neither. Tomorrow's customers behave like the val set, not like a blend."
+        "rationale": "The two numbers measure different things (fit versus generalization), and averaging them estimates neither. Tomorrow's customers behave like the val set, not like a blend."
       }
     ],
     "payload": null,
-    "explanation": "A 28-point train-validation gap means the model memorized rather than learned, and only the held-out number predicts production. Training performance is a promise; held-out performance is the product."
+    "explanation": "A 28-point train-validation gap means the model memorized rather than learned, and only the held-out number predicts production. Put 71% on the slide; that is the number the next thousand customers will deliver."
   },
   {
     "track": "ml",
@@ -3390,16 +3390,16 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Depth 6 — the smallest model is always the safest choice.",
         "correct": false,
-        "rationale": "Underfitting is a real failure too. Depth 6 leaves a point of validation accuracy on the table; capacity should be sized by the val set, not by maximal caution."
+        "rationale": "Underfitting is a real failure too. Depth 6 leaves a point of validation accuracy on the table; size capacity from the val sweep, not from maximal caution."
       },
       {
         "text": "Keep growing depth past 20 until validation recovers.",
         "correct": false,
-        "rationale": "In this sweep validation is falling as capacity grows — the standard overfitting pattern. Betting on an unobserved recovery is hope, not evidence; pick the peak you can see."
+        "rationale": "Validation is falling as capacity grows in this sweep, which is the standard overfitting pattern. Betting on an unobserved recovery is hope, not evidence; pick the peak you can see."
       }
     ],
     "payload": null,
-    "explanation": "Every capacity knob — depth included — eventually buys training fit at validation's expense, so the sweep's job is to find the held-out peak. Choose capacity where validation peaks; training accuracy is a diagnostic, never the selection criterion."
+    "explanation": "Every capacity knob, depth included, eventually buys training fit at validation's expense. The sweep exists to find the held-out peak, which here is depth 12 at 90%; training accuracy is a diagnostic, never the selection criterion."
   },
   {
     "track": "ml",
@@ -3407,7 +3407,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "generalization",
     "kind": "mcq",
     "difficulty": 3,
-    "scenario": "You're sweeping the width of a neural ranking model for your recommender. Test error falls, then rises as the model approaches the width where it can exactly fit the training set — then, as you keep widening past that point, test error starts falling again. A teammate declares the sweep bugged: 'past the sweet spot, test error can only go up.'",
+    "scenario": "You're sweeping the width of a neural ranking model for your recommender. Test error falls, then rises as the model approaches the width where it can exactly fit the training set. Keep widening past that point and test error starts falling again. A teammate declares the sweep bugged: 'past the sweet spot, test error can only go up.'",
     "prompt": "Is the second descent a bug?",
     "choices": [
       {
@@ -3418,7 +3418,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Yes — the U-curve is a law; capacity beyond the sweet spot always hurts test error.",
         "correct": false,
-        "rationale": "The U-curve is an intuition from the underparameterized regime, not a law. Deep networks routinely exhibit a second descent past the interpolation threshold."
+        "rationale": "The U-curve is an intuition from the underparameterized regime rather than a law. Deep networks routinely exhibit a second descent past the interpolation threshold."
       },
       {
         "text": "It's test-set leakage — test error improving at higher capacity is only possible if the model saw the test data.",
@@ -3428,11 +3428,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "The first rise was the bug — bigger models are simply always better, so error should fall monotonically.",
         "correct": false,
-        "rationale": "The rise near the interpolation threshold is also real and well documented. Neither monotonic story — 'always worse past the peak' or 'always better with size' — matches the observed curve."
+        "rationale": "The rise near the interpolation threshold is also real and well documented. Neither monotonic story ('always worse past the peak', 'always better with size') matches the observed curve."
       }
     ],
     "payload": null,
-    "explanation": "Both the rise and the second fall are real: double descent is the known exception to the U-curve once models cross the interpolation threshold. Intuitions are summaries of a regime, not laws — check which regime you're in before calling the data wrong."
+    "explanation": "Both the rise and the second fall are real: double descent is the known exception to the U-curve once models cross the interpolation threshold. Rerun with a couple of seeds to be sure, then check which regime you're in before calling the data wrong."
   },
   {
     "track": "ml",
@@ -3465,7 +3465,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "On 1%-positive data the do-nothing baseline scores exactly 99%, so 99% accuracy is indistinguishable from catching nothing. Accuracy without a baseline is a number without a meaning."
+    "explanation": "On 1%-positive data the do-nothing baseline scores exactly 99%, so 99% accuracy is indistinguishable from catching nothing. Pull up precision and recall on the fraud class before anyone books the launch party; the number to beat is 99%."
   },
   {
     "track": "ml",
@@ -3484,7 +3484,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Nothing — 90 correct out of 100 flags is 90%, exactly as stated.",
         "correct": false,
-        "rationale": "The arithmetic on the flags is right, but the claim is about urgent cases caught — and that denominator is 180, not 100. Caught fraction is 90/180 = 50%."
+        "rationale": "The arithmetic on the flags is right, but the claim is about urgent cases caught, and that denominator is 180, not 100. Caught fraction is 90/180 = 50%."
       },
       {
         "text": "The model missed only 10 urgent patients — the 10 incorrect flags.",
@@ -3498,7 +3498,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Precision is about your alarms; recall is about the world's positives — here 90% and 50% respectively, and the 90 unflagged urgent patients live in the difference. Always ask which denominator a percentage stands on."
+    "explanation": "Precision grades your alarms; recall grades the world's positives. Here they read 90% and 50%, and the 90 unflagged urgent patients live in the difference, so ask which denominator a percentage stands on before it reaches a dashboard."
   },
   {
     "track": "ml",
@@ -3506,13 +3506,13 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "evaluation",
     "kind": "mcq",
     "difficulty": 3,
-    "scenario": "A teammate refactors your demand-forecasting pipeline and validation RMSE improves from 12.4 to 11.1. Reading the diff, you notice the refactor now standardizes each feature using the mean and standard deviation of the full dataset — computed before the train/validation split — where the old code fit the scaler on training rows only.",
+    "scenario": "A teammate refactors your demand-forecasting pipeline and validation RMSE improves from 12.4 to 11.1. Reading the diff, you notice the refactor now standardizes each feature using the mean and standard deviation of the full dataset, computed before the train/validation split, where the old code fit the scaler on training rows only.",
     "prompt": "How do you read the improvement?",
     "choices": [
       {
         "text": "As leakage, not learning — the scaler now carries validation-period statistics into training-time preprocessing. Refit the scaler on training data only and re-measure before believing any of the 1.3-point gain.",
         "correct": true,
-        "rationale": "Normalizing on the full dataset before splitting leaks the validation set's distribution — in a forecasting problem, the future — into features the model trains on. The improvement is contamination until proven otherwise."
+        "rationale": "Normalizing on the full dataset before splitting leaks the validation set's distribution (in a forecasting problem, the future) into features the model trains on. The improvement is contamination until proven otherwise."
       },
       {
         "text": "As a real gain — normalization is just preprocessing, and preprocessing can't leak because it never touches the labels.",
@@ -3522,16 +3522,16 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Peeking at validation data during preprocessing is harmless as long as you never train on the val rows themselves.",
         "correct": false,
-        "rationale": "Treating a val-set peek as free is the reflex that quietly corrupts benchmarks. Every use of validation information — even through a humble mean — spends its independence."
+        "rationale": "Treating a val-set peek as free is the reflex that quietly corrupts benchmarks. Every use of validation information, even through a humble mean, spends its independence."
       },
       {
         "text": "Rerun with several random seeds and report the best RMSE to confirm the improvement is real.",
         "correct": false,
-        "rationale": "Cherry-picking the best seed manufactures improvement out of noise — it compounds the problem rather than testing the leakage hypothesis."
+        "rationale": "Cherry-picking the best seed manufactures improvement out of noise; it compounds the problem rather than testing the leakage hypothesis."
       }
     ],
     "payload": null,
-    "explanation": "A metric is only as honest as its setup: any statistic that flows from evaluation data into the training pipeline buys score without buying skill. Fit every transform on training data only, then apply it to the rest."
+    "explanation": "A metric is only as honest as its setup: any statistic that flows from evaluation data into the training pipeline buys score without buying skill. Refit the scaler on training rows only and re-measure; until then, the 1.3-point gain is contamination on the books."
   },
   {
     "track": "ml",
@@ -3564,7 +3564,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "The learning rate trades speed against stability, and loss diverging right after an increase means you bought neither. A loss curve's cliff into NaN is a diagnosis, not a mystery — suspect the knob that just moved."
+    "explanation": "The learning rate trades speed against stability, and loss diverging right after an increase means you bought neither. Revert the rate and creep it back up with warmup if you need the speed; a cliff into NaN right after a knob moves is the knob confessing."
   },
   {
     "track": "ml",
@@ -3583,12 +3583,12 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Double it — a flat loss means the optimizer needs more energy.",
         "correct": false,
-        "rationale": "Cranking the rate because loss stopped falling is the reflex, but late in training bigger steps bounce harder around the minimum — or diverge. A larger rate answers a different problem: loss that never started falling."
+        "rationale": "Cranking the rate because loss stopped falling is the reflex, but late in training bigger steps bounce harder around the minimum, or diverge outright. A larger rate answers a different problem: loss that never started falling."
       },
       {
         "text": "Neither — a plateau means the model has extracted everything; stop training.",
         "correct": false,
-        "rationale": "Maybe — but a cheap decay distinguishes 'converged' from 'stuck bouncing.' Stopping without running the test leaves loss on the table."
+        "rationale": "Maybe, but a cheap decay distinguishes 'converged' from 'stuck bouncing.' Stopping without running the test leaves loss on the table."
       },
       {
         "text": "Keep the rate and add more epochs — more training is more learning.",
@@ -3597,7 +3597,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Training is a dynamical system: a late plateau is usually a step-size symptom, not an intelligence ceiling. Learning-rate decay is the diagnostic that doubles as the cure."
+    "explanation": "A late plateau is usually a step-size symptom rather than an intelligence ceiling. Cut the rate and watch a couple of epochs: a drop means the plateau was step size, a flat line means the model really has converged at 0.52. The cut is the diagnostic that doubles as the cure."
   },
   {
     "track": "ml",
@@ -3605,13 +3605,13 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "optimization",
     "kind": "mcq",
     "difficulty": 3,
-    "scenario": "At epoch 60 — exactly when your vision model's schedule cuts the learning rate from 0.1 to 0.01 — training loss falls off a cliff, 0.48 to 0.35 in two epochs, after weeks of slow decline. A teammate posts: 'Breakthrough — the model finally understood the task. Next run, cut the rate at epoch 20 and get the breakthrough sooner.'",
+    "scenario": "At epoch 60, exactly when your vision model's schedule cuts the learning rate from 0.1 to 0.01, training loss falls off a cliff, 0.48 to 0.35 in two epochs, after weeks of slow decline. A teammate posts: 'Breakthrough. The model finally understood the task. Next run, cut the rate at epoch 20 and get the breakthrough sooner.'",
     "prompt": "What's the right read?",
     "choices": [
       {
         "text": "The cliff is the schedule, not an epiphany — smaller steps let the model settle into the basin it was already orbiting. Cutting much earlier shortens the exploration phase and usually lands somewhere worse, not at the same cliff sooner.",
         "correct": true,
-        "rationale": "The drop coincides with the decay because the decay causes it. The high-rate phase does the searching; decay cashes it in. Moving the cut is a real experiment worth running — but expect a tradeoff, not a free 40-epoch discount."
+        "rationale": "The drop coincides with the decay because the decay causes it. The high-rate phase does the searching; decay cashes it in. Moving the cut is a real experiment worth running, just don't expect a free 40-epoch discount."
       },
       {
         "text": "It's a genuine phase change — the model 'got it,' and the timing with the schedule is coincidence.",
@@ -3630,7 +3630,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "A loss curve's shape is a diagnosis: a cliff at a decay boundary means step size was the binding constraint, and the high-rate phase was buying exploration, not wasting time. Attribute changes to the knob that moved."
+    "explanation": "A loss curve's shape is a diagnosis: a cliff at a decay boundary means step size was the binding constraint, and the high-rate phase was buying exploration rather than wasting time. Move the cut to epoch 20 if you like, but log it as an experiment; the 40 epochs you'd skip were doing work."
   },
   {
     "track": "ml",
@@ -3654,7 +3654,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Keep training — more rounds is more learning, and validation will come back down.",
         "correct": false,
-        "rationale": "Once validation turns upward while training keeps falling, further rounds are memorization. Three hundred rounds of steady climb is the ordinary overfitting signature, not a dip before recovery."
+        "rationale": "Once validation turns upward while training keeps falling, further rounds are memorization. Three hundred rounds of steady climb is the ordinary overfitting signature; a dip before recovery would have shown itself long before now."
       },
       {
         "text": "Retrain from scratch for exactly 200 rounds — checkpoints are unreliable.",
@@ -3663,7 +3663,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Early stopping trades the last drops of training fit for the best held-out score — you ship the validation minimum, not the training minimum. The leash costs training accuracy and buys you the test set."
+    "explanation": "Early stopping trades the last drops of training fit for the best held-out score. Ship the round-200 checkpoint, the validation minimum; the 300 rounds after it were the model fitting noise on your compute bill."
   },
   {
     "track": "ml",
@@ -3692,11 +3692,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "You are — because dropout eventually raises training accuracy too, once the model adapts.",
         "correct": false,
-        "rationale": "Wrong mechanism: dropout and weight decay typically keep training accuracy lower for good. The win is on held-out data, not a delayed training-set payoff."
+        "rationale": "Wrong mechanism: dropout and weight decay typically keep training accuracy lower for good. The win lives on held-out data; there's no delayed training-set payoff coming."
       }
     ],
     "payload": null,
-    "explanation": "Regularization is deliberately fitting worse to generalize better — here 4 training points bought 4 validation points and halved the gap. Judge the leash by the held-out score it buys, never by the training accuracy it costs."
+    "explanation": "Regularization is deliberately fitting worse to generalize better: here 4 training points bought 4 validation points and cut the gap from 15 to 7. Judge the leash by the held-out score it buys, never by the training accuracy it costs."
   },
   {
     "track": "ml",
@@ -3704,13 +3704,13 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "regularization",
     "kind": "mcq",
     "difficulty": 3,
-    "scenario": "Your demand-forecasting team ships a linear model trained by gradient descent with early stopping tuned on validation. A reviewer demands you add an L2 penalty as well: 'Early stopping is a hack; L2 is principled regularization — use both, and the more the safer.'",
+    "scenario": "Your demand-forecasting team ships a linear model trained by gradient descent with early stopping tuned on validation. A reviewer demands you add an L2 penalty as well: 'Early stopping is a hack; L2 is principled regularization. Use both, and the more the safer.'",
     "prompt": "What's the sharpest response?",
     "choices": [
       {
         "text": "For this model they're close substitutes — early stopping bounds how far weights travel from initialization much as L2 pulls them toward zero. Either leash, sized on validation, does the job; stacking both means re-tuning to the same effective constraint, and tightening past the validation optimum is underfitting, not safety.",
         "correct": true,
-        "rationale": "For linear models under gradient descent, early stopping approximately implements L2 regularization — two knobs on the same fit-versus-complexity dial. What matters is the validated tightness of the leash, not the count of mechanisms."
+        "rationale": "For linear models under gradient descent, early stopping approximately implements L2 regularization: two knobs on the same fit-versus-complexity dial. What matters is the validated tightness of the leash, not how many mechanisms supply it."
       },
       {
         "text": "The reviewer is right — L2 is mathematically principled, early stopping is an engineering hack, and combining them doubles the protection.",
@@ -3720,7 +3720,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "The reviewer is wrong because early stopping isn't regularization at all — it's just a compute saver.",
         "correct": false,
-        "rationale": "Stopping before convergence constrains effective capacity, which is precisely what regularization does. The compute saving is a bonus, not the mechanism."
+        "rationale": "Stopping before convergence constrains effective capacity, which is precisely what regularization does. The compute saving is a side benefit rather than the mechanism."
       },
       {
         "text": "More regularization is always safer — a model can't be over-regularized.",
@@ -3729,7 +3729,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Different regularizers are often interchangeable currencies for the same purchase — less effective capacity — so you size the total leash on validation rather than stacking mechanisms for comfort. Over-regularizing fails just as surely as under-regularizing, only on the other side of the curve."
+    "explanation": "Different regularizers often buy the same thing, less effective capacity, so you size the total leash on validation instead of stacking mechanisms for comfort. Over-regularizing fails just as surely as under-regularizing, only on the other side of the curve."
   },
   {
     "track": "ml",
@@ -3743,12 +3743,12 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Retrieval — the model is missing knowledge, not skill. Ground its answers in the current pricing docs at answer time; it already knows how to answer, it just doesn't know the facts.",
         "correct": true,
-        "rationale": "A knowledge gap is retrieval-shaped: the failure is stale facts, and feeding current documents into the context fixes it directly — and keeps fixing it the next time pricing changes."
+        "rationale": "A knowledge gap is retrieval-shaped: the failure is stale facts, and feeding current documents into the context fixes it directly. It keeps fixing it the next time pricing changes, too."
       },
       {
         "text": "Finetune on support transcripts — tuning is the strongest intervention, so it fixes the most.",
         "correct": false,
-        "rationale": "'Finetune it' is the reflex, but finetuning teaches style and format far more reliably than it stores fresh facts — and next month's pricing change puts you right back here."
+        "rationale": "'Finetune it' is the reflex, but finetuning teaches style and format far more reliably than it stores fresh facts. Next month's pricing change would put you right back here."
       },
       {
         "text": "Raise the temperature so the bot explores beyond its confident wrong answer.",
@@ -3762,7 +3762,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "The interventions form a ladder of rising cost and control, and the judgment is matching the rung to the failure: knowledge gaps want retrieval, format and style gaps want tuning. Finetuning is not a mechanism for keeping facts fresh."
+    "explanation": "The interventions form a ladder of rising cost and control, and the job is matching the rung to the failure: knowledge gaps want retrieval, format and style gaps want tuning. Wire the current pricing docs into the context and save the tuning budget for a failure it can actually fix."
   },
   {
     "track": "ml",
@@ -3770,7 +3770,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "llm_tuning",
     "kind": "mcq",
     "difficulty": 2,
-    "scenario": "Your LLM assistant's eval suite scored 71 last week at temperature 0. A colleague re-runs it today — same model, same prompts — at temperature 0.9 and gets 74. Three more re-runs at 0.9 score 69, 71, and 74. The colleague wants to report 74.",
+    "scenario": "Your LLM assistant's eval suite scored 71 last week at temperature 0. A colleague re-runs it today (same model, same prompts) at temperature 0.9 and gets 74. Three more re-runs at 0.9 score 69, 71, and 74. The colleague wants to report 74.",
     "prompt": "What did the temperature change actually do?",
     "choices": [
       {
@@ -3781,17 +3781,17 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "It improved the model — 74 beats 71, so report the gain.",
         "correct": false,
-        "rationale": "Same weights, same prompts — nothing about the model changed. A delta smaller than the run-to-run spread (69 to 74) is noise, not signal."
+        "rationale": "Same weights, same prompts: nothing about the model changed. A delta smaller than the run-to-run spread (69 to 74) is noise, not signal."
       },
       {
         "text": "Report the best of the re-runs — the maximum shows the model's true capability.",
         "correct": false,
-        "rationale": "Cherry-picking the best run is p-hacking the eval: with enough draws from noise, some run always looks better. Max-of-N measures your luck, not your model."
+        "rationale": "Cherry-picking the best run is p-hacking the eval: with enough draws from noise, some run always looks better. Max-of-N measures your luck rather than your model."
       },
       {
         "text": "Temperature 0.9 makes the model more creative, and the eval is now rewarding that creativity.",
         "correct": false,
-        "rationale": "Perhaps on some tasks — but a 5-point spread across identical runs says the movement here is variance. You can't credit creativity for a difference that fits inside the noise."
+        "rationale": "Perhaps on some tasks, but a 5-point spread across identical runs says the movement here is variance. You can't credit creativity for a difference that fits inside the noise."
       }
     ],
     "payload": null,
@@ -3803,7 +3803,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "llm_tuning",
     "kind": "mcq",
     "difficulty": 3,
-    "scenario": "You LoRA-tune your support bot — rank 8 on 4,096-dim layers, so about 2 × 8 × 4,096 = 65,536 trainable parameters per adapted matrix pair, roughly 0.39% of the 16.7M in a full weight matrix — on 5,000 historical support transcripts. Your eval score jumps from 62 to 89. Then you notice the eval set is a random sample of those same 5,000 transcripts.",
+    "scenario": "You LoRA-tune your support bot (rank 8 on 4,096-dim layers, so about 2 × 8 × 4,096 = 65,536 trainable parameters per adapted matrix pair, roughly 0.39% of the 16.7M in a full weight matrix) on 5,000 historical support transcripts. Your eval score jumps from 62 to 89. Then you notice the eval set is a random sample of those same 5,000 transcripts.",
     "prompt": "What does the 89 mean?",
     "choices": [
       {
@@ -3824,11 +3824,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "LoRA trains only 0.39% of each matrix, far too few parameters to memorize transcripts — the score is clean.",
         "correct": false,
-        "rationale": "65,536 parameters per adapted pair, across dozens of layers, is millions of trainable weights — ample to store the patterns of 5,000 transcripts. Small relative to the base model is not small in absolute terms."
+        "rationale": "65,536 parameters per adapted pair, across dozens of layers, is millions of trainable weights: ample to store the patterns of 5,000 transcripts. Small relative to the base model is not small in absolute terms."
       }
     ],
     "payload": null,
-    "explanation": "A tuned model's eval only measures generalization if the model couldn't have memorized its way to the score — even a 0.39%-sized adapter can. Held out means held out of tuning, not just held out of pretraining."
+    "explanation": "A tuned model's eval only measures generalization if the model couldn't have memorized its way to the score, and even a 0.39%-sized adapter can. Rebuild the eval from transcripts the adapter never saw, then find out what the 89 is really worth."
   },
   {
     "track": "ml",
@@ -3836,7 +3836,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "scaling_laws",
     "kind": "mcq",
     "difficulty": 1,
-    "scenario": "Your legal-tech team has 2,000 labeled contracts and a transformer classifier that scores 98% training / 74% validation accuracy. An engineer proposes the fix: 'Scale it — 10x the parameters.'",
+    "scenario": "Your legal-tech team has 2,000 labeled contracts and a transformer classifier that scores 98% training / 74% validation accuracy. An engineer proposes the fix: 'Scale it. 10x the parameters.'",
     "prompt": "What's wrong with the proposal?",
     "choices": [
       {
@@ -3861,7 +3861,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "Scale helps when the model is too small for its data; this model already swallows its data whole, so added capacity buys memorization, not accuracy. Find the binding constraint — parameters, data, or compute — before spending on any of them."
+    "explanation": "Scale helps when the model is too small for its data; this one already swallows its 2,000 contracts whole, so added capacity buys memorization, not accuracy. Find the binding constraint (parameters, data, or compute) before spending on any of them; here it's labeled data."
   },
   {
     "track": "ml",
@@ -3880,21 +3880,21 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "24M pairs — each 8M of new data has been buying 0.05, so one more 8M buys the next.",
         "correct": false,
-        "rationale": "That linearly extrapolates a log-linear trend. The first 0.05 cost 4M new pairs and the second cost 8M — the increments double, they don't stay flat. 24M is only about half a doubling past 16M."
+        "rationale": "That linearly extrapolates a log-linear trend. The first 0.05 cost 4M new pairs and the second cost 8M: the increments double, they don't stay flat. 24M is only about half a doubling past 16M."
       },
       {
         "text": "No amount of data — three nearly flat losses mean the curve has plateaued near 2.25.",
         "correct": false,
-        "rationale": "Three points on a clean per-doubling trend is the opposite of a plateau. Diminishing absolute returns per example is how power laws always look — it isn't a wall."
+        "rationale": "Three points on a clean per-doubling trend is the opposite of a plateau. Diminishing absolute returns per example is how power laws always look, and it isn't a wall."
       },
       {
         "text": "It will keep dropping 0.05 per doubling all the way to zero loss.",
         "correct": false,
-        "rationale": "Power laws bend toward an irreducible-loss floor — the entropy of language no model removes — so even the per-doubling gain eventually shrinks. Extrapolate cautiously, and never to zero."
+        "rationale": "Power laws bend toward an irreducible-loss floor (the entropy of language no model removes), so even the per-doubling gain eventually shrinks. Extrapolate cautiously, and never to zero."
       }
     ],
     "payload": null,
-    "explanation": "Scaling returns are priced per multiplicative step: each equal gain costs double the data, so budget in doublings, not increments. And the curve flattens toward an irreducible floor, not toward zero."
+    "explanation": "Scaling returns are priced per multiplicative step: each equal gain costs double the data, so budget in doublings, not increments. Here the next 0.05 costs 16M fresh pairs, and the curve flattens toward an irreducible floor well before zero."
   },
   {
     "track": "ml",
@@ -3902,7 +3902,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "scaling_laws",
     "kind": "mcq",
     "difficulty": 3,
-    "scenario": "You have a fixed pretraining compute budget for an in-house code model — compute scales with parameters × training tokens, and your budget covers 6B parameters × 30B tokens or 3B parameters × 60B tokens (the same product, 180). The room leans toward Plan A: 'At the same compute, the bigger model wins.'",
+    "scenario": "You have a fixed pretraining compute budget for an in-house code model. Compute scales with parameters × training tokens, and your budget covers 6B parameters × 30B tokens or 3B parameters × 60B tokens (the same product, 180). The room leans toward Plan A: 'At the same compute, the bigger model wins.'",
     "prompt": "Which plan does scaling math favor?",
     "choices": [
       {
@@ -3913,7 +3913,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "A — parameter count determines capability, so at equal compute the bigger model always wins.",
         "correct": false,
-        "rationale": "'Bigger model' is a reflex, not a law. Famous replications showed smaller models trained on more tokens beating larger under-trained ones at identical compute."
+        "rationale": "'Bigger model' is a reflex with counterexamples on the record: famous replications showed smaller models trained on more tokens beating larger under-trained ones at identical compute."
       },
       {
         "text": "They'll perform identically — parameters and tokens trade one-for-one, and the products are equal.",
@@ -3923,11 +3923,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       {
         "text": "Neither — double both parameters and tokens instead.",
         "correct": false,
-        "rationale": "6B × 60B is 360 units — twice the budget you have. The question is how to split fixed compute, and 'spend more' isn't a split."
+        "rationale": "6B × 60B is 360 units, twice the budget you have. The question is how to split fixed compute, and 'spend more' isn't a split."
       }
     ],
     "payload": null,
-    "explanation": "At fixed compute, loss is minimized along a frontier that balances parameters against tokens, and an over-sized under-trained model sits off that frontier. Scale is a strategy with math — and the math frequently says smaller model, more data."
+    "explanation": "At fixed compute, loss is minimized along a frontier that balances parameters against tokens, and an over-sized under-trained model sits off that frontier. Five tokens per parameter is starvation rations; run the frontier math before defaulting to the 6B."
   },
   {
     "track": "ml",
@@ -3935,7 +3935,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "llm_tuning",
     "kind": "payback",
     "difficulty": 1,
-    "scenario": "Your support assistant runs on a 2,400-token mega-prompt (policies, tone guide, examples) and writes ~1,000-token replies at 1 credit per 1k tokens. A finetune would shrink the prompt to 150 tokens — but tuned serving runs on dedicated capacity at 2.0× the per-token price. The training job is quoted at 900,000 credits.",
+    "scenario": "Your support assistant runs on a 2,400-token mega-prompt (policies, tone guide, examples) and writes ~1,000-token replies at 1 credit per 1k tokens. A finetune would shrink the prompt to 150 tokens, but tuned serving runs on dedicated capacity at 2.0× the per-token price. The training job is quoted at 900,000 credits.",
     "prompt": "After how many calls has the finetune paid for itself?",
     "choices": [],
     "payload": {
@@ -3953,7 +3953,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naiveN": 264706,
       "tolDex": 0.15
     },
-    "explanation": "Today a call costs 3.4 credits; the tuned call costs 2.0 × 1.15k = 2.3. The finetune is repaid by that 1.1-credit sliver — not by the 3.4-credit headline bill. Dividing the training cost by the full per-call spend promises payback three times too soon. Fixed costs are repaid by the marginal saving, never by what you were spending before."
+    "explanation": "Today a call costs 3.4 credits; the tuned call costs 2.0 × 1.15k = 2.3. That 1.1-credit sliver is what repays the finetune, and dividing the 900k training bill by the full 3.4-credit spend promises payback three times too soon. Fixed costs get clawed back out of the marginal saving, never out of what you were spending before."
   },
   {
     "track": "ml",
@@ -3961,7 +3961,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "llm_tuning",
     "kind": "payback",
     "difficulty": 2,
-    "scenario": "The code-review bot reads a 1,800-token rubric prompt and writes long, 3,000-token reviews at 1 credit per 1k tokens. A finetune would internalize the rubric (300-token prompt) — on dedicated tuned serving at 1.8× the per-token price. Training is quoted at 600,000 credits.",
+    "scenario": "The code-review bot reads a 1,800-token rubric prompt and writes long, 3,000-token reviews at 1 credit per 1k tokens. A finetune would internalize the rubric (300-token prompt), served on dedicated tuned capacity at 1.8× the per-token price. Training is quoted at 600,000 credits.",
     "prompt": "After how many calls has the finetune paid for itself?",
     "choices": [],
     "payload": {
@@ -3979,7 +3979,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naiveN": 400000,
       "tolDex": 0.15
     },
-    "explanation": "The prompt diet saves 1.5k tokens — but the 1.8× serving premium applies to the whole tuned call, output included, and the output is 3,000 tokens. Tuned calls cost 5.94 credits against 4.8 today: the finetune loses money on every single call, forever. When output dominates the bill, no prompt saving outruns a serving premium — the break-even you computed by ignoring it never arrives."
+    "explanation": "The prompt diet saves 1.5k tokens, but the 1.8× serving premium applies to the whole tuned call, output included, and the output is 3,000 tokens. Tuned calls cost 5.94 credits against 4.8 today: the finetune loses money on every single call, forever. When output dominates the bill, no prompt saving outruns a serving premium, and the break-even you computed by ignoring it never arrives."
   },
   {
     "track": "ml",
@@ -4005,7 +4005,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naiveN": 58333,
       "tolDex": 0.15
     },
-    "explanation": "Calls cost 3.6 credits today and 2.1 tuned — a 1.5-credit marginal saving, so the 210k bill is repaid at 140k calls. Amortizing over the full 3.6-credit headline bill says 58k, more than twice too early. The training bill doesn't care what you spend; it cares what you stop spending."
+    "explanation": "Calls cost 3.6 credits today and 2.1 tuned, a 1.5-credit marginal saving, so the 210k bill is repaid at 140k calls. Amortizing over the full 3.6-credit headline bill says 58k, more than twice too early. The training bill doesn't care what you spend; it cares what you stop spending."
   },
   {
     "track": "ml",
@@ -4013,7 +4013,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "llm_tuning",
     "kind": "payback",
     "difficulty": 2,
-    "scenario": "Today you stuff 6,000 tokens of product docs into every prompt. The proposed finetune bakes the product knowledge in (800-token prompt), served on dedicated capacity at 1.9×. Outputs run ~1,200 tokens at 1 credit per 1k. The training pipeline — data curation included — is quoted at 1,500,000 credits.",
+    "scenario": "Today you stuff 6,000 tokens of product docs into every prompt. The proposed finetune bakes the product knowledge in (800-token prompt), served on dedicated capacity at 1.9×. Outputs run ~1,200 tokens at 1 credit per 1k. The training pipeline (data curation included) is quoted at 1,500,000 credits.",
     "prompt": "After how many calls has the finetune paid for itself?",
     "choices": [],
     "payload": {
@@ -4031,7 +4031,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naiveN": 208333,
       "tolDex": 0.15
     },
-    "explanation": "The stuffed call costs 7.2 credits; the tuned one 1.9 × 2.0k = 3.8. The saving is 3.4 credits — so 1.5M credits is repaid at about 441k calls, not the 208k the headline division promises. The bigger your current bill, the more seductive the wrong denominator: the saving, not the spend, is what repays the build."
+    "explanation": "The stuffed call costs 7.2 credits; the tuned one 1.9 × 2.0k = 3.8. The saving is 3.4 credits, so 1.5M credits comes back at about 441k calls, against the 208k the headline division promises. The bigger your current bill, the more seductive the wrong denominator; only the 3.4-credit saving repays the build."
   },
   {
     "track": "ml",
@@ -4057,7 +4057,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naiveN": 285714,
       "tolDex": 0.15
     },
-    "explanation": "The prompt was never the bill — the 2,500-token output was. Today: 6.8 credits. Tuned: 1.5 × 5.4k = 8.1. The 'saving' is negative 1.3 credits per call; the finetune digs the hole deeper with every summary. Prompt-diet arithmetic that ignores the premium promises a 286k-call payback on a project that can never pay back. Check the sign of the marginal saving before you compute anything else."
+    "explanation": "The prompt was never the bill; the 2,500-token output was. Today: 6.8 credits. Tuned: 1.5 × 5.4k = 8.1. The 'saving' is negative 1.3 credits per call, so the finetune digs the hole deeper with every summary. Prompt-diet arithmetic that ignores the premium promises a 286k-call payback on a project that can never pay back. Check the sign of the marginal saving before you compute anything else."
   },
   {
     "track": "ml",
@@ -4083,7 +4083,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naiveN": 60000,
       "tolDex": 0.15
     },
-    "explanation": "Two credits today, 1.5 tuned — the saving is half a credit, so 120k credits takes 240k calls to claw back. The headline division says 60k. For a triage bot doing a few hundred calls a day, the difference between those two answers is the difference between 'pays back this year' and 'pays back in four' — the marginal saving decides which quarter the CFO hears about."
+    "explanation": "Two credits today, 1.5 tuned: the saving is half a credit, so 120k credits takes 240k calls to claw back. The headline division says 60k. For a triage bot doing a few hundred calls a day, that is the gap between 'pays back this year' and 'pays back in four', and the marginal saving decides which quarter the CFO hears about."
   },
   {
     "track": "ml",
@@ -4109,7 +4109,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naiveN": 388889,
       "tolDex": 0.15
     },
-    "explanation": "The prompt shrinks by 1.8k tokens, and dividing 700k by that saving alone promises payback at 389k calls. But the 1.6× premium taxes the whole tuned call: 2.88 credits against 3.6 today, a true saving of 0.72 — break-even at 972k calls, two and a half times later. The premium doesn't cancel the saving here; it quietly halves it, and every premium-blind forecast lands a quarter early."
+    "explanation": "The prompt shrinks by 1.8k tokens, and dividing 700k by that saving alone promises payback at 389k calls. But the 1.6× premium taxes the whole tuned call: 2.88 credits against 3.6 today, a true saving of 0.72, so break-even arrives at 972k calls, two and a half times later. The premium doesn't cancel the saving here; it shrinks the 1.8-credit prompt saving to 0.72, and every premium-blind forecast lands a quarter early."
   },
   {
     "track": "ml",
@@ -4117,7 +4117,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "llm_tuning",
     "kind": "payback",
     "difficulty": 1,
-    "scenario": "A moderation filter reads an 800-token policy prompt and returns 100-token verdicts at 1 credit per 1k tokens. The finetuned filter needs a 100-token prompt but — at your volume — dedicated serving costs 3.0×. Training quote: 90,000 credits.",
+    "scenario": "A moderation filter reads an 800-token policy prompt and returns 100-token verdicts at 1 credit per 1k tokens. The finetuned filter needs a 100-token prompt, but at your volume dedicated serving costs 3.0×. Training quote: 90,000 credits.",
     "prompt": "After how many calls has the finetune paid for itself?",
     "choices": [],
     "payload": {
@@ -4135,7 +4135,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naiveN": 100000,
       "tolDex": 0.15
     },
-    "explanation": "0.9 credits today, 0.6 tuned: the 3× premium on a tiny tuned call still undercuts the policy-prompt bill, and the 0.3-credit saving repays 90k credits at 300k calls. The headline division says 100k — three times too soon. Small numbers don't change the law: the denominator is the saving."
+    "explanation": "0.9 credits today, 0.6 tuned: the 3× premium on a tiny tuned call still undercuts the policy-prompt bill, and the 0.3-credit saving repays 90k credits at 300k calls. The headline division says 100k, three times too soon. Small numbers don't change the arithmetic; the denominator is still the 0.3-credit saving."
   },
   {
     "track": "statistics",
@@ -4156,7 +4156,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "hi": 46
       }
     },
-    "explanation": "This teaches margin of error: a sample rate is an estimate, not the exact truth. With n=400 the standard error is about 2.5 percentage points, so a 90% interval spans roughly the sample value plus or minus 4 points. Sampling error shrinks with the square root of n, so bigger samples earn tighter bands."
+    "explanation": "A sample rate is an estimate with a margin of error, and the margin is calculable. With n=400 the standard error is about 2.5 percentage points, so a 90% interval spans roughly the sample value plus or minus 4 points. Sampling error shrinks with the square root of n; larger samples earn tighter bands."
   },
   {
     "track": "statistics",
@@ -4198,7 +4198,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "hi": 38
       }
     },
-    "explanation": "This teaches small-n volatility: with only 25 observations the standard error is about 8.5 percentage points, giving a 90% margin near 14 points. A rate from a handful of cases carries huge uncertainty, so the honest band is very wide even though the point estimate looks specific."
+    "explanation": "Small-n volatility: with only 25 observations the standard error is about 8.5 percentage points, giving a 90% margin near 14 points. A rate built on six cases carries that much uncertainty, however specific the 24% looks."
   },
   {
     "track": "statistics",
@@ -4219,7 +4219,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "hi": 8
       }
     },
-    "explanation": "This teaches regression to the mean: an extreme reading is usually part luck, so the next value tends to fall back toward the long-run average rather than repeat the extreme. Center your estimate nearer the 5% mean than the 9% spike, and keep the interval wide because a noisy metric will keep bouncing."
+    "explanation": "Regression to the mean: an extreme reading is usually part luck, and the next value tends to fall back toward the long-run average rather than repeat the extreme. Center the estimate nearer the 5% mean than the 9% spike, and keep the interval wide; a noisy metric keeps bouncing."
   },
   {
     "track": "statistics",
@@ -4240,7 +4240,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "hi": 52
       }
     },
-    "explanation": "Regression to the mean again: a single hot game reflects the player's true ability plus random variation, so tonight's expected value sits close to the 44% season average, not the 55% peak. Single-game percentages are noisy, so the honest interval stays wide even as it centers near the baseline."
+    "explanation": "Regression to the mean again: a single hot game reflects the player's true ability plus random variation, so tonight's expected value sits close to the 44% season average rather than the 55% peak. Single-game percentages are noisy; the interval stays wide even as it centers near the baseline."
   },
   {
     "track": "statistics",
@@ -4261,7 +4261,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "hi": 14
       }
     },
-    "explanation": "This teaches base-rate neglect: because the disease is rare, most positives come from the huge healthy majority. Bayes' rule gives 0.9 x 1% / (0.9 x 1% + 9% x 99%), which is about 9%, far below the test's accuracy. When the base rate is tiny, a positive result usually still means low probability."
+    "explanation": "Base-rate neglect: because the disease is rare, most positives come from the large healthy majority. Bayes' rule gives 0.9 x 1% / (0.9 x 1% + 9% x 99%), about 9%, far below the test's accuracy. A positive result against a tiny base rate still means a low probability."
   },
   {
     "track": "statistics",
@@ -4282,7 +4282,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "hi": 20
       }
     },
-    "explanation": "This teaches how base rates dominate alerts: with fraud at only 0.5%, the flood of legitimate transactions produces many false alarms. Bayes gives 0.95 x 0.5% / (0.95 x 0.5% + 3% x 99.5%), about 14%. Even a fairly accurate detector yields mostly false positives when the underlying event is rare."
+    "explanation": "Base rates dominate alerts: with fraud at only 0.5%, the flood of legitimate transactions produces most of the flags. Bayes gives 0.95 x 0.5% / (0.95 x 0.5% + 3% x 99.5%), about 14%. A fairly accurate detector still yields mostly false positives when the underlying event is rare."
   },
   {
     "track": "statistics",
@@ -4303,7 +4303,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "hi": 18
       }
     },
-    "explanation": "This teaches confounding: a raw association mixes the effect of interest with the effects of other correlated factors, so the observed 30% overstates coffee's own contribution. The honest causal estimate is much smaller and its interval stays wide, reaching near zero, because we cannot fully separate coffee from the healthier habits of its drinkers."
+    "explanation": "Confounding: the raw association mixes coffee's effect with exercise and non-smoking, so the observed 30% overstates coffee's own contribution. The defensible causal estimate is much smaller, and its interval stays wide and reaches near zero; the data cannot fully separate coffee from the healthier habits of its drinkers."
   },
   {
     "track": "statistics",
@@ -4324,7 +4324,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "hi": 64
       }
     },
-    "explanation": "This teaches that a pooled rate depends on the subgroup mix: weighting gives 0.6 x 70% + 0.4 x 40% = 58%, not a simple average of 55%. Because the projected mix and each segment's rate carry their own uncertainty, the honest interval widens around that weighted estimate rather than treating 58% as exact."
+    "explanation": "A pooled rate depends on the subgroup mix: weighting gives 0.6 x 70% + 0.4 x 40% = 58%, while the unweighted average is 55%. The projected mix and each segment's rate carry their own uncertainty, so the interval widens around the weighted 58% rather than treating it as exact."
   },
   {
     "track": "statistics",
@@ -4332,7 +4332,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "variation",
     "kind": "estimate",
     "difficulty": 2,
-    "scenario": "A call-center agent handled 92 calls yesterday — well above the team average of 70. Staffing wants to predict her output for an average day next week.",
+    "scenario": "A call-center agent handled 92 calls yesterday, well above the team average of 70. Staffing wants to predict her output for an average day next week.",
     "prompt": "Place your best estimate and a 90% interval for her typical daily calls next week.",
     "choices": [],
     "payload": {
@@ -4345,7 +4345,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "hi": 82
       }
     },
-    "explanation": "Regression to the mean: an unusually high day is part skill, part luck, and the luck won't repeat. Expect her to stay above average but drift back toward it — not to hold 92. Extremes are the observations most contaminated by noise."
+    "explanation": "Regression to the mean: an unusually high day is part skill, part luck, and the luck does not repeat. Extremes are the observations most contaminated by noise, so expect her to stay above the 70-call average without holding 92."
   },
   {
     "track": "statistics",
@@ -4387,7 +4387,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "hi": 5
       }
     },
-    "explanation": "A 3-point observed lift on n=1,000/arm has a wide confidence interval that likely includes zero — the result may not be significant. An honest band spans from a small negative to a mid-single-digit positive, not a confident '3% better'."
+    "explanation": "A 3-point observed lift on n=1,000/arm has a wide confidence interval that likely includes zero; the result may not even be significant. An honest band runs from a small negative to a mid-single-digit positive rather than a confident '3% better'."
   },
   {
     "track": "statistics",
@@ -4395,7 +4395,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "association",
     "kind": "estimate",
     "difficulty": 3,
-    "scenario": "In a large class, taller students scored slightly higher on a test — the correlation between height and score was r = 0.30.",
+    "scenario": "In a large class, taller students scored slightly higher on a test; the correlation between height and score was r = 0.30.",
     "prompt": "Place your best estimate and a 90% interval for the % of test-score variance that height explains.",
     "choices": [],
     "payload": {
@@ -4429,7 +4429,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "hi": 4.3
       }
     },
-    "explanation": "The blended average is weighted by group size, not a simple midpoint of 4.4 and 2.9 (which would be 3.65). Because enterprise users are 80% of the base, the overall lands near 4.1 — aggregation must respect the weights."
+    "explanation": "The blended average is weighted by group size; the simple midpoint of 4.4 and 2.9 would be 3.65. Enterprise users are 80% of the base, so the overall figure lands near 4.1."
   },
   {
     "track": "architecture",
@@ -4463,11 +4463,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both serve sub-10ms key lookups, but the workload is read-heavy with an unforgiving tail, and a B-tree's constant-depth descent keeps p99 flat. The LSM store is excellent engineering for write-heavy ingest, yet its multi-SSTable read path and compaction bursts spike the read tail — the one thing this SLA cannot absorb.",
+      "deskRationale": "Both serve sub-10ms key lookups, but the workload is read-heavy with an unforgiving tail, and a B-tree's constant-depth descent keeps p99 flat. The LSM store is excellent engineering for write-heavy ingest, yet its multi-SSTable read path and compaction bursts spike the read tail, the one thing this SLA cannot absorb.",
       "failureMode": "compaction tail spikes",
-      "alsoFits": "Design B is the right call when the workload flips to write-heavy ingest such as high-volume time-series or event capture, where the LSM's sequential-write throughput outweighs its read-tail jitter."
+      "alsoFits": "Design B wins when the workload flips to write-heavy ingest such as high-volume time-series or event capture, where the LSM's sequential-write throughput outweighs its read-tail jitter."
     },
-    "explanation": "Both serve sub-10ms key lookups, but the workload is read-heavy with an unforgiving tail, and a B-tree's constant-depth descent keeps p99 flat. The LSM store is excellent engineering for write-heavy ingest, yet its multi-SSTable read path and compaction bursts spike the read tail — the one thing this SLA cannot absorb."
+    "explanation": "Both serve sub-10ms key lookups, but the workload is read-heavy with an unforgiving tail, and a B-tree's constant-depth descent keeps p99 flat. The LSM store is excellent engineering for write-heavy ingest, yet its multi-SSTable read path and compaction bursts spike the read tail, the one thing this SLA cannot absorb."
   },
   {
     "track": "architecture",
@@ -4503,7 +4503,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "better": "B",
       "deskRationale": "Both cut bytes scanned versus a row store, but the column set is ad-hoc and unknowable, so a single columnar table prunes to whatever three columns a query names without pre-building anything. Materialized projections scan even less for their exact query, yet they are fragile here: the combinatorial space of column subsets means most ad-hoc queries hit no projection and pipelines balloon.",
       "failureMode": "projection explosion, cold misses",
-      "alsoFits": "Design A is the right call when the query set is small, fixed, and latency-critical — a handful of dashboards hitting the same columns — where a purpose-built projection beats scanning a general columnar table."
+      "alsoFits": "Pick Design A when the query set is small, fixed, and latency-critical (a handful of dashboards hitting the same columns), where a purpose-built projection beats scanning a general columnar table."
     },
     "explanation": "Both cut bytes scanned versus a row store, but the column set is ad-hoc and unknowable, so a single columnar table prunes to whatever three columns a query names without pre-building anything. Materialized projections scan even less for their exact query, yet they are fragile here: the combinatorial space of column subsets means most ad-hoc queries hit no projection and pipelines balloon."
   },
@@ -4539,11 +4539,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both keep features fresh within seconds, but the gate decides inline while the request blocks, and event-at-a-time streaming gives a consistent per-decision latency. Micro-batch is fresh enough as a data cadence, yet coupling a synchronous verdict to a ~15s batch boundary injects latency jitter into the request path — wrong for an inline gate.",
+      "deskRationale": "Both keep features fresh within seconds, but the gate decides inline while the request blocks, and event-at-a-time streaming gives a consistent per-decision latency. Micro-batch is fresh enough as a data cadence, yet coupling a synchronous verdict to a ~15s batch boundary injects latency jitter into the request path. Wrong for an inline gate.",
       "failureMode": "batch-boundary latency jitter",
-      "alsoFits": "Design B is the right call when the fraud signal feeds asynchronous review or alerting rather than an inline block, where a 15-second refresh is ample and the simpler, cheaper batch pipeline wins."
+      "alsoFits": "Design B fits when the fraud signal feeds asynchronous review or alerting rather than an inline block, where a 15-second refresh is ample and the simpler, cheaper batch pipeline wins."
     },
-    "explanation": "Both keep features fresh within seconds, but the gate decides inline while the request blocks, and event-at-a-time streaming gives a consistent per-decision latency. Micro-batch is fresh enough as a data cadence, yet coupling a synchronous verdict to a ~15s batch boundary injects latency jitter into the request path — wrong for an inline gate."
+    "explanation": "Both keep features fresh within seconds, but the gate decides inline while the request blocks, and event-at-a-time streaming gives a consistent per-decision latency. Micro-batch is fresh enough as a data cadence, yet coupling a synchronous verdict to a ~15s batch boundary injects latency jitter into the request path. Wrong for an inline gate."
   },
   {
     "track": "architecture",
@@ -4579,7 +4579,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "better": "A",
       "deskRationale": "Both can hit an hourly target within budget, but with tiny bursty volume and an ops-minimization goal, a scheduled ephemeral job carries almost no standing machinery and makes backfills a re-run. The scale-to-zero stream is legitimately cost-aware, yet its checkpointing, consumer lifecycle, and per-record overhead are ongoing operational weight bought to deliver freshness the requirement never asked for.",
       "failureMode": "ops weight, unused freshness",
-      "alsoFits": "Design B is the right call when freshness tightens toward seconds or volume becomes steady and high, where continuous processing amortizes its overhead and the hourly batch would be too stale."
+      "alsoFits": "Design B earns its keep when freshness tightens toward seconds or volume becomes steady and high, where continuous processing amortizes its overhead and the hourly batch would be too stale."
     },
     "explanation": "Both can hit an hourly target within budget, but with tiny bursty volume and an ops-minimization goal, a scheduled ephemeral job carries almost no standing machinery and makes backfills a re-run. The scale-to-zero stream is legitimately cost-aware, yet its checkpointing, consumer lifecycle, and per-record overhead are ongoing operational weight bought to deliver freshness the requirement never asked for."
   },
@@ -4615,11 +4615,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "B",
-      "deskRationale": "Both answer as-of-date queries correctly, so the decider is storage against a large, rarely-changing dimension. SCD Type 2 stores a row only on an actual change and stays compact, whereas daily snapshots recopy tens of millions of unchanged rows every day — correct, but a storage bill that scales with time rather than with change.",
+      "deskRationale": "Both answer as-of-date queries correctly, so the choice comes down to storage against a large, rarely-changing dimension. SCD Type 2 stores a row only on an actual change and stays compact, whereas daily snapshots recopy tens of millions of unchanged rows every day: correct, but a storage bill that scales with time rather than with change.",
       "failureMode": "snapshot storage blowup",
-      "alsoFits": "Design A is the right call when change rates are high or the priority is bulletproof simplicity and reproducibility — full daily snapshots are easy to audit and trivial to rebuild, and storage is cheap relative to that assurance."
+      "alsoFits": "Design A is the right call when change rates are high or the priority is bulletproof simplicity and reproducibility: full daily snapshots are easy to audit and trivial to rebuild, and storage is cheap relative to that assurance."
     },
-    "explanation": "Both answer as-of-date queries correctly, so the decider is storage against a large, rarely-changing dimension. SCD Type 2 stores a row only on an actual change and stays compact, whereas daily snapshots recopy tens of millions of unchanged rows every day — correct, but a storage bill that scales with time rather than with change."
+    "explanation": "Both answer as-of-date queries correctly, so the choice comes down to storage against a large, rarely-changing dimension. SCD Type 2 stores a row only on an actual change and stays compact, whereas daily snapshots recopy tens of millions of unchanged rows every day: correct, but a storage bill that scales with time rather than with change."
   },
   {
     "track": "architecture",
@@ -4655,7 +4655,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "better": "A",
       "deskRationale": "Both let non-technical analysts self-serve, but the binding pressure is cross-fact consistency of reused dimensions, which a star schema guarantees by defining each dimension once. One-big-table is faster to scan and fine for a single shape, yet duplicating org/product into every table lets definitions drift, so the same metric slices differently across subject areas.",
       "failureMode": "duplicated dims drift",
-      "alsoFits": "Design B is the right call for a single high-traffic dashboard with one fixed query shape, where denormalizing into one wide table removes joins and maximizes scan speed and there is no cross-fact consistency to protect."
+      "alsoFits": "Design B suits a single high-traffic dashboard with one fixed query shape, where denormalizing into one wide table removes joins and maximizes scan speed and there is no cross-fact consistency to protect."
     },
     "explanation": "Both let non-technical analysts self-serve, but the binding pressure is cross-fact consistency of reused dimensions, which a star schema guarantees by defining each dimension once. One-big-table is faster to scan and fine for a single shape, yet duplicating org/product into every table lets definitions drift, so the same metric slices differently across subject areas."
   },
@@ -4691,11 +4691,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "B",
-      "deskRationale": "Plain hashing already balances the uniform tail, so both look even for ordinary keys — but the constraint is a single key at 40% of traffic, and only salting fans that key across shards. Plain hashing routes the entire celebrity load to one shard no matter how many shards exist, saturating it while the rest idle; salting trades a read fan-out for the required balance.",
+      "deskRationale": "Plain hashing already balances the uniform tail, so both look even for ordinary keys. The constraint, though, is a single key at 40% of traffic, and only salting fans that key across shards. Plain hashing routes the entire celebrity load to one shard no matter how many shards exist, saturating it while the rest idle; salting trades a read fan-out for the required balance.",
       "failureMode": "single hot shard",
-      "alsoFits": "Design A is the right call when no single key dominates — a uniformly popular key space — where plain hashing balances perfectly and salting would only add needless scatter-gather on every read."
+      "alsoFits": "Design A holds up when no single key dominates (a uniformly popular key space), where plain hashing balances perfectly and salting would only add needless scatter-gather on every read."
     },
-    "explanation": "Plain hashing already balances the uniform tail, so both look even for ordinary keys — but the constraint is a single key at 40% of traffic, and only salting fans that key across shards. Plain hashing routes the entire celebrity load to one shard no matter how many shards exist, saturating it while the rest idle; salting trades a read fan-out for the required balance."
+    "explanation": "Plain hashing already balances the uniform tail, so both look even for ordinary keys. The constraint, though, is a single key at 40% of traffic, and only salting fans that key across shards. Plain hashing routes the entire celebrity load to one shard no matter how many shards exist, saturating it while the rest idle; salting trades a read fan-out for the required balance."
   },
   {
     "track": "architecture",
@@ -4729,11 +4729,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "B",
-      "deskRationale": "Both are AP designs that stay writable through a partition, so availability alone doesn't separate them — the decider is what happens to concurrent edits on reconvergence. Last-write-wins silently drops one region's adds, violating the no-lost-item rule, whereas a CRDT merges both carts by union; LWW is fine engineering, just not when concurrent writes to one key must all survive.",
+      "deskRationale": "Both are AP designs that stay writable through a partition, so availability alone doesn't separate them; what does is what happens to concurrent edits on reconvergence. Last-write-wins silently drops one region's adds, violating the no-lost-item rule, whereas a CRDT merges both carts by union; LWW is fine engineering, just not when concurrent writes to one key must all survive.",
       "failureMode": "LWW drops concurrent adds",
-      "alsoFits": "Design A is the right call for single-owner, idempotent state such as a user's last-known profile field or device status, where the newest write is authoritative and CRDT merge state would be needless overhead."
+      "alsoFits": "Design A works for single-owner, idempotent state such as a user's last-known profile field or device status, where the newest write is authoritative and CRDT merge state would be needless overhead."
     },
-    "explanation": "Both are AP designs that stay writable through a partition, so availability alone doesn't separate them — the decider is what happens to concurrent edits on reconvergence. Last-write-wins silently drops one region's adds, violating the no-lost-item rule, whereas a CRDT merges both carts by union; LWW is fine engineering, just not when concurrent writes to one key must all survive."
+    "explanation": "Both are AP designs that stay writable through a partition, so availability alone doesn't separate them; what does is what happens to concurrent edits on reconvergence. Last-write-wins silently drops one region's adds, violating the no-lost-item rule, whereas a CRDT merges both carts by union; LWW is fine engineering, just not when concurrent writes to one key must all survive."
   },
   {
     "track": "architecture",
@@ -4767,11 +4767,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both prevent double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require — real latency and operational tax for no added correctness here.",
+      "deskRationale": "Both prevent double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require: real latency and operational tax for no added correctness here.",
       "failureMode": "needless 2PC overhead",
-      "alsoFits": "Design B is the right call when the sink cannot dedupe — a non-idempotent target or multi-row side effects per message — where transactional exactly-once is the only way to avoid partial or duplicated writes."
+      "alsoFits": "Design B becomes necessary when the sink cannot dedupe (a non-idempotent target or multi-row side effects per message), where transactional exactly-once is the only way to avoid partial or duplicated writes."
     },
-    "explanation": "Both prevent double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require — real latency and operational tax for no added correctness here."
+    "explanation": "Both prevent double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require: real latency and operational tax for no added correctness here."
   },
   {
     "track": "architecture",
@@ -4805,11 +4805,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both key on event time, so both ultimately count correctly — the decider is delivering correct counts promptly and continuously to a live dashboard. Event-time streaming with a 10-minute watermark emits each window once, correct and bounded, whereas batch recompute is correct but coarse and lagging, re-scanning history on a schedule rather than settling each minute as its lateness window expires.",
+      "deskRationale": "Both key on event time, so both ultimately count correctly. What matters here is delivering correct counts promptly and continuously to a live dashboard. Event-time streaming with a 10-minute watermark emits each window once, correct and bounded, whereas batch recompute is correct but coarse and lagging, re-scanning history on a schedule rather than settling each minute as its lateness window expires.",
       "failureMode": "lagging coarse corrections",
-      "alsoFits": "Design B is the right call when the counts feed daily reporting rather than a live view, where a warehouse batch that reprocesses late data on a schedule is simpler and the streaming watermark machinery isn't worth operating."
+      "alsoFits": "Design B makes sense when the counts feed daily reporting rather than a live view, where a warehouse batch that reprocesses late data on a schedule is simpler and the streaming watermark machinery isn't worth operating."
     },
-    "explanation": "Both key on event time, so both ultimately count correctly — the decider is delivering correct counts promptly and continuously to a live dashboard. Event-time streaming with a 10-minute watermark emits each window once, correct and bounded, whereas batch recompute is correct but coarse and lagging, re-scanning history on a schedule rather than settling each minute as its lateness window expires."
+    "explanation": "Both key on event time, so both ultimately count correctly. What matters here is delivering correct counts promptly and continuously to a live dashboard. Event-time streaming with a 10-minute watermark emits each window once, correct and bounded, whereas batch recompute is correct but coarse and lagging, re-scanning history on a schedule rather than settling each minute as its lateness window expires."
   },
   {
     "track": "architecture",
@@ -4843,11 +4843,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "B",
-      "deskRationale": "Both cut scan bytes for date-filtered queries, so cost alone doesn't separate them — the decider is the mixed predicate plus the small-file history. Clustering with min/max data skipping prunes on both date and tenant and keeps file sizes healthy, whereas date partitioning prunes only the date and, if made granular enough to help, recreates the tiny-file problem the team already hit.",
+      "deskRationale": "Both cut scan bytes for date-filtered queries, so cost alone doesn't separate them. What decides it is the mixed predicate plus the small-file history. Clustering with min/max data skipping prunes on both date and tenant and keeps file sizes healthy, whereas date partitioning prunes only the date and, if made granular enough to help, recreates the tiny-file problem the team already hit.",
       "failureMode": "single-column prune, tiny files",
-      "alsoFits": "Design A is the right call when queries filter on date alone and each day is a healthy file size — plain date partitioning is the simplest, most predictable pruning and needs no clustering discipline on write."
+      "alsoFits": "Design A stays the simpler choice when queries filter on date alone and each day is a healthy file size: plain date partitioning is the most predictable pruning and needs no clustering discipline on write."
     },
-    "explanation": "Both cut scan bytes for date-filtered queries, so cost alone doesn't separate them — the decider is the mixed predicate plus the small-file history. Clustering with min/max data skipping prunes on both date and tenant and keeps file sizes healthy, whereas date partitioning prunes only the date and, if made granular enough to help, recreates the tiny-file problem the team already hit."
+    "explanation": "Both cut scan bytes for date-filtered queries, so cost alone doesn't separate them. What decides it is the mixed predicate plus the small-file history. Clustering with min/max data skipping prunes on both date and tenant and keeps file sizes healthy, whereas date partitioning prunes only the date and, if made granular enough to help, recreates the tiny-file problem the team already hit."
   },
   {
     "track": "architecture",
@@ -4881,11 +4881,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "B",
-      "deskRationale": "Both separate storage from compute, so both let storage grow cheaply — the decider is the spiky, mostly-idle compute profile against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use.",
+      "deskRationale": "Both separate storage from compute, so both let storage grow cheaply. The compute profile decides it: spiky, mostly idle, measured against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use.",
       "failureMode": "idle baseline cost",
-      "alsoFits": "Design A is the right call when compute is steady and high-utilization or latency-sensitive, where a warm cluster's consistent performance beats paying serverless per-query premiums and enduring cold starts all day."
+      "alsoFits": "Design A pays off when compute is steady and high-utilization or latency-sensitive, where a warm cluster's consistent performance beats paying serverless per-query premiums and enduring cold starts all day."
     },
-    "explanation": "Both separate storage from compute, so both let storage grow cheaply — the decider is the spiky, mostly-idle compute profile against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use."
+    "explanation": "Both separate storage from compute, so both let storage grow cheaply. The compute profile decides it: spiky, mostly idle, measured against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use."
   },
   {
     "track": "architecture",
@@ -4919,11 +4919,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both produce the daily number, but the deciding pressure is reprocessability under a rule change, not latency. A batch job restates history by simply re-running over source rows; a streaming pipeline must replay events and rebuild state to correct the past — costly and error-prone for an audited ledger that values correctness over freshness.",
+      "deskRationale": "Both produce the daily number, but the deciding pressure is reprocessability under a rule change, not latency. A batch job restates history by simply re-running over source rows; a streaming pipeline must replay events and rebuild state to correct the past, costly and error-prone for an audited ledger that values correctness over freshness.",
       "failureMode": "painful historical backfills",
-      "alsoFits": "Design B is right when freshness is the SLA — a live ops dashboard or fraud counter where seconds matter more than the ease of restating last quarter."
+      "alsoFits": "Design B is right when freshness is the SLA: a live ops dashboard or fraud counter where seconds matter more than the ease of restating last quarter."
     },
-    "explanation": "Both produce the daily number, but the deciding pressure is reprocessability under a rule change, not latency. A batch job restates history by simply re-running over source rows; a streaming pipeline must replay events and rebuild state to correct the past — costly and error-prone for an audited ledger that values correctness over freshness."
+    "explanation": "Both produce the daily number, but the deciding pressure is reprocessability under a rule change, not latency. A batch job restates history by simply re-running over source rows; a streaming pipeline must replay events and rebuild state to correct the past, costly and error-prone for an audited ledger that values correctness over freshness."
   },
   {
     "track": "architecture",
@@ -4957,11 +4957,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both can serve the page, but reads outnumber writes 100:1 and the catalog rarely changes — so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat.",
+      "deskRationale": "Both can serve the page, but reads outnumber writes 100:1 and the catalog rarely changes, so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat.",
       "failureMode": "per-read join cost",
-      "alsoFits": "Design B wins when writes are frequent and many entities must stay mutually consistent — an order-management back office where duplication would breed update anomalies."
+      "alsoFits": "Design B wins when writes are frequent and many entities must stay mutually consistent: an order-management back office where duplication would breed update anomalies."
     },
-    "explanation": "Both can serve the page, but reads outnumber writes 100:1 and the catalog rarely changes — so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat."
+    "explanation": "Both can serve the page, but reads outnumber writes 100:1 and the catalog rarely changes, so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat."
   },
   {
     "track": "architecture",
@@ -4969,7 +4969,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "reliability",
     "kind": "duel",
     "difficulty": 3,
-    "scenario": "A ledger that records money movement. A confirmed write must survive the loss of any single node — a lost payment is unacceptable.",
+    "scenario": "A ledger that records money movement. A confirmed write must survive the loss of any single node. A lost payment is unacceptable.",
     "prompt": "Which design fits these constraints?",
     "choices": [],
     "payload": {
@@ -4997,7 +4997,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "better": "A",
       "deskRationale": "Both replicate, but the SLA forbids losing any acknowledged write, and async replication has a lag window in which a primary crash drops the most recent commits. Synchronous quorum trades a few milliseconds of write latency for the guarantee the ledger actually requires.",
       "failureMode": "lost writes on failover",
-      "alsoFits": "Design B is the right call when a small data-loss window is tolerable in exchange for latency and throughput — high-volume analytics or telemetry events, where losing the last second of data doesn't matter."
+      "alsoFits": "Design B is defensible when a small data-loss window is tolerable in exchange for latency and throughput: high-volume analytics or telemetry events, where losing the last second of data doesn't matter."
     },
     "explanation": "Both replicate, but the SLA forbids losing any acknowledged write, and async replication has a lag window in which a primary crash drops the most recent commits. Synchronous quorum trades a few milliseconds of write latency for the guarantee the ledger actually requires."
   },
@@ -5033,11 +5033,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both run the job, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero — the deciding factor when utilization is low and minutes of latency are acceptable.",
+      "deskRationale": "Both run the job, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero, which decides it when utilization is low and minutes of latency are acceptable.",
       "failureMode": "paying for idle capacity",
-      "alsoFits": "Design B is cheaper once the workload is steady and high-utilization — a cluster running near-continuously, where reserved capacity beats per-invocation pricing."
+      "alsoFits": "Design B is cheaper once the workload is steady and high-utilization: a cluster running near-continuously, where reserved capacity beats per-invocation pricing."
     },
-    "explanation": "Both run the job, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero — the deciding factor when utilization is low and minutes of latency are acceptable."
+    "explanation": "Both run the job, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero, which decides it when utilization is low and minutes of latency are acceptable."
   },
   {
     "track": "architecture",
@@ -5071,11 +5071,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both distribute keys evenly at a fixed size, but membership changes often, and modulo partitioning remaps nearly all keys whenever N changes — cratering cache hit rate on every autoscale event. Consistent hashing moves only the keys near the changed node, which is exactly what churny membership needs.",
+      "deskRationale": "Both distribute keys evenly at a fixed size, but membership changes often, and modulo partitioning remaps nearly all keys whenever N changes, cratering cache hit rate on every autoscale event. Consistent hashing moves only the keys near the changed node, which is exactly what churny membership needs.",
       "failureMode": "mass remap on resize",
-      "alsoFits": "Design B is fine when the node count is stable and you value simplicity or need clean range math — a fixed-size partitioned store that rarely resizes."
+      "alsoFits": "Design B is fine when the node count is stable and you value simplicity or need clean range math: a fixed-size partitioned store that rarely resizes."
     },
-    "explanation": "Both distribute keys evenly at a fixed size, but membership changes often, and modulo partitioning remaps nearly all keys whenever N changes — cratering cache hit rate on every autoscale event. Consistent hashing moves only the keys near the changed node, which is exactly what churny membership needs."
+    "explanation": "Both distribute keys evenly at a fixed size, but membership changes often, and modulo partitioning remaps nearly all keys whenever N changes, cratering cache hit rate on every autoscale event. Consistent hashing moves only the keys near the changed node, which is exactly what churny membership needs."
   },
   {
     "track": "architecture",
@@ -5109,11 +5109,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both can hold the bytes, but at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic — the wrong tool once volume grows.",
+      "deskRationale": "Both can hold the bytes, but at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic. The wrong tool once volume grows.",
       "failureMode": "database bloat from binaries",
-      "alsoFits": "Design B is acceptable when blobs are tiny and must be transactionally consistent with their row — small thumbnails or signatures where atomicity with the record outweighs scale concerns."
+      "alsoFits": "Design B is acceptable when blobs are tiny and must be transactionally consistent with their row: small thumbnails or signatures where atomicity with the record outweighs scale concerns."
     },
-    "explanation": "Both can hold the bytes, but at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic — the wrong tool once volume grows."
+    "explanation": "Both can hold the bytes, but at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic. The wrong tool once volume grows."
   },
   {
     "track": "architecture",
@@ -5669,9 +5669,9 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         }
       ],
       "best": "hash_trip_id",
-      "explanation": "When a few entities dominate, any key at city granularity — even hashed — pins that entity's traffic to one shard. Hashing a high-cardinality per-event id spreads a single hot city evenly."
+      "explanation": "When a few entities dominate, any key at city granularity, even hashed, pins that entity's traffic to one shard. Hashing a high-cardinality per-event id spreads a single hot city evenly."
     },
-    "explanation": "When a few entities dominate, any key at city granularity — even hashed — pins that entity's traffic to one shard. Hashing a high-cardinality per-event id spreads a single hot city evenly."
+    "explanation": "When a few entities dominate, any key at city granularity, even hashed, pins that entity's traffic to one shard. Hashing a high-cardinality per-event id spreads a single hot city evenly."
   },
   {
     "track": "architecture",
@@ -5866,7 +5866,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "kind": "flood",
     "difficulty": 1,
     "scenario": "A blood test screens for Wilson's iron-overload, a rare metabolic condition. In trials it catches 90% of people who truly have the condition, and it correctly clears 95% of healthy people.",
-    "prompt": "Drag the prevalence until a positive result is a coin flip — P(has it | positive) = 50%.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip: P(has it | positive) = 50%.",
     "choices": [],
     "payload": {
       "sensitivity": 90,
@@ -5875,7 +5875,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "max": 30,
       "truth": 5.3
     },
-    "explanation": "When a condition is rare, the huge pool of healthy people produces enough false positives to rival the small pool of true positives. The predictive value of a positive result depends on the base rate, not just on how accurate the test is. Only once prevalence climbs to about 5.3% do true positives finally equal false positives."
+    "explanation": "When a condition is rare, the large pool of healthy people produces enough false positives to rival the few true positives. The predictive value of a positive result depends on the base rate as much as on the test's accuracy. True positives only pull even with false ones at about 5.3% prevalence."
   },
   {
     "track": "statistics",
@@ -5884,7 +5884,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "kind": "flood",
     "difficulty": 1,
     "scenario": "A saliva test flags an early gum-disease marker. It detects the marker in 95% of people who genuinely have it, and it correctly returns a clean result for 90% of people who don't.",
-    "prompt": "Drag the prevalence until a positive result is a coin flip — P(has it | positive) = 50%.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip: P(has it | positive) = 50%.",
     "choices": [],
     "payload": {
       "sensitivity": 95,
@@ -5902,7 +5902,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "kind": "flood",
     "difficulty": 2,
     "scenario": "A quick questionnaire screens for a stress-related sleep disorder. It correctly identifies 85% of people who actually have the disorder, and it correctly clears 80% of people who sleep fine.",
-    "prompt": "Drag the prevalence until a positive result is a coin flip — P(has it | positive) = 50%.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip: P(has it | positive) = 50%.",
     "choices": [],
     "payload": {
       "sensitivity": 85,
@@ -5911,7 +5911,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "max": 50,
       "truth": 19
     },
-    "explanation": "With only 80% specificity, one in five healthy people is falsely flagged, so false positives dominate at low prevalence. The base rate, not the test's accuracy alone, drives how much a positive result means. Here true and false positives balance out around 19% prevalence."
+    "explanation": "With 80% specificity, one in five healthy people is falsely flagged, so false positives dominate at low prevalence. What a positive result means is set by the base rate as much as by the test. Here true and false positives balance out around 19% prevalence."
   },
   {
     "track": "statistics",
@@ -5920,7 +5920,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "kind": "flood",
     "difficulty": 2,
     "scenario": "An imaging scan looks for a benign-but-monitored thyroid nodule. It spots 80% of the nodules that are really present, and it correctly gives an all-clear to 92% of people without one.",
-    "prompt": "Drag the prevalence until a positive result is a coin flip — P(has it | positive) = 50%.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip: P(has it | positive) = 50%.",
     "choices": [],
     "payload": {
       "sensitivity": 80,
@@ -5938,7 +5938,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "kind": "flood",
     "difficulty": 3,
     "scenario": "A next-generation assay screens for a rare inherited clotting variant. It picks up 99% of true carriers, and it correctly clears 97% of non-carriers.",
-    "prompt": "Drag the prevalence until a positive result is a coin flip — P(has it | positive) = 50%.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip: P(has it | positive) = 50%.",
     "choices": [],
     "payload": {
       "sensitivity": 99,
@@ -5947,7 +5947,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "max": 20,
       "truth": 2.9
     },
-    "explanation": "Even a near-perfect test is swamped by false positives when the condition is very rare, because a tiny error rate applied to many healthy people still adds up. Positive predictive value is governed by the base rate. Here a positive result becomes a genuine coin flip at just 2.9% prevalence."
+    "explanation": "Even a near-perfect test is swamped by false positives when the condition is very rare, because a tiny error rate applied to many healthy people still adds up. Positive predictive value is governed by the base rate. Here a positive result becomes a coin flip at just 2.9% prevalence."
   },
   {
     "track": "statistics",
@@ -5956,7 +5956,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "kind": "flood",
     "difficulty": 3,
     "scenario": "A field survey tool screens for mild dehydration among endurance athletes. It correctly flags 75% of athletes who are truly dehydrated, and it correctly clears 70% of those who are well hydrated.",
-    "prompt": "Drag the prevalence until a positive result is a coin flip — P(has it | positive) = 50%.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip: P(has it | positive) = 50%.",
     "choices": [],
     "payload": {
       "sensitivity": 75,
@@ -5965,7 +5965,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "max": 60,
       "truth": 28.6
     },
-    "explanation": "A mediocre test with 30% false-positive rate needs a fairly common condition before a positive result is trustworthy. Because predictive value tracks the base rate, false positives dominate until prevalence is high. True and false positives only balance around 28.6% prevalence."
+    "explanation": "A mediocre test with a 30% false-positive rate needs a fairly common condition before a positive result is trustworthy. Because predictive value tracks the base rate, false positives dominate until prevalence is high. True and false positives only balance around 28.6% prevalence."
   },
   {
     "track": "statistics",
@@ -5974,7 +5974,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "kind": "flood",
     "difficulty": 1,
     "scenario": "A spam filter flags 98% of real spam and correctly passes 90% of legitimate mail. Marketing worries too many good emails land in the spam folder.",
-    "prompt": "Drag the spam rate until a flagged email is a coin flip — P(spam | flagged) = 50%.",
+    "prompt": "Drag the spam rate until a flagged email is a coin flip: P(spam | flagged) = 50%.",
     "choices": [],
     "payload": {
       "sensitivity": 98,
@@ -5992,7 +5992,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "kind": "flood",
     "difficulty": 2,
     "scenario": "A bank's fraud model catches 85% of fraudulent transactions and clears 97% of legitimate ones. Most transactions are legitimate.",
-    "prompt": "Drag the fraud rate until a flagged transaction is a coin flip — P(fraud | flagged) = 50%.",
+    "prompt": "Drag the fraud rate until a flagged transaction is a coin flip: P(fraud | flagged) = 50%.",
     "choices": [],
     "payload": {
       "sensitivity": 85,
@@ -6001,7 +6001,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "max": 20,
       "truth": 3.4
     },
-    "explanation": "A 3% false-positive rate sounds tiny, but applied to the huge pool of legitimate transactions it produces as many flags as real fraud does — until fraud climbs to about 3.4% of all transactions. Below that, most alerts are false alarms."
+    "explanation": "A 3% false-positive rate sounds small. Applied to the far larger pool of legitimate transactions, it produces as many flags as real fraud does until fraud climbs to about 3.4% of all transactions; below that, most alerts are false alarms."
   },
   {
     "track": "statistics",
@@ -6010,7 +6010,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "kind": "flood",
     "difficulty": 2,
     "scenario": "An airport scanner detects 95% of prohibited items and correctly clears 92% of harmless bags. The overwhelming majority of bags are harmless.",
-    "prompt": "Drag the threat rate until a scanner alarm is a coin flip — P(threat | alarm) = 50%.",
+    "prompt": "Drag the threat rate until a scanner alarm is a coin flip: P(threat | alarm) = 50%.",
     "choices": [],
     "payload": {
       "sensitivity": 95,
@@ -6019,7 +6019,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "max": 40,
       "truth": 7.8
     },
-    "explanation": "With harmless bags vastly outnumbering threats, an 8% false-alarm rate generates a flood of false positives. Only when roughly 7.8% of bags carry a threat do true alarms finally match false ones — which is why real screening layers cheap scans before costly searches."
+    "explanation": "With harmless bags vastly outnumbering threats, an 8% false-alarm rate generates a flood of false positives. True alarms only match false ones once roughly 7.8% of bags carry a threat, which is why real screening layers cheap scans before costly searches."
   },
   {
     "track": "statistics",
@@ -6028,7 +6028,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "kind": "flood",
     "difficulty": 3,
     "scenario": "A workplace drug test is very accurate: it detects 99% of actual users and correctly clears 98% of non-users. The company screens all employees, most of whom don't use.",
-    "prompt": "Drag the true usage rate until a positive result is a coin flip — P(user | positive) = 50%.",
+    "prompt": "Drag the true usage rate until a positive result is a coin flip: P(user | positive) = 50%.",
     "choices": [],
     "payload": {
       "sensitivity": 99,
@@ -6037,7 +6037,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "max": 15,
       "truth": 2
     },
-    "explanation": "Even at 98% specificity, testing a mostly-clean population means most positives are false. A positive is only even-odds real once true usage reaches about 2% — the reason confirmatory retests exist for accusatory screening."
+    "explanation": "Even at 98% specificity, testing a mostly-clean population means most positives are false. A positive is only even-odds real once true usage reaches about 2%, which is why confirmatory retests exist for accusatory screening."
   },
   {
     "track": "statistics",
@@ -6046,7 +6046,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "kind": "flood",
     "difficulty": 3,
     "scenario": "A blood biomarker for a rare cancer flags 80% of people who have it and correctly clears 90% of those who don't. It's pitched as a mass screening tool.",
-    "prompt": "Drag the prevalence until a positive result is a coin flip — P(cancer | positive) = 50%.",
+    "prompt": "Drag the prevalence until a positive result is a coin flip: P(cancer | positive) = 50%.",
     "choices": [],
     "payload": {
       "sensitivity": 80,
@@ -6055,7 +6055,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "max": 45,
       "truth": 11.1
     },
-    "explanation": "A modest 90% specificity is deadly for mass screening of a rare disease: false positives swamp true ones until prevalence reaches about 11%. This is why broad screening for rare conditions can do more harm (from false alarms) than good."
+    "explanation": "For mass screening of a rare disease, 90% specificity is the binding constraint: false positives swamp true ones until prevalence reaches about 11%. Broad screening for rare conditions can generate more harm from false alarms than benefit from detections."
   },
   {
     "track": "economics",
@@ -6085,7 +6085,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 24,
       "tol": 1.5
     },
-    "explanation": "Pre-tax the market cleared at P=24. A seller-side tax shifts effective supply up; the new consumer price solves 100−2P = −20+3(P−10), giving Pc=30. Consumers pay $6 of the $10 — most of it — even though sellers remit the tax, because demand here is less elastic than supply. The naive answer ($24, 'sellers just eat it') ignores that."
+    "explanation": "Pre-tax the market cleared at P=24. A seller-side tax shifts effective supply up; the new consumer price solves 100−2P = −20+3(P−10), giving Pc=30. Consumers pay $6 of the $10, most of it, even though sellers remit the tax: demand here is less elastic than supply, so buyers have nowhere to go. The naive answer ($24, 'sellers just eat it') assumes a generosity the market never asks of sellers."
   },
   {
     "track": "economics",
@@ -6115,7 +6115,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 15,
       "tol": 1.5
     },
-    "explanation": "Pre-tax P=15. With elastic supply and less-elastic demand, buyers bear more: 120−3P = 5(P−8) gives Pc=20, so consumers absorb $5 of the $8. The more elastic (escapable) side — here supply — shifts the burden onto the inelastic buyers. Naive '$15, unchanged' misses the incidence."
+    "explanation": "Pre-tax P=15. With elastic supply and less-elastic demand, buyers bear more: 120−3P = 5(P−8) gives Pc=20, so consumers absorb $5 of the $8. The side that can escape (here, supply) shifts the burden onto the side that can't. The naive '$15, unchanged' answer misses the incidence entirely."
   },
   {
     "track": "economics",
@@ -6123,7 +6123,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "tax_incidence",
     "kind": "market",
     "difficulty": 3,
-    "scenario": "Demand is Qd = 90 − P and supply is Qs = −10 + P — equal and opposite slopes, so demand and supply are equally elastic at the equilibrium. A $20 tax is collected from sellers.",
+    "scenario": "Demand is Qd = 90 − P and supply is Qs = −10 + P: equal and opposite slopes, so demand and supply are equally elastic at the equilibrium. A $20 tax is collected from sellers.",
     "prompt": "Predict the price consumers will pay after the $20 seller-side tax.",
     "choices": [],
     "payload": {
@@ -6145,7 +6145,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 50,
       "tol": 2
     },
-    "explanation": "Pre-tax P=50. With equal elasticities the tax splits exactly in half: the consumer price rises by $10 (half of $20) to $60, and sellers net $40. Equal elasticity is the one case where the 50/50 statutory feel is also the true split — a useful anchor for seeing why unequal elasticities tilt it."
+    "explanation": "Pre-tax P=50. With equal elasticities the tax splits exactly in half: the consumer price rises by $10 (half of $20) to $60, and sellers net $40. Equal elasticity is the one case where the 50/50 gut feel is also the true split, which makes it a useful anchor: any tilt in the elasticities tilts the split away from half."
   },
   {
     "track": "economics",
@@ -6205,7 +6205,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 70,
       "tol": 4
     },
-    "explanation": "The free market cleared at P=24, Q=52. At the $15 ceiling, quantity demanded jumps to 70 but quantity supplied falls to 25 — and the short side rules, so only 25 units are actually rented. The naive answer (70, 'everyone who wants one at $15 gets one') forgets that supply contracts; the ceiling creates a 45-unit shortage and houses fewer people than before."
+    "explanation": "The free market cleared at P=24, Q=52. At the $15 ceiling, quantity demanded jumps to 70 while quantity supplied falls to 25, and the short side rules: only 25 units are actually rented. The naive answer (70, 'everyone who wants one at $15 gets one') forgets that supply contracts; the ceiling creates a 45-unit shortage and houses fewer people than before."
   },
   {
     "track": "economics",
@@ -6235,7 +6235,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 90,
       "tol": 5
     },
-    "explanation": "Free equilibrium is P=15, Q=75. At the $10 ceiling, demand rises to 90 but supply falls to 50; the short side (supply) determines that just 50 trade. The gap of 40 is the shortage — the unseen cost of the 'affordable' price. Naive 90 counts wishful demand, not what suppliers will actually provide."
+    "explanation": "Free equilibrium is P=15, Q=75. At the $10 ceiling, demand rises to 90 but supply falls to 50; the short side (supply) determines that just 50 trade. The gap of 40 is the shortage, the unseen bill for the 'affordable' price. The naive 90 counts wishful demand; suppliers will actually provide 50."
   },
   {
     "track": "economics",
@@ -6265,7 +6265,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 40,
       "tol": 3
     },
-    "explanation": "The market would clear at P=50, Q=30. Hold price down to 40 and supply falls to 20 while demand rises to 40 — the short side means only 20 change hands, fewer than the free-market 30. A ceiling meant to help buyers shrinks the number who actually get the good."
+    "explanation": "The market would clear at P=50, Q=30. Hold the price down to 40 and supply falls to 20 while demand rises to 40; the short side means only 20 change hands, fewer than the free-market 30. A ceiling meant to help buyers leaves 10 fewer of them with the good."
   },
   {
     "track": "economics",
@@ -6295,7 +6295,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 120,
       "tol": 6
     },
-    "explanation": "Free equilibrium is P=10, Q=100. At the $6 ceiling, demand climbs to 120 but supply drops to 60; only 60 trade. The ceiling cuts quantity below the free-market level and rations a 60-unit shortage — the opposite of what its supporters intend."
+    "explanation": "Free equilibrium is P=10, Q=100. At the $6 ceiling, demand climbs to 120 but supply drops to 60; only 60 trade. The ceiling cuts quantity from the free-market 100 down to 60 and leaves a 60-unit shortage to be rationed, which is roughly the opposite of what its supporters had in mind."
   },
   {
     "track": "architecture",
@@ -6316,7 +6316,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 90,
       "tol": 6
     },
-    "explanation": "For an M/M/1 queue, p99 latency = ln(100)/(μ(1−ρ)). Setting that to 100 ms gives ρ* = 1 − ln(100)/(100·0.1) ≈ 54%. The knee sits far below the ~90% most people guess: past ~54% the tail goes vertical. Latency is non-linear in utilization — you buy headroom, not waste, by staying left of the knee."
+    "explanation": "For an M/M/1 queue, p99 latency = ln(100)/(μ(1−ρ)). Setting that to 100 ms gives ρ* = 1 − ln(100)/(100·0.1) ≈ 54%. The knee sits far below the ~90% most people guess: past ~54% the tail goes vertical. Latency is non-linear in utilization; staying left of the knee buys headroom, not waste."
   },
   {
     "track": "architecture",
@@ -6337,7 +6337,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 99,
       "tol": 6
     },
-    "explanation": "ρ* = 1 − ln(100)/(2000·0.02) ≈ 88%. Here the SLA (20 ms) is 40× the mean service time (0.5 ms), so there's room to run hot. The lever isn't 'how loaded feels safe' — it's the SLA-to-service-time ratio. Same math as the 54% case, very different answer."
+    "explanation": "ρ* = 1 − ln(100)/(2000·0.02) ≈ 88%. Here the SLA (20 ms) is 40× the mean service time (0.5 ms), so there's room to run hot. The lever isn't 'how loaded feels safe'; it's the SLA-to-service-time ratio. Same math as the 54% case, very different answer."
   },
   {
     "track": "architecture",
@@ -6358,7 +6358,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 95,
       "tol": 6
     },
-    "explanation": "The deep tail costs you: p99.9 uses ln(1000) ≈ 6.91 instead of ln(100) ≈ 4.61. ρ* = 1 − 6.91/(500·0.05) ≈ 72%. Chasing a higher percentile pulls the safe knee down — the stricter your tail SLA, the more headroom you must leave."
+    "explanation": "The deep tail costs you: p99.9 uses ln(1000) ≈ 6.91 instead of ln(100) ≈ 4.61. ρ* = 1 − 6.91/(500·0.05) ≈ 72%. Chasing a higher percentile pulls the safe knee down: the stricter the tail SLA, the more headroom you must leave."
   },
   {
     "track": "architecture",
@@ -6379,7 +6379,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 92,
       "tol": 6
     },
-    "explanation": "ρ* = 1 − ln(20)/(200·0.05) ≈ 70%. A looser percentile (p95, ln(20) ≈ 3.0) allows more load than p99 would — but still nowhere near the ~92% intuition. Every percentile has its own knee; none of them is 'basically full.'"
+    "explanation": "ρ* = 1 − ln(20)/(200·0.05) ≈ 70%. A looser percentile (p95, ln(20) ≈ 3.0) allows more load than p99 would, but still nowhere near the ~92% intuition. Every percentile has its own knee; none of them is 'basically full.'"
   },
   {
     "track": "architecture",
@@ -6400,7 +6400,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 90,
       "tol": 6
     },
-    "explanation": "ρ* = 1 − ln(100)/(1000·0.01) ≈ 54% — identical to the 100 req/s case, because the SLA-to-service-time ratio (10 ms vs 1 ms = 10×) is the same. The absolute throughput doesn't set the knee; the ratio does."
+    "explanation": "ρ* = 1 − ln(100)/(1000·0.01) ≈ 54%, identical to the 100 req/s case, because the SLA-to-service-time ratio (10 ms vs 1 ms = 10×) is the same. The absolute throughput doesn't set the knee; the ratio does."
   },
   {
     "track": "architecture",
@@ -6421,7 +6421,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 97,
       "tol": 6
     },
-    "explanation": "ρ* = 1 − ln(100)/(100·0.2) ≈ 77%. A looser SLA lets you run hotter and buy fewer machines — utilization is the $/latency dial. But even here it's 77%, not the ~97% that would truly minimize cost: the last 20 points of utilization are unaffordable in latency."
+    "explanation": "ρ* = 1 − ln(100)/(100·0.2) ≈ 77%. A looser SLA lets you run hotter and buy fewer machines: utilization is the $/latency dial. But even here it's 77%, well short of the ~97% that would truly minimize cost: the last 20 points of utilization are unaffordable in latency."
   },
   {
     "track": "architecture",
@@ -6429,7 +6429,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "reliability",
     "kind": "redline",
     "difficulty": 3,
-    "scenario": "A slow downstream (a third-party call) serves μ = 50 req/s — mean service ~20 ms. Arrivals are roughly Poisson. Your SLA is p99 latency under 100 ms.",
+    "scenario": "A slow downstream (a third-party call) serves μ = 50 req/s (mean service ~20 ms). Arrivals are roughly Poisson. Your SLA is p99 latency under 100 ms.",
     "prompt": "What is the MAX average utilization you can run this at and still hold p99 < 100 ms?",
     "choices": [],
     "payload": {
@@ -6442,7 +6442,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 70,
       "tol": 5
     },
-    "explanation": "ρ* = 1 − ln(100)/(50·0.1) ≈ 8%. When the SLA (100 ms) is only ~5× the mean service time (20 ms), the queue can barely be loaded — a slow backend with a tight tail SLA must run nearly idle, or you shed load / add parallelism. The knee can be shockingly low."
+    "explanation": "ρ* = 1 − ln(100)/(50·0.1) ≈ 8%. When the SLA (100 ms) is only ~5× the mean service time (20 ms), the queue can barely be loaded: a slow backend with a tight tail SLA must run nearly idle, or you shed load / add parallelism."
   },
   {
     "track": "architecture",
@@ -6463,7 +6463,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 98,
       "tol": 6
     },
-    "explanation": "ρ* = 1 − ln(100)/(5000·0.005) ≈ 82%. The SLA is 25× the mean service time, so it tolerates fairly high load — but the last ~17 points to '99% full' are still off-limits. Fast service earns headroom; it never earns the whole tank."
+    "explanation": "ρ* = 1 − ln(100)/(5000·0.005) ≈ 82%. The SLA is 25× the mean service time, so it tolerates fairly high load, but the last ~17 points to '99% full' are still off-limits."
   },
   {
     "track": "statistics",
@@ -6471,7 +6471,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "aggregation",
     "kind": "pool",
     "difficulty": 2,
-    "scenario": "A classic kidney-stone study compares two treatments. Treatment A cured 93% of small stones and 73% of large stones; Treatment B cured 87% of small and 69% of large. A wins on both stone sizes — but the two treatments were used on very different caseloads.",
+    "scenario": "A classic kidney-stone study compares two treatments. Treatment A cured 93% of small stones and 73% of large stones; Treatment B cured 87% of small and 69% of large. A wins on both stone sizes, but the two treatments were used on very different caseloads.",
     "prompt": "Predict Treatment A's OVERALL (pooled) cure rate across all its patients.",
     "choices": [],
     "payload": {
@@ -6510,7 +6510,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 83,
       "tol": 2.5
     },
-    "explanation": "A leads on both stone sizes, yet its pooled rate (~78%) trails B's (~83%). The reason: A was given mostly the hard large-stone cases (263 of 350), while B handled mostly easy small stones. The pooled number is a size-weighted average, so A's heavy load of hard cases drags it down. The unweighted mean of 93 and 73 (=83) ignores that weighting — that's the trap. Always ask what the groups were weighted by before trusting a total."
+    "explanation": "A leads on both stone sizes, yet its pooled rate (~78%) trails B's (~83%). A was given mostly the hard large-stone cases (263 of 350) while B handled mostly easy small stones, and the pooled number is a size-weighted average, so A's load of hard cases drags it down. The unweighted mean of 93 and 73 (=83) ignores exactly that weighting."
   },
   {
     "track": "statistics",
@@ -6518,7 +6518,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "aggregation",
     "kind": "pool",
     "difficulty": 2,
-    "scenario": "A university is accused of bias. Women were admitted at a higher rate than men in the easy-admit department (82% vs 62%) AND in the hard-admit department (34% vs 24%). Women lead in both departments — but they applied in very different numbers to each.",
+    "scenario": "A university is accused of bias. Women were admitted at a higher rate than men in the easy-admit department (82% vs 62%) AND in the hard-admit department (34% vs 24%). Women lead in both departments, but they applied in very different numbers to each.",
     "prompt": "Predict women's OVERALL (pooled) admission rate across both departments.",
     "choices": [],
     "payload": {
@@ -6557,7 +6557,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 58,
       "tol": 2.5
     },
-    "explanation": "Women were admitted at a higher rate in EVERY department, yet their pooled rate (~39%) is far below men's (~54%). Women applied overwhelmingly to the hard-admit department (900 of 1000), where everyone's odds are low; men clustered in the easy one. The confounder is the department, not the gender — this is the Berkeley 1973 paradox. Stratify before you accuse."
+    "explanation": "Women were admitted at a higher rate in EVERY department, yet their pooled rate (~39%) sits far below men's (~54%). Women applied overwhelmingly to the hard-admit department (900 of 1000), where everyone's odds are low; men clustered in the easy one. The confounder is department choice, a pattern known from Berkeley's 1973 admissions data. The stratified rates are the ones that speak to bias, and there women lead in both departments."
   },
   {
     "track": "statistics",
@@ -6565,7 +6565,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "aggregation",
     "kind": "pool",
     "difficulty": 3,
-    "scenario": "Two hitters over two seasons. Player A had the higher hit rate in Year 1 (40% vs 35%) and again in Year 2 (25% vs 20%). A beat B both years — but they had very different numbers of at-bats each season.",
+    "scenario": "Two hitters over two seasons. Player A had the higher hit rate in Year 1 (40% vs 35%) and again in Year 2 (25% vs 20%). A beat B both years, but they had very different numbers of at-bats each season.",
     "prompt": "Predict Player A's OVERALL (pooled) hit rate across both seasons.",
     "choices": [],
     "payload": {
@@ -6604,7 +6604,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 32.5,
       "tol": 2.5
     },
-    "explanation": "A hit better in both seasons, yet A's career rate (~28%) trails B's (~32%). A got most of his at-bats in his worse Year 2 (400 of 500); B got most of hers in her better Year 1. This is the real Simpson's paradox behind famous baseball averages — the pooled rate weights by at-bats, so who batted more in which year decides the total."
+    "explanation": "A hit better in both seasons, yet A's career rate (~28%) trails B's (~32%). A got most of his at-bats in his worse Year 2 (400 of 500); B got most of hers in her better Year 1. The pooled rate weights by at-bats, so who batted more in which year decides the career number. This is the Simpson's paradox behind real baseball batting averages."
   },
   {
     "track": "statistics",
@@ -6612,7 +6612,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "aggregation",
     "kind": "pool",
     "difficulty": 3,
-    "scenario": "Hospital A has a higher recovery rate than Hospital B among mild-condition patients (96% vs 94%) AND among severe-condition patients (80% vs 78%). A is better for both severities — but A is a specialist center that takes far more severe cases.",
+    "scenario": "Hospital A has a higher recovery rate than Hospital B among mild-condition patients (96% vs 94%) AND among severe-condition patients (80% vs 78%). A is better for both severities, but A is a specialist center that takes far more severe cases.",
     "prompt": "Predict Hospital A's OVERALL (pooled) recovery rate across all its patients.",
     "choices": [],
     "payload": {
@@ -6651,7 +6651,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 88,
       "tol": 2.5
     },
-    "explanation": "A recovers more patients at each severity, yet its pooled rate (~83%) looks worse than B's (~92%). A treats mostly severe cases (400 of 500), where recovery is lower for everyone; B sees mostly mild ones. Ranking hospitals on raw pooled recovery punishes the ones that take the hardest patients — a live danger in public report cards."
+    "explanation": "A recovers more patients at each severity, yet its pooled rate (~83%) looks worse than B's (~92%). A treats mostly severe cases (400 of 500), where recovery is lower for everyone; B sees mostly mild ones. Ranking hospitals on raw pooled recovery punishes the ones that take the hardest patients, a live danger in public report cards."
   },
   {
     "track": "statistics",
@@ -6659,7 +6659,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "aggregation",
     "kind": "pool",
     "difficulty": 3,
-    "scenario": "Ad Campaign A had a higher click-through rate than Campaign B on mobile (8% vs 6%) AND on desktop (3% vs 2%). A wins on both platforms — but the two campaigns split their spend across platforms very differently.",
+    "scenario": "Ad Campaign A had a higher click-through rate than Campaign B on mobile (8% vs 6%) AND on desktop (3% vs 2%). A wins on both platforms, but the two campaigns split their spend across platforms very differently.",
     "prompt": "Predict Campaign A's OVERALL (pooled) click-through rate across both platforms.",
     "choices": [],
     "payload": {
@@ -6698,7 +6698,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 5.5,
       "tol": 0.6
     },
-    "explanation": "A beats B on each platform yet its blended CTR (~3.5%) trails B's (~5.6%). A served 90% of its impressions on low-CTR desktop; B ran mostly on high-CTR mobile. The blended number weights by impressions, so where you spent decides the headline — the reason A/B 'winners' can flip when you pool across segments."
+    "explanation": "A beats B on each platform yet its blended CTR (~3.5%) trails B's (~5.6%). A served 90% of its impressions on low-CTR desktop; B ran mostly on high-CTR mobile. The blended number weights by impressions, so where the spend went decides the headline figure. This is how A/B 'winners' flip when results are pooled across segments."
   },
   {
     "track": "statistics",
@@ -6706,7 +6706,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
     "topic": "aggregation",
     "kind": "pool",
     "difficulty": 2,
-    "scenario": "Program A graduates a higher share of in-state students than Program B (90% vs 85%) AND a higher share of out-of-state students (60% vs 55%). A is better for both groups — but the two programs enroll very different mixes.",
+    "scenario": "Program A graduates a higher share of in-state students than Program B (90% vs 85%) AND a higher share of out-of-state students (60% vs 55%). A is better for both groups, but the two programs enroll very different mixes.",
     "prompt": "Predict Program A's OVERALL (pooled) graduation rate across all its students.",
     "choices": [],
     "payload": {

@@ -10,7 +10,7 @@
   "unit": "%",
   "min": 60,
   "max": 95,
-  "scenario": "A classic kidney-stone study compares two treatments. Treatment A cured 93% of small stones and 73% of large stones; Treatment B cured 87% of small and 69% of large. A wins on both stone sizes — but the two treatments were used on very different caseloads.",
+  "scenario": "A classic kidney-stone study compares two treatments. Treatment A cured 93% of small stones and 73% of large stones; Treatment B cured 87% of small and 69% of large. A wins on both stone sizes, but the two treatments were used on very different caseloads.",
   "prompt": "Predict Treatment A's OVERALL (pooled) cure rate across all its patients.",
   "subgroups": [
    {
@@ -36,7 +36,7 @@
     }
    }
   ],
-  "explanation": "A leads on both stone sizes, yet its pooled rate (~78%) trails B's (~83%). The reason: A was given mostly the hard large-stone cases (263 of 350), while B handled mostly easy small stones. The pooled number is a size-weighted average, so A's heavy load of hard cases drags it down. The unweighted mean of 93 and 73 (=83) ignores that weighting — that's the trap. Always ask what the groups were weighted by before trusting a total.",
+  "explanation": "A leads on both stone sizes, yet its pooled rate (~78%) trails B's (~83%). A was given mostly the hard large-stone cases (263 of 350) while B handled mostly easy small stones, and the pooled number is a size-weighted average, so A's load of hard cases drags it down. The unweighted mean of 93 and 73 (=83) ignores exactly that weighting.",
   "truth": 78,
   "naive": 83,
   "tol": 2.5
@@ -52,7 +52,7 @@
   "unit": "%",
   "min": 25,
   "max": 70,
-  "scenario": "A university is accused of bias. Women were admitted at a higher rate than men in the easy-admit department (82% vs 62%) AND in the hard-admit department (34% vs 24%). Women lead in both departments — but they applied in very different numbers to each.",
+  "scenario": "A university is accused of bias. Women were admitted at a higher rate than men in the easy-admit department (82% vs 62%) AND in the hard-admit department (34% vs 24%). Women lead in both departments, but they applied in very different numbers to each.",
   "prompt": "Predict women's OVERALL (pooled) admission rate across both departments.",
   "subgroups": [
    {
@@ -78,7 +78,7 @@
     }
    }
   ],
-  "explanation": "Women were admitted at a higher rate in EVERY department, yet their pooled rate (~39%) is far below men's (~54%). Women applied overwhelmingly to the hard-admit department (900 of 1000), where everyone's odds are low; men clustered in the easy one. The confounder is the department, not the gender — this is the Berkeley 1973 paradox. Stratify before you accuse.",
+  "explanation": "Women were admitted at a higher rate in EVERY department, yet their pooled rate (~39%) sits far below men's (~54%). Women applied overwhelmingly to the hard-admit department (900 of 1000), where everyone's odds are low; men clustered in the easy one. The confounder is department choice, a pattern known from Berkeley's 1973 admissions data. The stratified rates are the ones that speak to bias, and there women lead in both departments.",
   "truth": 38.8,
   "naive": 58,
   "tol": 2.5
@@ -94,7 +94,7 @@
   "unit": "%",
   "min": 15,
   "max": 45,
-  "scenario": "Two hitters over two seasons. Player A had the higher hit rate in Year 1 (40% vs 35%) and again in Year 2 (25% vs 20%). A beat B both years — but they had very different numbers of at-bats each season.",
+  "scenario": "Two hitters over two seasons. Player A had the higher hit rate in Year 1 (40% vs 35%) and again in Year 2 (25% vs 20%). A beat B both years, but they had very different numbers of at-bats each season.",
   "prompt": "Predict Player A's OVERALL (pooled) hit rate across both seasons.",
   "subgroups": [
    {
@@ -120,7 +120,7 @@
     }
    }
   ],
-  "explanation": "A hit better in both seasons, yet A's career rate (~28%) trails B's (~32%). A got most of his at-bats in his worse Year 2 (400 of 500); B got most of hers in her better Year 1. This is the real Simpson's paradox behind famous baseball averages — the pooled rate weights by at-bats, so who batted more in which year decides the total.",
+  "explanation": "A hit better in both seasons, yet A's career rate (~28%) trails B's (~32%). A got most of his at-bats in his worse Year 2 (400 of 500); B got most of hers in her better Year 1. The pooled rate weights by at-bats, so who batted more in which year decides the career number. This is the Simpson's paradox behind real baseball batting averages.",
   "truth": 28,
   "naive": 32.5,
   "tol": 2.5
@@ -136,7 +136,7 @@
   "unit": "%",
   "min": 70,
   "max": 98,
-  "scenario": "Hospital A has a higher recovery rate than Hospital B among mild-condition patients (96% vs 94%) AND among severe-condition patients (80% vs 78%). A is better for both severities — but A is a specialist center that takes far more severe cases.",
+  "scenario": "Hospital A has a higher recovery rate than Hospital B among mild-condition patients (96% vs 94%) AND among severe-condition patients (80% vs 78%). A is better for both severities, but A is a specialist center that takes far more severe cases.",
   "prompt": "Predict Hospital A's OVERALL (pooled) recovery rate across all its patients.",
   "subgroups": [
    {
@@ -162,7 +162,7 @@
     }
    }
   ],
-  "explanation": "A recovers more patients at each severity, yet its pooled rate (~83%) looks worse than B's (~92%). A treats mostly severe cases (400 of 500), where recovery is lower for everyone; B sees mostly mild ones. Ranking hospitals on raw pooled recovery punishes the ones that take the hardest patients — a live danger in public report cards.",
+  "explanation": "A recovers more patients at each severity, yet its pooled rate (~83%) looks worse than B's (~92%). A treats mostly severe cases (400 of 500), where recovery is lower for everyone; B sees mostly mild ones. Ranking hospitals on raw pooled recovery punishes the ones that take the hardest patients, a live danger in public report cards.",
   "truth": 83.2,
   "naive": 88,
   "tol": 2.5
@@ -178,7 +178,7 @@
   "unit": "%",
   "min": 1,
   "max": 10,
-  "scenario": "Ad Campaign A had a higher click-through rate than Campaign B on mobile (8% vs 6%) AND on desktop (3% vs 2%). A wins on both platforms — but the two campaigns split their spend across platforms very differently.",
+  "scenario": "Ad Campaign A had a higher click-through rate than Campaign B on mobile (8% vs 6%) AND on desktop (3% vs 2%). A wins on both platforms, but the two campaigns split their spend across platforms very differently.",
   "prompt": "Predict Campaign A's OVERALL (pooled) click-through rate across both platforms.",
   "subgroups": [
    {
@@ -204,7 +204,7 @@
     }
    }
   ],
-  "explanation": "A beats B on each platform yet its blended CTR (~3.5%) trails B's (~5.6%). A served 90% of its impressions on low-CTR desktop; B ran mostly on high-CTR mobile. The blended number weights by impressions, so where you spent decides the headline — the reason A/B 'winners' can flip when you pool across segments.",
+  "explanation": "A beats B on each platform yet its blended CTR (~3.5%) trails B's (~5.6%). A served 90% of its impressions on low-CTR desktop; B ran mostly on high-CTR mobile. The blended number weights by impressions, so where the spend went decides the headline figure. This is how A/B 'winners' flip when results are pooled across segments.",
   "truth": 3.5,
   "naive": 5.5,
   "tol": 0.6
@@ -220,7 +220,7 @@
   "unit": "%",
   "min": 50,
   "max": 90,
-  "scenario": "Program A graduates a higher share of in-state students than Program B (90% vs 85%) AND a higher share of out-of-state students (60% vs 55%). A is better for both groups — but the two programs enroll very different mixes.",
+  "scenario": "Program A graduates a higher share of in-state students than Program B (90% vs 85%) AND a higher share of out-of-state students (60% vs 55%). A is better for both groups, but the two programs enroll very different mixes.",
   "prompt": "Predict Program A's OVERALL (pooled) graduation rate across all its students.",
   "subgroups": [
    {
