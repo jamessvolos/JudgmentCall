@@ -501,7 +501,7 @@
    }
   ],
   "best": "hash_trip_id",
-  "explanation": "When a few entities dominate, any key at city granularity — even hashed — pins that entity's traffic to one shard. Hashing a high-cardinality per-event id spreads a single hot city evenly."
+  "explanation": "When a few entities dominate, any key at city granularity, even hashed, pins that entity's traffic to one shard. Hashing a high-cardinality per-event id spreads a single hot city evenly."
  },
  {
   "title": "arch-bake-10",

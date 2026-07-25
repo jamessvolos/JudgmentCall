@@ -28,7 +28,7 @@
   "title": "arch-storage-02",
   "topic": "storage",
   "difficulty": 2,
-  "scenario": "An analytics team queries a 5-billion-row events table. Typical queries are 'SUM(revenue) and COUNT(*) grouped by country over a date range' — touching 3 of the table's 60 columns. Query latency for these dashboards must stay under a few seconds.",
+  "scenario": "An analytics team queries a 5-billion-row events table. Typical queries are 'SUM(revenue) and COUNT(*) grouped by country over a date range', touching 3 of the table's 60 columns. Query latency for these dashboards must stay under a few seconds.",
   "prompt": "Which physical storage choice best serves these scan-heavy aggregations?",
   "choices": [
    {
@@ -39,7 +39,7 @@
    {
     "text": "Row-oriented store with a B-tree on country",
     "correct": false,
-    "rationale": "The index helps point lookups, but a range aggregation over billions of rows still reads every full 60-column row from disk — enormous wasted I/O."
+    "rationale": "The index helps point lookups, but a range aggregation over billions of rows still reads every full 60-column row from disk. Enormous wasted I/O."
    },
    {
     "text": "A key-value store keyed by event ID",
@@ -69,7 +69,7 @@
    {
     "text": "You gain both cheaper reads and simpler writes with no downside",
     "correct": false,
-    "rationale": "There is no free lunch — duplicated data makes writes and updates harder to keep consistent, which is the cost you accept."
+    "rationale": "No free lunch: duplicated data makes writes and updates harder to keep consistent. That is the cost you accept."
    }
   ],
   "explanation": "Normalization optimizes write-simplicity and integrity by storing each fact once; denormalization optimizes read-cost by precomputing joins at the price of update anomalies and duplication. Choose based on your read/write ratio and consistency tolerance."
@@ -84,12 +84,12 @@
    {
     "text": "A hybrid/HTAP-style engine with a columnar analytical store plus an indexed row-oriented delta for recent writes and point reads",
     "correct": true,
-    "rationale": "The columnar side serves scans while the indexed row delta absorbs frequent CDC writes and answers point lookups, merging results at query time — directly targeting the mixed pattern."
+    "rationale": "The columnar side serves scans while the indexed row delta absorbs frequent CDC writes and answers point lookups, merging results at query time. That targets the mixed pattern directly."
    },
    {
     "text": "A pure columnar warehouse and accept full-column scans for point lookups",
     "correct": false,
-    "rationale": "Columnar stores have no cheap per-key access, so 'find one record' degrades to scanning a column — violating the sub-second point-lookup need."
+    "rationale": "Columnar stores have no cheap per-key access, so 'find one record' degrades to scanning a column, which breaks the sub-second point-lookup requirement."
    },
    {
     "text": "A pure row-oriented OLTP database and accept slow aggregations",
@@ -128,7 +128,7 @@
   "title": "arch-processing-02",
   "topic": "processing",
   "difficulty": 2,
-  "scenario": "A fraud system must block a suspicious card transaction before it completes — an end-to-end decision within a few hundred milliseconds of the swipe. Each decision depends on features computed from the last few seconds of that card's activity.",
+  "scenario": "A fraud system must block a suspicious card transaction before it completes: an end-to-end decision within a few hundred milliseconds of the swipe. Each decision depends on features computed from the last few seconds of that card's activity.",
   "prompt": "Which processing model is required here?",
   "choices": [
    {
@@ -159,7 +159,7 @@
    {
     "text": "Micro-batching: process small batches on a short interval (e.g. every 30–60s)",
     "correct": true,
-    "rationale": "Micro-batching hits ~1-minute freshness while amortizing overhead across each batch and giving batch-style checkpoint/replay recovery — matching the relaxed SLA."
+    "rationale": "Micro-batching hits ~1-minute freshness while amortizing overhead across each batch and giving batch-style checkpoint/replay recovery. That matches the relaxed SLA."
    },
    {
     "text": "Per-event streaming with exactly-once state",
@@ -184,7 +184,7 @@
    {
     "text": "Keep batch scoring; real-time adds cost and complexity with no signal to act on",
     "correct": true,
-    "rationale": "When inputs change slowly and the model updates weekly, real-time recomputation refreshes numbers that are effectively identical — spend nowhere returns value."
+    "rationale": "When inputs change slowly and the model updates weekly, real-time recomputation refreshes numbers that are effectively identical. Cost with no return."
    },
    {
     "text": "Rebuild as a streaming pipeline to satisfy the 'real-time' request",
@@ -194,10 +194,10 @@
    {
     "text": "Move to 5-minute micro-batches as a compromise",
     "correct": false,
-    "rationale": "Even 5-minute recompute is pointless when the 30-day inputs are stable and the model only changes weekly — it's cost without benefit."
+    "rationale": "Even 5-minute recompute is pointless when the 30-day inputs are stable and the model only changes weekly. Cost without benefit."
    }
   ],
-  "explanation": "Real-time is only worth it when the underlying signal actually changes within the freshness window and a faster decision changes an outcome. When inputs are slow-moving, streaming trades real cost for imperceptible freshness — the mature call is not to build it."
+  "explanation": "Real-time is only worth it when the underlying signal actually changes within the freshness window and a faster decision changes an outcome. When inputs are slow-moving, streaming trades real cost for imperceptible freshness, and the mature call is not to build it."
  },
  {
   "title": "arch-modeling-01",
@@ -222,7 +222,7 @@
     "rationale": "A single mega-table can work but sacrifices dimension reuse and makes conformed dimensions and slowly-changing attributes far harder to manage."
    }
   ],
-  "explanation": "Dimensional (star) modeling trades some storage redundancy in dimensions for query simplicity and speed — the right call for read-heavy BI. Normalization minimizes redundancy but multiplies join hops, which analytics doesn't want."
+  "explanation": "Dimensional (star) modeling trades some storage redundancy in dimensions for query simplicity and speed. The right call for read-heavy BI. Normalization minimizes redundancy but multiplies join hops, which analytics doesn't want."
  },
  {
   "title": "arch-modeling-02",
@@ -264,7 +264,7 @@
    {
     "text": "Rename or retype existing columns in place as needs change",
     "correct": false,
-    "rationale": "Renaming or retyping breaks old readers and old files, forcing coordinated consumer upgrades and expensive rewrites — exactly what's ruled out."
+    "rationale": "Renaming or retyping breaks old readers and old files, forcing coordinated consumer upgrades and expensive rewrites. Exactly what's ruled out."
    },
    {
     "text": "Freeze the schema and encode all new attributes inside one opaque JSON blob column",
@@ -272,7 +272,7 @@
     "rationale": "A catch-all blob dodges migrations but destroys columnar pushdown/typing and pushes parsing cost and schema chaos onto every consumer."
    }
   ],
-  "explanation": "Schema evolution trades change flexibility against consumer stability. Additive/backward-compatible changes preserve old readers and old files (no rewrite), while destructive changes force lock-step migration — so favor additive evolution when many independent consumers and large history exist."
+  "explanation": "Schema evolution trades change flexibility against consumer stability. Additive/backward-compatible changes preserve old readers and old files (no rewrite), while destructive changes force lock-step migration. Favor additive evolution when many independent consumers and large history exist."
  },
  {
   "title": "arch-modeling-04",
@@ -328,7 +328,7 @@
   "title": "arch-scaling-02",
   "topic": "scaling",
   "difficulty": 2,
-  "scenario": "A shopping-cart service must stay writable during a network partition between data-center replicas — customers must always be able to add items, even if two replicas briefly diverge. Occasional merge of divergent carts is acceptable to the business.",
+  "scenario": "A shopping-cart service must stay writable during a network partition between data-center replicas: customers must always be able to add items, even if two replicas briefly diverge. Occasional merge of divergent carts is acceptable to the business.",
   "prompt": "Given a network partition, which tradeoff does this requirement demand?",
   "choices": [
    {
@@ -339,7 +339,7 @@
    {
     "text": "Favor strong consistency over availability (CP): reject writes on the minority side until the partition heals",
     "correct": false,
-    "rationale": "CP preserves a single consistent view but makes part of the system unavailable for writes during the partition — the opposite of the stated must-stay-writable need."
+    "rationale": "CP preserves a single consistent view but makes part of the system unavailable for writes during the partition. The opposite of the stated must-stay-writable requirement."
    },
    {
     "text": "Use a single-leader synchronous system and route all writes through the leader",
@@ -397,7 +397,7 @@
     "rationale": "This spreads load perfectly but destroys per-customer locality, turning the common 'all events for a customer' query into a scatter across every shard."
    }
   ],
-  "explanation": "Hot partitions arise when a single key value carries disproportionate load; hashing more nodes doesn't help because the value still maps to one place. Adding a second key dimension trades some query locality for load distribution — the standard whale-customer remedy."
+  "explanation": "Hot partitions arise when a single key value carries disproportionate load; hashing more nodes doesn't help because the value still maps to one place. The standard whale-customer remedy is a second key dimension, trading some query locality for load distribution."
  },
  {
   "title": "arch-reliability-01",
@@ -419,7 +419,7 @@
    {
     "text": "Increase the retry backoff so duplicates are rarer",
     "correct": false,
-    "rationale": "Backoff reduces frequency but never eliminates duplicates, so a double charge remains possible — unacceptable for payments."
+    "rationale": "Backoff reduces frequency but never eliminates duplicates, so a double charge remains possible. Unacceptable for payments."
    }
   ],
   "explanation": "With at-least-once delivery, correctness comes from making effects idempotent, not from wishing duplicates away. Idempotency keys trade a little dedup storage/bookkeeping for exactly-once effect on top of cheaper at-least-once transport."
@@ -459,7 +459,7 @@
    {
     "text": "Idempotent per-partition overwrite: each day's rerun atomically replaces (overwrites) that day's output partition",
     "correct": true,
-    "rationale": "Overwriting a partition makes reruns idempotent — running twice yields the same result — and swapping partitions atomically keeps dashboards consistent."
+    "rationale": "Overwriting a partition makes reruns idempotent (running twice yields the same result), and swapping partitions atomically keeps dashboards consistent."
    },
    {
     "text": "Append the recomputed rows to the existing table",
@@ -489,7 +489,7 @@
    {
     "text": "Load everything and log warnings for later review",
     "correct": false,
-    "rationale": "Warn-and-continue lets the malformed rows into the totals immediately — precisely the wrong-numbers outcome leadership wants to avoid."
+    "rationale": "Warn-and-continue lets the malformed rows into the totals immediately. Precisely the wrong-numbers outcome leadership wants to avoid."
    },
    {
     "text": "Silently drop rows that fail checks and keep loading",
@@ -534,7 +534,7 @@
    {
     "text": "Store as compressed columnar files (Parquet) partitioned by event_date",
     "correct": true,
-    "rationale": "Date partitioning lets the engine prune to only the needed days, and columnar+compression cuts bytes read per column — directly lowering bytes scanned."
+    "rationale": "Date partitioning lets the engine prune to only the needed days, and columnar+compression cuts bytes read per column. Both directly lower the bytes scanned."
    },
    {
     "text": "Add more compute nodes to scan the JSON faster",
@@ -564,12 +564,12 @@
    {
     "text": "Add read replicas so more nodes can run the aggregation",
     "correct": false,
-    "rationale": "Replicas let you run the same expensive query in more places — it scales the waste rather than eliminating the redundant recomputation."
+    "rationale": "Replicas let you run the same expensive query in more places. That scales the waste rather than eliminating the redundant recomputation."
    },
    {
     "text": "Precompute nothing but buy a larger warehouse to make each recompute faster",
     "correct": false,
-    "rationale": "Faster-but-still-per-request recomputation still pays for the aggregation thousands of times a minute; the redundancy, not the speed, is the cost driver."
+    "rationale": "Faster-but-still-per-request recomputation still pays for the aggregation thousands of times a minute; the cost driver is redundancy, not speed."
    }
   ],
   "explanation": "Caching trades a bounded staleness window for massive read amplification savings when a result is shared and changes slowly. The question to ask is not 'how do I compute this faster' but 'how do I avoid recomputing it at all.'"
@@ -594,7 +594,7 @@
    {
     "text": "Build it daily but add extensive monitoring and alerting up front",
     "correct": false,
-    "rationale": "This compounds the mistake — more infrastructure to maintain around a pipeline that shouldn't exist yet given the low, unstable usage."
+    "rationale": "This compounds the mistake: more infrastructure to maintain around a pipeline that shouldn't exist yet given the low, unstable usage."
    }
   ],
   "explanation": "Automation is an investment that pays off only when frequency and stability make manual cost exceed build-plus-maintenance cost. When usage is rare and requirements churn, the cheapest correct answer is often not to build the pipeline at all."
@@ -614,7 +614,7 @@
    {
     "text": "Stop retrying failed requests entirely.",
     "correct": false,
-    "rationale": "Timeouts are ambiguous — the call may have failed — so never retrying drops legitimate payments; retries need to be safe, not banned."
+    "rationale": "Timeouts are ambiguous (the call may have failed), so never retrying drops legitimate payments; retries need to be safe, not banned."
    },
    {
     "text": "Make the network faster so timeouts never happen.",
@@ -657,13 +657,13 @@
     "rationale": "Compression helps a little, but the structural waste is storing rarely-touched data on the most expensive tier."
    }
   ],
-  "explanation": "Storage cost should track access frequency. Lifecycle tiering — hot for recent, cold/archive for old — is the standard lever, cutting cost by an order of magnitude while keeping cold data restorable."
+  "explanation": "Storage cost should track access frequency. Lifecycle tiering (hot for recent, cold/archive for old) is the standard lever, cutting cost by an order of magnitude while keeping cold data restorable."
  },
  {
   "title": "arch-modeling-05",
   "topic": "modeling",
   "difficulty": 3,
-  "scenario": "To 'stay flexible,' a team stores every product attribute as generic (entity, attribute, value) rows — an EAV table — even though products have a well-known, stable set of fields.",
+  "scenario": "To 'stay flexible,' a team stores every product attribute as generic (entity, attribute, value) rows: an EAV table. Products actually have a well-known, stable set of fields.",
   "prompt": "What's the main problem with EAV here?",
   "choices": [
    {
@@ -679,12 +679,12 @@
    {
     "text": "EAV can't store more than a few attributes.",
     "correct": false,
-    "rationale": "It can store many — that's not the limitation; the limitation is how painfully you query and validate them."
+    "rationale": "It can store many. The limitation is how painfully you query and validate them."
    },
    {
     "text": "Relational databases can't store key-value pairs at all.",
     "correct": false,
-    "rationale": "They can; EAV is exactly that pattern — the problem is misapplying it to a known schema."
+    "rationale": "They can; EAV is exactly that pattern. The problem is misapplying it to a known schema."
    }
   ],
   "explanation": "EAV buys flexibility you don't need when the schema is known, and charges for it with self-joins, no type checking, and no per-field indexes or constraints. Model known fields as columns; reserve EAV for truly sparse, open-ended attributes."
@@ -704,12 +704,12 @@
    {
     "text": "500 — one per request per second.",
     "correct": false,
-    "rationale": "That's the arrival rate, not the number resident; you must multiply by the time each stays (W)."
+    "rationale": "That's the arrival rate. Multiply by the time each request stays (W) to get the resident count."
    },
    {
     "text": "40 — the mean time in the system.",
     "correct": false,
-    "rationale": "40 ms is a latency, not a count; concurrency is λ·W."
+    "rationale": "40 ms is a latency. Concurrency is a count: λ·W."
    },
    {
     "text": "It depends on the number of CPU cores, not λ or W.",
@@ -717,7 +717,7 @@
     "rationale": "Average in-flight count is λ·W regardless of cores; cores affect service rate, which is already inside W."
    }
   ],
-  "explanation": "Little's Law (L = λW) links the three quantities: at 500 req/s and 40 ms each, ~20 requests are resident on average. This is why thread-pool / connection-pool sizing must equal λ·W, not a round number someone liked."
+  "explanation": "Little's Law (L = λW) links the three quantities: at 500 req/s and 40 ms each, ~20 requests are resident on average. This is why thread-pool / connection-pool sizing must equal λ·W rather than a round number someone liked."
  },
  {
   "title": "arch-reliability-knee-01",
@@ -747,6 +747,6 @@
     "rationale": "Higher utilization means less slack to absorb bursts, so the backlog grows, not shrinks."
    }
   ],
-  "explanation": "L = ρ/(1−ρ) is a hockey stick: 0.9→9, 0.95→19, 0.99→99. The last few points of utilization are the expensive ones — 'we're only at 90%' is exactly where a small load rise doubles your latency."
+  "explanation": "L = ρ/(1−ρ) is a hockey stick: 0.9→9, 0.95→19, 0.99→99. The last few points of utilization are the expensive ones. 'We're only at 90%' is exactly where a small load rise doubles your latency."
  }
 ]

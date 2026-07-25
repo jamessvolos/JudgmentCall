@@ -26,9 +26,9 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both serve sub-10ms key lookups, but the workload is read-heavy with an unforgiving tail, and a B-tree's constant-depth descent keeps p99 flat. The LSM store is excellent engineering for write-heavy ingest, yet its multi-SSTable read path and compaction bursts spike the read tail — the one thing this SLA cannot absorb.",
+  "deskRationale": "Both serve sub-10ms key lookups, but the workload is read-heavy with an unforgiving tail, and a B-tree's constant-depth descent keeps p99 flat. The LSM store is excellent engineering for write-heavy ingest, yet its multi-SSTable read path and compaction bursts spike the read tail, the one thing this SLA cannot absorb.",
   "failureMode": "compaction tail spikes",
-  "alsoFits": "Design B is the right call when the workload flips to write-heavy ingest such as high-volume time-series or event capture, where the LSM's sequential-write throughput outweighs its read-tail jitter."
+  "alsoFits": "Design B wins when the workload flips to write-heavy ingest such as high-volume time-series or event capture, where the LSM's sequential-write throughput outweighs its read-tail jitter."
  },
  {
   "title": "arch-duel-02",
@@ -59,7 +59,7 @@
   "better": "B",
   "deskRationale": "Both cut bytes scanned versus a row store, but the column set is ad-hoc and unknowable, so a single columnar table prunes to whatever three columns a query names without pre-building anything. Materialized projections scan even less for their exact query, yet they are fragile here: the combinatorial space of column subsets means most ad-hoc queries hit no projection and pipelines balloon.",
   "failureMode": "projection explosion, cold misses",
-  "alsoFits": "Design A is the right call when the query set is small, fixed, and latency-critical — a handful of dashboards hitting the same columns — where a purpose-built projection beats scanning a general columnar table."
+  "alsoFits": "Pick Design A when the query set is small, fixed, and latency-critical (a handful of dashboards hitting the same columns), where a purpose-built projection beats scanning a general columnar table."
  },
  {
   "title": "arch-duel-03",
@@ -88,9 +88,9 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both keep features fresh within seconds, but the gate decides inline while the request blocks, and event-at-a-time streaming gives a consistent per-decision latency. Micro-batch is fresh enough as a data cadence, yet coupling a synchronous verdict to a ~15s batch boundary injects latency jitter into the request path — wrong for an inline gate.",
+  "deskRationale": "Both keep features fresh within seconds, but the gate decides inline while the request blocks, and event-at-a-time streaming gives a consistent per-decision latency. Micro-batch is fresh enough as a data cadence, yet coupling a synchronous verdict to a ~15s batch boundary injects latency jitter into the request path. Wrong for an inline gate.",
   "failureMode": "batch-boundary latency jitter",
-  "alsoFits": "Design B is the right call when the fraud signal feeds asynchronous review or alerting rather than an inline block, where a 15-second refresh is ample and the simpler, cheaper batch pipeline wins."
+  "alsoFits": "Design B fits when the fraud signal feeds asynchronous review or alerting rather than an inline block, where a 15-second refresh is ample and the simpler, cheaper batch pipeline wins."
  },
  {
   "title": "arch-duel-04",
@@ -121,7 +121,7 @@
   "better": "A",
   "deskRationale": "Both can hit an hourly target within budget, but with tiny bursty volume and an ops-minimization goal, a scheduled ephemeral job carries almost no standing machinery and makes backfills a re-run. The scale-to-zero stream is legitimately cost-aware, yet its checkpointing, consumer lifecycle, and per-record overhead are ongoing operational weight bought to deliver freshness the requirement never asked for.",
   "failureMode": "ops weight, unused freshness",
-  "alsoFits": "Design B is the right call when freshness tightens toward seconds or volume becomes steady and high, where continuous processing amortizes its overhead and the hourly batch would be too stale."
+  "alsoFits": "Design B earns its keep when freshness tightens toward seconds or volume becomes steady and high, where continuous processing amortizes its overhead and the hourly batch would be too stale."
  },
  {
   "title": "arch-duel-05",
@@ -150,9 +150,9 @@
    ]
   },
   "better": "B",
-  "deskRationale": "Both answer as-of-date queries correctly, so the decider is storage against a large, rarely-changing dimension. SCD Type 2 stores a row only on an actual change and stays compact, whereas daily snapshots recopy tens of millions of unchanged rows every day — correct, but a storage bill that scales with time rather than with change.",
+  "deskRationale": "Both answer as-of-date queries correctly, so the choice comes down to storage against a large, rarely-changing dimension. SCD Type 2 stores a row only on an actual change and stays compact, whereas daily snapshots recopy tens of millions of unchanged rows every day: correct, but a storage bill that scales with time rather than with change.",
   "failureMode": "snapshot storage blowup",
-  "alsoFits": "Design A is the right call when change rates are high or the priority is bulletproof simplicity and reproducibility — full daily snapshots are easy to audit and trivial to rebuild, and storage is cheap relative to that assurance."
+  "alsoFits": "Design A is the right call when change rates are high or the priority is bulletproof simplicity and reproducibility: full daily snapshots are easy to audit and trivial to rebuild, and storage is cheap relative to that assurance."
  },
  {
   "title": "arch-duel-06",
@@ -183,7 +183,7 @@
   "better": "A",
   "deskRationale": "Both let non-technical analysts self-serve, but the binding pressure is cross-fact consistency of reused dimensions, which a star schema guarantees by defining each dimension once. One-big-table is faster to scan and fine for a single shape, yet duplicating org/product into every table lets definitions drift, so the same metric slices differently across subject areas.",
   "failureMode": "duplicated dims drift",
-  "alsoFits": "Design B is the right call for a single high-traffic dashboard with one fixed query shape, where denormalizing into one wide table removes joins and maximizes scan speed and there is no cross-fact consistency to protect."
+  "alsoFits": "Design B suits a single high-traffic dashboard with one fixed query shape, where denormalizing into one wide table removes joins and maximizes scan speed and there is no cross-fact consistency to protect."
  },
  {
   "title": "arch-duel-07",
@@ -212,9 +212,9 @@
    ]
   },
   "better": "B",
-  "deskRationale": "Plain hashing already balances the uniform tail, so both look even for ordinary keys — but the constraint is a single key at 40% of traffic, and only salting fans that key across shards. Plain hashing routes the entire celebrity load to one shard no matter how many shards exist, saturating it while the rest idle; salting trades a read fan-out for the required balance.",
+  "deskRationale": "Plain hashing already balances the uniform tail, so both look even for ordinary keys. The constraint, though, is a single key at 40% of traffic, and only salting fans that key across shards. Plain hashing routes the entire celebrity load to one shard no matter how many shards exist, saturating it while the rest idle; salting trades a read fan-out for the required balance.",
   "failureMode": "single hot shard",
-  "alsoFits": "Design A is the right call when no single key dominates — a uniformly popular key space — where plain hashing balances perfectly and salting would only add needless scatter-gather on every read."
+  "alsoFits": "Design A holds up when no single key dominates (a uniformly popular key space), where plain hashing balances perfectly and salting would only add needless scatter-gather on every read."
  },
  {
   "title": "arch-duel-08",
@@ -243,9 +243,9 @@
    ]
   },
   "better": "B",
-  "deskRationale": "Both are AP designs that stay writable through a partition, so availability alone doesn't separate them — the decider is what happens to concurrent edits on reconvergence. Last-write-wins silently drops one region's adds, violating the no-lost-item rule, whereas a CRDT merges both carts by union; LWW is fine engineering, just not when concurrent writes to one key must all survive.",
+  "deskRationale": "Both are AP designs that stay writable through a partition, so availability alone doesn't separate them; what does is what happens to concurrent edits on reconvergence. Last-write-wins silently drops one region's adds, violating the no-lost-item rule, whereas a CRDT merges both carts by union; LWW is fine engineering, just not when concurrent writes to one key must all survive.",
   "failureMode": "LWW drops concurrent adds",
-  "alsoFits": "Design A is the right call for single-owner, idempotent state such as a user's last-known profile field or device status, where the newest write is authoritative and CRDT merge state would be needless overhead."
+  "alsoFits": "Design A works for single-owner, idempotent state such as a user's last-known profile field or device status, where the newest write is authoritative and CRDT merge state would be needless overhead."
  },
  {
   "title": "arch-duel-09",
@@ -274,9 +274,9 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both prevent double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require — real latency and operational tax for no added correctness here.",
+  "deskRationale": "Both prevent double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require: real latency and operational tax for no added correctness here.",
   "failureMode": "needless 2PC overhead",
-  "alsoFits": "Design B is the right call when the sink cannot dedupe — a non-idempotent target or multi-row side effects per message — where transactional exactly-once is the only way to avoid partial or duplicated writes."
+  "alsoFits": "Design B becomes necessary when the sink cannot dedupe (a non-idempotent target or multi-row side effects per message), where transactional exactly-once is the only way to avoid partial or duplicated writes."
  },
  {
   "title": "arch-duel-10",
@@ -305,9 +305,9 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both key on event time, so both ultimately count correctly — the decider is delivering correct counts promptly and continuously to a live dashboard. Event-time streaming with a 10-minute watermark emits each window once, correct and bounded, whereas batch recompute is correct but coarse and lagging, re-scanning history on a schedule rather than settling each minute as its lateness window expires.",
+  "deskRationale": "Both key on event time, so both ultimately count correctly. What matters here is delivering correct counts promptly and continuously to a live dashboard. Event-time streaming with a 10-minute watermark emits each window once, correct and bounded, whereas batch recompute is correct but coarse and lagging, re-scanning history on a schedule rather than settling each minute as its lateness window expires.",
   "failureMode": "lagging coarse corrections",
-  "alsoFits": "Design B is the right call when the counts feed daily reporting rather than a live view, where a warehouse batch that reprocesses late data on a schedule is simpler and the streaming watermark machinery isn't worth operating."
+  "alsoFits": "Design B makes sense when the counts feed daily reporting rather than a live view, where a warehouse batch that reprocesses late data on a schedule is simpler and the streaming watermark machinery isn't worth operating."
  },
  {
   "title": "arch-duel-11",
@@ -336,9 +336,9 @@
    ]
   },
   "better": "B",
-  "deskRationale": "Both cut scan bytes for date-filtered queries, so cost alone doesn't separate them — the decider is the mixed predicate plus the small-file history. Clustering with min/max data skipping prunes on both date and tenant and keeps file sizes healthy, whereas date partitioning prunes only the date and, if made granular enough to help, recreates the tiny-file problem the team already hit.",
+  "deskRationale": "Both cut scan bytes for date-filtered queries, so cost alone doesn't separate them. What decides it is the mixed predicate plus the small-file history. Clustering with min/max data skipping prunes on both date and tenant and keeps file sizes healthy, whereas date partitioning prunes only the date and, if made granular enough to help, recreates the tiny-file problem the team already hit.",
   "failureMode": "single-column prune, tiny files",
-  "alsoFits": "Design A is the right call when queries filter on date alone and each day is a healthy file size — plain date partitioning is the simplest, most predictable pruning and needs no clustering discipline on write."
+  "alsoFits": "Design A stays the simpler choice when queries filter on date alone and each day is a healthy file size: plain date partitioning is the most predictable pruning and needs no clustering discipline on write."
  },
  {
   "title": "arch-duel-12",
@@ -367,9 +367,9 @@
    ]
   },
   "better": "B",
-  "deskRationale": "Both separate storage from compute, so both let storage grow cheaply — the decider is the spiky, mostly-idle compute profile against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use.",
+  "deskRationale": "Both separate storage from compute, so both let storage grow cheaply. The compute profile decides it: spiky, mostly idle, measured against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use.",
   "failureMode": "idle baseline cost",
-  "alsoFits": "Design A is the right call when compute is steady and high-utilization or latency-sensitive, where a warm cluster's consistent performance beats paying serverless per-query premiums and enduring cold starts all day."
+  "alsoFits": "Design A pays off when compute is steady and high-utilization or latency-sensitive, where a warm cluster's consistent performance beats paying serverless per-query premiums and enduring cold starts all day."
  },
  {
   "title": "arch-duel-13",
@@ -398,9 +398,9 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both produce the daily number, but the deciding pressure is reprocessability under a rule change, not latency. A batch job restates history by simply re-running over source rows; a streaming pipeline must replay events and rebuild state to correct the past — costly and error-prone for an audited ledger that values correctness over freshness.",
+  "deskRationale": "Both produce the daily number, but the deciding pressure is reprocessability under a rule change, not latency. A batch job restates history by simply re-running over source rows; a streaming pipeline must replay events and rebuild state to correct the past, costly and error-prone for an audited ledger that values correctness over freshness.",
   "failureMode": "painful historical backfills",
-  "alsoFits": "Design B is right when freshness is the SLA — a live ops dashboard or fraud counter where seconds matter more than the ease of restating last quarter."
+  "alsoFits": "Design B is right when freshness is the SLA: a live ops dashboard or fraud counter where seconds matter more than the ease of restating last quarter."
  },
  {
   "title": "arch-duel-14",
@@ -429,16 +429,16 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both can serve the page, but reads outnumber writes 100:1 and the catalog rarely changes — so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat.",
+  "deskRationale": "Both can serve the page, but reads outnumber writes 100:1 and the catalog rarely changes, so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat.",
   "failureMode": "per-read join cost",
-  "alsoFits": "Design B wins when writes are frequent and many entities must stay mutually consistent — an order-management back office where duplication would breed update anomalies."
+  "alsoFits": "Design B wins when writes are frequent and many entities must stay mutually consistent: an order-management back office where duplication would breed update anomalies."
  },
  {
   "title": "arch-duel-15",
   "topic": "reliability",
   "difficulty": 3,
   "constraint": "payments ledger · no acknowledged write may be lost if a node fails · single region",
-  "scenario": "A ledger that records money movement. A confirmed write must survive the loss of any single node — a lost payment is unacceptable.",
+  "scenario": "A ledger that records money movement. A confirmed write must survive the loss of any single node. A lost payment is unacceptable.",
   "designA": {
    "name": "Synchronous quorum replication",
    "sketch": "Write acked only after a majority of replicas persist it",
@@ -462,7 +462,7 @@
   "better": "A",
   "deskRationale": "Both replicate, but the SLA forbids losing any acknowledged write, and async replication has a lag window in which a primary crash drops the most recent commits. Synchronous quorum trades a few milliseconds of write latency for the guarantee the ledger actually requires.",
   "failureMode": "lost writes on failover",
-  "alsoFits": "Design B is the right call when a small data-loss window is tolerable in exchange for latency and throughput — high-volume analytics or telemetry events, where losing the last second of data doesn't matter."
+  "alsoFits": "Design B is defensible when a small data-loss window is tolerable in exchange for latency and throughput: high-volume analytics or telemetry events, where losing the last second of data doesn't matter."
  },
  {
   "title": "arch-duel-16",
@@ -491,9 +491,9 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both run the job, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero — the deciding factor when utilization is low and minutes of latency are acceptable.",
+  "deskRationale": "Both run the job, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero, which decides it when utilization is low and minutes of latency are acceptable.",
   "failureMode": "paying for idle capacity",
-  "alsoFits": "Design B is cheaper once the workload is steady and high-utilization — a cluster running near-continuously, where reserved capacity beats per-invocation pricing."
+  "alsoFits": "Design B is cheaper once the workload is steady and high-utilization: a cluster running near-continuously, where reserved capacity beats per-invocation pricing."
  },
  {
   "title": "arch-duel-17",
@@ -522,9 +522,9 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both distribute keys evenly at a fixed size, but membership changes often, and modulo partitioning remaps nearly all keys whenever N changes — cratering cache hit rate on every autoscale event. Consistent hashing moves only the keys near the changed node, which is exactly what churny membership needs.",
+  "deskRationale": "Both distribute keys evenly at a fixed size, but membership changes often, and modulo partitioning remaps nearly all keys whenever N changes, cratering cache hit rate on every autoscale event. Consistent hashing moves only the keys near the changed node, which is exactly what churny membership needs.",
   "failureMode": "mass remap on resize",
-  "alsoFits": "Design B is fine when the node count is stable and you value simplicity or need clean range math — a fixed-size partitioned store that rarely resizes."
+  "alsoFits": "Design B is fine when the node count is stable and you value simplicity or need clean range math: a fixed-size partitioned store that rarely resizes."
  },
  {
   "title": "arch-duel-18",
@@ -553,8 +553,8 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both can hold the bytes, but at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic — the wrong tool once volume grows.",
+  "deskRationale": "Both can hold the bytes, but at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic. The wrong tool once volume grows.",
   "failureMode": "database bloat from binaries",
-  "alsoFits": "Design B is acceptable when blobs are tiny and must be transactionally consistent with their row — small thumbnails or signatures where atomicity with the record outweighs scale concerns."
+  "alsoFits": "Design B is acceptable when blobs are tiny and must be transactionally consistent with their row: small thumbnails or signatures where atomicity with the record outweighs scale concerns."
  }
 ]
