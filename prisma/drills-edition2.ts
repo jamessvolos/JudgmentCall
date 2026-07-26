@@ -40,7 +40,7 @@ export const EDITION2: DrillSeed[] = [
       "**Bellwether Unified (fictional school district), year-end literacy review:** a **new reading curriculum**, **14 volunteer tutors**, and an **attendance-recovery push** all launched the same fall · grade-4 reading proficiency **46% → 53%** across the **9 pilot schools** (of 31) · non-pilot schools **44% → 47%** over the same year · pilot schools volunteered and carry the district's **highest parent-engagement scores** · the state test was **re-normed** this year (all districts shifted up **~2pts**) · district enrollment **30,400** across all 31 schools; grade-4 cohort **~2,200**, with **~640** at pilot schools · superintendent's draft: \"the new curriculum delivered a **seven-point gain**.\"",
     sourceLabel: "Bellwether Unified year-end literacy dossier (fictional)",
     prompt:
-      "Four claims from the board packet — stamp each one: does it hold, or does it exceed the data?",
+      "Four claims from the board packet. Stamp each one: does it hold, or does it exceed the data?",
     explanation:
       "Three straight reads and one translation error. The pilot rise, the non-pilot comparison, and the hedged re-norm note all report the page at the page's own scope. The flag is the row that turns points into people: 'roughly 2,100' multiplies the pilot schools' seven-point grade-4 gain by all 30,400 students in the district, every grade, including the 22 schools that never ran the programs. The same gain over its honest denominator is about 45 fourth-graders at the pilot schools. When a rate becomes a count, the first question is whose denominator it was multiplied by.",
     device: "multiplying a pilot-school grade-4 gain by the whole district's enrollment",
@@ -185,7 +185,7 @@ export const EDITION2: DrillSeed[] = [
       "**Ashgrove Grocers, inventory shrink:** shrink **1.9% → 1.4%** of sales in the first full quarter after the new receiving process · consistent across all **6 regions** (range **1.36%–1.45%**) · quarterly sales ~**$420M**, so the half-point is worth ~**$2.1M/quarter** · audit methodology unchanged.\n\n*Flawed telling:* \"Shrink improved this quarter. By region: Northeast came in at 1.42%, Southeast at 1.38%, Midwest at 1.44%, Mountain at 1.36%, Pacific at 1.45%, and South-Central at 1.41% — every one of the six improved on the prior quarter. Expressed in basis points, the company-wide move is 50bps, from 190bps to 140bps; in dollar terms, at roughly $420M of quarterly sales, the improvement is approximately $2.1M per quarter, or $8.4M annualized. We note that the audit methodology, count cadence, and shrink definition were all unchanged, so the figures are comparable on a like-for-like basis across every region and both periods.\"",
     sourceLabel: "Retail loss-prevention quarterly (fictional)",
     prompt:
-      "Every number is real and the method notes are true — but the report performs thoroughness instead of informing. Pick the rewrite that says it tight without dropping anything real.",
+      "Every number is real and the method notes are true, but the report performs thoroughness instead of informing. Pick the rewrite that says it tight without dropping anything real.",
     explanation:
       "This is padding at its most defensible: six regional decimals whose entire information content is 'consistent, 1.36–1.45,' the same move restated in percent, basis points, and dollars, and the comparability note delivered three ways. Detail that adds no discriminating information is length, not rigor. The repair keeps every fact that changes what a reader knows (the move, the range, the dollar weight, the unchanged method) and cuts everything that merely re-performs those facts.",
     device: "regional roll-calls and unit restatements performing a thoroughness one range already delivers",
@@ -224,7 +224,7 @@ export const EDITION2: DrillSeed[] = [
     contextSnippet:
       "**Foxglove Outdoor Gear, quarterly quality digest:** warranty claims **210 → 340** quarter over quarter · units sold **52,000 → 91,000** over the same quarter (a holiday-season jump) · claim rate per unit sold **~0.40% → ~0.37%**.",
     sourceLabel: "Product quality quarterly digest (fictional)",
-    prompt: "Four claims from the quality digest — stamp each one: does it hold, or does it exceed the data?",
+    prompt: "Four claims from the quality digest. Stamp each one: does it hold, or does it exceed the data?",
     explanation:
       "Three rows are the discipline and one is the trap. The count did jump 62%, but units sold jumped 75%, so the rate at which a unit comes back actually fell, 0.40% to 0.37%. A raw count can rise while the thing it's supposed to measure improves; 'quality is slipping' reads the numerator alone and lands on the wrong side of the truth. The clean rows show the honest sequence: count, denominator, rate.",
     device: "a quality verdict hung on a claim count while the denominator grew faster",
@@ -262,10 +262,10 @@ export const EDITION2: DrillSeed[] = [
     contextSnippet:
       "**Rivermoor Gyms, renewal analysis:** members who booked the **free intro session** in month one renewed at **78%** vs **54%** for those who didn't (**24pt** gap) · booking is **member-initiated**: no assignment, no experiment · bookers also averaged **2.3×** more visits in month one.",
     sourceLabel: "Membership renewal memo (fictional)",
-    prompt: "Four claims from the renewal memo — stamp each one: does it hold, or does it exceed the data?",
+    prompt: "Four claims from the renewal memo. Stamp each one: does it hold, or does it exceed the data?",
     explanation:
       "One verdict row among three honest ones. The gap, the self-selection caveat, and the conditional are all within the page; the overreach is the row that converts the gap into a mechanism. With member-initiated booking and bookers visiting 2.3× more, the session marks the motivated members at least as plausibly as it makes them; 'drives' and 'makes' are causal grammar on a split no experiment isolates. Note the near-miss: the conditional row uses the same causal vocabulary and holds, because 'if' keeps the question open. What tips a row over is the grammar of the claim, and the conditional stays on the safe side of it.",
-    device: "causal grammar on a self-selected booking split — beside a conditional that stays honest",
+    device: "causal grammar on a self-selected booking split, beside a conditional that stays honest",
     choices: [
       {
         text: "Members who booked the intro session renewed at 78%, versus 54% for members who didn't.",
@@ -318,7 +318,7 @@ export const EDITION2: DrillSeed[] = [
       "**Corvid Systems, Q3 phishing simulation (1,150 employees):** company-wide click rate **7%**, down from **12%** a year ago · finance — the team that holds payment approval — clicked at **31%** (**11 of 36** staff), including **2 of the 4** wire-authorizers · security-training completion **96%**.\n\n*Flawed telling:* \"The phishing program continues to mature. Company-wide click rates have fallen from 12% to 7% year over year, and training completion stands at 96% — both consistent with a strengthening security culture. Results naturally vary by department, and this quarter's simulation gives us useful visibility into those differences: finance, which holds payment approval, clicked at 31%, including two of the four wire-authorizers.\"",
     sourceLabel: "Security awareness quarterly report (fictional)",
     prompt:
-      "Every figure is accurate, and the improving trend is real context. Pick the rewrite that leads with the finding a reader needs — without going soft on it.",
+      "Every figure is accurate, and the improving trend is real context. Pick the rewrite that leads with the finding a reader needs without going soft on it.",
     explanation:
       "This is burial in its most respectable costume: open with the program's trajectory, frame the danger as 'departmental variation,' and let the one number that demands action arrive last, pre-cushioned. The reader's takeaway forms in the first sentence ('maturing program') before they ever meet the 31% in the payments team. The repair is ordering: the finance exposure first with its sharpest details attached, and the genuine good news demoted to the context it is. Nothing is dropped and nothing added; the lede simply stops hiding the 31%.",
     device: "a payments-team failure delivered last, dressed as routine departmental variation",

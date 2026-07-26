@@ -118,7 +118,7 @@ export const DRILL_POOL: DrillSeed[] = [
     prompt: "Which telling goes beyond what the data supports?",
     explanation: "Team wins on the raw count but loses on the rate: 7.4% (890/12,000) versus Solo's 11.3% (340/3,000), because Team has four times the seats. 'Landed best with Team' reads the bigger number as bigger enthusiasm; the dropped denominator flips the actual conclusion. Subtle because the raw count points confidently the wrong way.",
     faithfulText: "Normalized to seats, adoption ran higher on Solo (340/3,000 = 11.3%) than Team (890/12,000 = 7.4%), despite Team's larger raw count.",
-    overclaimedText: "Feature X landed best with Team users — 890 adopters vs 340 on Solo.",
+    overclaimedText: "Feature X landed best with Team users: 890 adopters vs 340 on Solo.",
     device: "comparing raw counts across groups of unequal size without normalizing to a rate",
   },
   {
@@ -381,7 +381,7 @@ export const DRILL_POOL: DrillSeed[] = [
     prompt: "Both tellings use the same numbers. Which one is poorly made because it buries the headline?",
     explanation: "The finding is a 12-point jump in deflection (22% to 34%): that is the number a reader came for. The faithful telling leads with it; the flawed one opens with rollout logistics and methodology throat-clearing so the reader wades through three clauses before the result lands. The facts and the honesty match; the flaw is placement rather than fidelity.",
     faithfulText: "Self-serve deflection rose to 34% after the chatbot launch, up from 22%: a 12-point jump that cut inbound tickets by about 8,400 a month, with CSAT holding at 4.2/5.",
-    overclaimedText: "Following the April rollout, which completed across all queues, we reviewed deflection alongside CSAT and volume. Methodology held constant quarter over quarter. CSAT stayed at 4.2/5 and inbound tickets moved lower. On the deflection metric specifically, the self-serve rate — previously 22% — now reads 34%.",
+    overclaimedText: "Following the April rollout, which completed across all queues, we reviewed deflection alongside CSAT and volume. Methodology held constant quarter over quarter. CSAT stayed at 4.2/5 and inbound tickets moved lower. On the deflection metric specifically, the self-serve rate, previously 22%, now reads 34%.",
     device: "the headline number arrives only after a paragraph of setup and secondary metrics",
   },
   {
@@ -433,7 +433,7 @@ export const DRILL_POOL: DrillSeed[] = [
     prompt: "Same metrics, same conclusion. Which telling drowns the point in filler to look rigorous?",
     explanation: "The point is simple: precision is strong, recall is the weak spot, and 12 real frauds slipped through. The padded version restates the same facts three ways, wraps them in ceremonial hedging and process language, and buries the one actionable number (the 12 misses) under sheer volume; the length is masquerading as rigor.",
     faithfulText: "The model holds precision at 0.91 but recall at 0.78: of 1,240 flags it's accurate, yet it still missed 12 confirmed frauds. Recall is where to focus next.",
-    overclaimedText: "As part of our ongoing and continuous monthly monitoring cadence, we conducted a thorough and comprehensive review of the fraud model's performance across the relevant evaluation period. It is worth noting, and important to emphasize, that the model demonstrated a precision figure of 0.91, which is to say that the vast majority of the 1,240 transactions surfaced by the system were indeed correctly identified. On the dimension of recall, the model registered a value of 0.78. In the interest of completeness, we would also observe that a certain number of fraudulent transactions — 12 in total — were not captured by the system and were subsequently confirmed as false negatives upon later review.",
+    overclaimedText: "As part of our ongoing and continuous monthly monitoring cadence, we conducted a thorough and comprehensive review of the fraud model's performance across the relevant evaluation period. It is worth noting, and important to emphasize, that the model demonstrated a precision figure of 0.91, which is to say that the vast majority of the 1,240 transactions surfaced by the system were indeed correctly identified. On the dimension of recall, the model registered a value of 0.78. In the interest of completeness, we would also observe that a certain number of fraudulent transactions, 12 in total, were not captured by the system and were subsequently confirmed as false negatives upon later review.",
     device: "the finding bloated with ceremony and restatement until the actionable point drowns",
   },
   {
@@ -498,7 +498,7 @@ export const DRILL_POOL: DrillSeed[] = [
     prompt: "Both tellings report the same 41% jump, without claiming cause. Which one omits a limitation the reader needs?",
     explanation: "Both tellings stay descriptive; neither claims what caused the jump. But the $20-per-transfer bonus ran the entire measurement window, and the flawed telling drops it; a reader repeating '41% growth' will carry that number into forecasts without the one fact most likely to change how it reads. The faithful telling states the catch alongside the claim and marks the jump provisional.",
     faithfulText: "Instant transfers rose 41% in March, 310,000 to 437,000, though the $20-per-transfer referral bonus ran the entire month and ended March 31, so treat the jump as provisional until April shows whether it holds.",
-    overclaimedText: "Instant transfers came in at 437,000 for March, up 41% from February's 310,000 — a sizable jump in usage of the feature.",
+    overclaimedText: "Instant transfers came in at 437,000 for March, up 41% from February's 310,000, a sizable jump in usage of the feature.",
     device: "omitting that a $20-per-transfer bonus ran the entire month being measured",
   },
   {
@@ -549,7 +549,7 @@ export const DRILL_POOL: DrillSeed[] = [
     faithfulText:
       "The rewrite lifted trial starts 9% (p=0.01) over the full 21-day run without diluting their quality: trial-to-paid conversion held steady, 14.2% versus 14.1%, and both results held across desktop, mobile, and all three plan tiers.",
     overclaimedText:
-      "Trial starts rose 9% over the 21-day run, significant at p=0.01. We verified the lift on desktop, where it held; on mobile, where it held; and across the Starter, Growth, and Scale tiers, where it held in each. Trial-to-paid conversion came in at 14.2% versus 14.1% — effectively unchanged — and we confirmed it was likewise unchanged on desktop, on mobile, and across all three tiers.",
+      "Trial starts rose 9% over the 21-day run, significant at p=0.01. We verified the lift on desktop, where it held; on mobile, where it held; and across the Starter, Growth, and Scale tiers, where it held in each. Trial-to-paid conversion came in at 14.2% versus 14.1%, effectively unchanged, and we confirmed it was likewise unchanged on desktop, on mobile, and across all three tiers.",
     device: "one consistency finding enumerated cut by cut until restatement passes for thoroughness",
   },
   {
