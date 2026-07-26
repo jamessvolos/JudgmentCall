@@ -142,7 +142,11 @@ jobs:
               assert banned not in raw, f"BLINDING LEAK: {banned}"
           d = call(f"/api/drill?sessionId={sid}")
           assert d["item"] is not None, d
-          print("ok  vote loop, results, review (blinding audit), drill — all pass")
+          for track in ["statistics", "economics", "architecture", "decision", "ml"]:
+              t = call(f"/api/train?sessionId={sid}&track={track}")
+              assert t.get("item") is not None, (track, t)
+              print(f"ok  train serve: {track} -> {t['item']['kind']}")
+          print("ok  vote loop, results, review (blinding audit), drill, five train rooms — all pass")
           PY
 
       - name: Summary
