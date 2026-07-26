@@ -56,7 +56,7 @@
     "tol": 4,
     "scenario": "Two offers on the desk. Startup: 60% the equity vests as hoped ($180k all-in), 40% it doesn't ($90k). BigCo: 95% the standard package pays $150k, 5% a re-org trims it to $120k.",
     "prompt": "Set the margin: which offer wins, and by how much in year-one value?",
-    "explanation": "EV(startup) = 108 + 36 = $144k. EV(BigCo) = 142.5 + 6 = $148.5k. BigCo wins by $4.5k. The reflex compares headline outcomes (180 vs 150, startup by +30) while the 40% downside branch does $36k of quiet work. A close call either way; the $30k gap you felt was never real."
+    "explanation": "EV(startup) = 108 + 36 = $144k. EV(BigCo) = 142.5 + 6 = $148.5k. BigCo wins by $4.5k. Eyes go straight to the headline outcomes (180 vs 150, startup by +30) while the 40% downside branch does $36k of quiet work. A close call either way; the $30k gap you felt was never real."
   },
   {
     "title": "gap-warranty-01",
@@ -199,7 +199,7 @@
     "tol": 4,
     "scenario": "At checkout: a guaranteed $25 rebate, or one entry in a drawing — 2% chance at $1,000, otherwise nothing.",
     "prompt": "Set the margin: which option wins, and by how much per entry?",
-    "explanation": "EV(rebate) = $25. EV(drawing) = 0.02·1000 = $20. The rebate wins by $5, a much closer call than it feels. The reflex compares the most-likely outcomes ($25 vs $0) and calls the drawing worthless; a 2% shot at $1,000 is quietly worth $20. Small probabilities times big numbers are still real money, in both directions."
+    "explanation": "EV(rebate) = $25. EV(drawing) = 0.02·1000 = $20. The rebate wins by $5, a much closer call than it feels. Read only the most-likely outcomes ($25 vs $0) and the drawing looks worthless; a 2% shot at $1,000 is quietly worth $20. Small probabilities times big numbers are still real money, in both directions."
   },
   {
     "title": "gap-hire-01",

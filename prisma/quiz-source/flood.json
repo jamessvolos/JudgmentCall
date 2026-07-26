@@ -36,7 +36,7 @@
   "min": 0,
   "max": 50,
   "truth": 19,
-  "explanation": "With 80% specificity, one in five healthy people is falsely flagged, so false positives dominate at low prevalence. What a positive result means is set by the base rate as much as by the test. Here true and false positives balance out around 19% prevalence."
+  "explanation": "With 80% specificity, one in five healthy people is falsely flagged, so false positives dominate at low prevalence. Here true and false positives balance out around 19% prevalence."
  },
  {
   "title": "stats-flood-04",
@@ -49,7 +49,7 @@
   "min": 0,
   "max": 40,
   "truth": 9.1,
-  "explanation": "High specificity keeps false positives in check, but when the condition is uncommon they still outnumber true positives. A positive scan is only as informative as the base rate allows. The two flood levels meet near 9.1% prevalence."
+  "explanation": "High specificity keeps false positives in check, but when the condition is uncommon they still outnumber true positives: the 8% error rate applies to nearly everyone scanned, while the 80% catch rate applies to the few. The two flood levels meet near 9.1% prevalence."
  },
  {
   "title": "stats-flood-05",
@@ -62,7 +62,7 @@
   "min": 0,
   "max": 20,
   "truth": 2.9,
-  "explanation": "Even a near-perfect test is swamped by false positives when the condition is very rare, because a tiny error rate applied to many healthy people still adds up. Positive predictive value is governed by the base rate. Here a positive result becomes a coin flip at just 2.9% prevalence."
+  "explanation": "Even a near-perfect test is swamped by false positives when the condition is very rare, because a tiny error rate applied to many healthy people still adds up. Flagging 3% of the non-carrier majority keeps pace with catching 99% of the few carriers. Here a positive result becomes a coin flip at just 2.9% prevalence."
  },
  {
   "title": "stats-flood-06",

@@ -157,7 +157,7 @@
    "lo": 70,
    "hi": 82
   },
-  "explanation": "Regression to the mean: an unusually high day is part skill, part luck, and the luck does not repeat. Extremes are the observations most contaminated by noise, so expect her to stay above the 70-call average without holding 92."
+  "explanation": "An unusually high day is part skill, part luck, and the luck does not repeat. Extremes are the observations most contaminated by noise, so expect her to stay above the 70-call average without holding 92."
  },
  {
   "title": "stats-est-11",

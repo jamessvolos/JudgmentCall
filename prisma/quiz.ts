@@ -1913,7 +1913,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       }
     ],
     "payload": null,
-    "explanation": "A sunk cost can't be recovered by any future action, so it should carry zero weight. The real comparison is between two futures: 80 more minutes in this seat, or 80 minutes spent on anything you'd enjoy more."
+    "explanation": "A sunk cost can't be recovered by any future action, so it should carry zero weight. What's left is a comparison between two futures: 80 more minutes in this seat, or 80 minutes spent on anything you'd enjoy more."
   },
   {
     "track": "economics",
@@ -3065,7 +3065,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 30,
       "tol": 4
     },
-    "explanation": "EV(startup) = 108 + 36 = $144k. EV(BigCo) = 142.5 + 6 = $148.5k. BigCo wins by $4.5k. The reflex compares headline outcomes (180 vs 150, startup by +30) while the 40% downside branch does $36k of quiet work. A close call either way; the $30k gap you felt was never real."
+    "explanation": "EV(startup) = 108 + 36 = $144k. EV(BigCo) = 142.5 + 6 = $148.5k. BigCo wins by $4.5k. Eyes go straight to the headline outcomes (180 vs 150, startup by +30) while the 40% downside branch does $36k of quiet work. A close call either way; the $30k gap you felt was never real."
   },
   {
     "track": "decision",
@@ -3287,7 +3287,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "naive": 25,
       "tol": 4
     },
-    "explanation": "EV(rebate) = $25. EV(drawing) = 0.02·1000 = $20. The rebate wins by $5, a much closer call than it feels. The reflex compares the most-likely outcomes ($25 vs $0) and calls the drawing worthless; a 2% shot at $1,000 is quietly worth $20. Small probabilities times big numbers are still real money, in both directions."
+    "explanation": "EV(rebate) = $25. EV(drawing) = 0.02·1000 = $20. The rebate wins by $5, a much closer call than it feels. Read only the most-likely outcomes ($25 vs $0) and the drawing looks worthless; a 2% shot at $1,000 is quietly worth $20. Small probabilities times big numbers are still real money, in both directions."
   },
   {
     "track": "decision",
@@ -4345,7 +4345,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         "hi": 82
       }
     },
-    "explanation": "Regression to the mean: an unusually high day is part skill, part luck, and the luck does not repeat. Extremes are the observations most contaminated by noise, so expect her to stay above the 70-call average without holding 92."
+    "explanation": "An unusually high day is part skill, part luck, and the luck does not repeat. Extremes are the observations most contaminated by noise, so expect her to stay above the 70-call average without holding 92."
   },
   {
     "track": "statistics",
@@ -4501,11 +4501,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "B",
-      "deskRationale": "Both cut bytes scanned versus a row store, but the column set is ad-hoc and unknowable, so a single columnar table prunes to whatever three columns a query names without pre-building anything. Materialized projections scan even less for their exact query, yet they are fragile here: the combinatorial space of column subsets means most ad-hoc queries hit no projection and pipelines balloon.",
+      "deskRationale": "Either layout cuts bytes scanned versus a row store, but the column set is ad-hoc and unknowable, so a single columnar table prunes to whatever three columns a query names without pre-building anything. Materialized projections scan even less for their exact query, yet they are fragile here: the combinatorial space of column subsets means most ad-hoc queries hit no projection and pipelines balloon.",
       "failureMode": "projection explosion, cold misses",
       "alsoFits": "Pick Design A when the query set is small, fixed, and latency-critical (a handful of dashboards hitting the same columns), where a purpose-built projection beats scanning a general columnar table."
     },
-    "explanation": "Both cut bytes scanned versus a row store, but the column set is ad-hoc and unknowable, so a single columnar table prunes to whatever three columns a query names without pre-building anything. Materialized projections scan even less for their exact query, yet they are fragile here: the combinatorial space of column subsets means most ad-hoc queries hit no projection and pipelines balloon."
+    "explanation": "Either layout cuts bytes scanned versus a row store, but the column set is ad-hoc and unknowable, so a single columnar table prunes to whatever three columns a query names without pre-building anything. Materialized projections scan even less for their exact query, yet they are fragile here: the combinatorial space of column subsets means most ad-hoc queries hit no projection and pipelines balloon."
   },
   {
     "track": "architecture",
@@ -4577,11 +4577,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both can hit an hourly target within budget, but with tiny bursty volume and an ops-minimization goal, a scheduled ephemeral job carries almost no standing machinery and makes backfills a re-run. The scale-to-zero stream is legitimately cost-aware, yet its checkpointing, consumer lifecycle, and per-record overhead are ongoing operational weight bought to deliver freshness the requirement never asked for.",
+      "deskRationale": "Either pipeline hits an hourly target within budget, but with tiny bursty volume and an ops-minimization goal, a scheduled ephemeral job carries almost no standing machinery and makes backfills a re-run. The scale-to-zero stream is legitimately cost-aware, yet its checkpointing, consumer lifecycle, and per-record overhead are ongoing operational weight bought to deliver freshness the requirement never asked for.",
       "failureMode": "ops weight, unused freshness",
       "alsoFits": "Design B earns its keep when freshness tightens toward seconds or volume becomes steady and high, where continuous processing amortizes its overhead and the hourly batch would be too stale."
     },
-    "explanation": "Both can hit an hourly target within budget, but with tiny bursty volume and an ops-minimization goal, a scheduled ephemeral job carries almost no standing machinery and makes backfills a re-run. The scale-to-zero stream is legitimately cost-aware, yet its checkpointing, consumer lifecycle, and per-record overhead are ongoing operational weight bought to deliver freshness the requirement never asked for."
+    "explanation": "Either pipeline hits an hourly target within budget, but with tiny bursty volume and an ops-minimization goal, a scheduled ephemeral job carries almost no standing machinery and makes backfills a re-run. The scale-to-zero stream is legitimately cost-aware, yet its checkpointing, consumer lifecycle, and per-record overhead are ongoing operational weight bought to deliver freshness the requirement never asked for."
   },
   {
     "track": "architecture",
@@ -4767,11 +4767,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both prevent double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require: real latency and operational tax for no added correctness here.",
+      "deskRationale": "Neither design double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require: real latency and operational tax for no added correctness here.",
       "failureMode": "needless 2PC overhead",
       "alsoFits": "Design B becomes necessary when the sink cannot dedupe (a non-idempotent target or multi-row side effects per message), where transactional exactly-once is the only way to avoid partial or duplicated writes."
     },
-    "explanation": "Both prevent double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require: real latency and operational tax for no added correctness here."
+    "explanation": "Neither design double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require: real latency and operational tax for no added correctness here."
   },
   {
     "track": "architecture",
@@ -4881,11 +4881,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "B",
-      "deskRationale": "Both separate storage from compute, so both let storage grow cheaply. The compute profile decides it: spiky, mostly idle, measured against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use.",
+      "deskRationale": "Storage is decoupled either way and grows cheaply. The compute profile decides it: spiky, mostly idle, measured against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use.",
       "failureMode": "idle baseline cost",
       "alsoFits": "Design A pays off when compute is steady and high-utilization or latency-sensitive, where a warm cluster's consistent performance beats paying serverless per-query premiums and enduring cold starts all day."
     },
-    "explanation": "Both separate storage from compute, so both let storage grow cheaply. The compute profile decides it: spiky, mostly idle, measured against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use."
+    "explanation": "Storage is decoupled either way and grows cheaply. The compute profile decides it: spiky, mostly idle, measured against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use."
   },
   {
     "track": "architecture",
@@ -4957,11 +4957,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both can serve the page, but reads outnumber writes 100:1 and the catalog rarely changes, so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat.",
+      "deskRationale": "Serving the page is table stakes; reads outnumber writes 100:1 and the catalog rarely changes, so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat.",
       "failureMode": "per-read join cost",
       "alsoFits": "Design B wins when writes are frequent and many entities must stay mutually consistent: an order-management back office where duplication would breed update anomalies."
     },
-    "explanation": "Both can serve the page, but reads outnumber writes 100:1 and the catalog rarely changes, so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat."
+    "explanation": "Serving the page is table stakes; reads outnumber writes 100:1 and the catalog rarely changes, so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat."
   },
   {
     "track": "architecture",
@@ -5033,11 +5033,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both run the job, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero, which decides it when utilization is low and minutes of latency are acceptable.",
+      "deskRationale": "The job runs fine on either, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero, which decides it when utilization is low and minutes of latency are acceptable.",
       "failureMode": "paying for idle capacity",
       "alsoFits": "Design B is cheaper once the workload is steady and high-utilization: a cluster running near-continuously, where reserved capacity beats per-invocation pricing."
     },
-    "explanation": "Both run the job, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero, which decides it when utilization is low and minutes of latency are acceptable."
+    "explanation": "The job runs fine on either, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero, which decides it when utilization is low and minutes of latency are acceptable."
   },
   {
     "track": "architecture",
@@ -5109,11 +5109,11 @@ export const QUIZ_SEEDS: QuizSeed[] = [
         ]
       },
       "better": "A",
-      "deskRationale": "Both can hold the bytes, but at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic. The wrong tool once volume grows.",
+      "deskRationale": "Anything can hold the bytes; at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic. The wrong tool once volume grows.",
       "failureMode": "database bloat from binaries",
       "alsoFits": "Design B is acceptable when blobs are tiny and must be transactionally consistent with their row: small thumbnails or signatures where atomicity with the record outweighs scale concerns."
     },
-    "explanation": "Both can hold the bytes, but at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic. The wrong tool once volume grows."
+    "explanation": "Anything can hold the bytes; at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic. The wrong tool once volume grows."
   },
   {
     "track": "architecture",
@@ -5911,7 +5911,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "max": 50,
       "truth": 19
     },
-    "explanation": "With 80% specificity, one in five healthy people is falsely flagged, so false positives dominate at low prevalence. What a positive result means is set by the base rate as much as by the test. Here true and false positives balance out around 19% prevalence."
+    "explanation": "With 80% specificity, one in five healthy people is falsely flagged, so false positives dominate at low prevalence. Here true and false positives balance out around 19% prevalence."
   },
   {
     "track": "statistics",
@@ -5929,7 +5929,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "max": 40,
       "truth": 9.1
     },
-    "explanation": "High specificity keeps false positives in check, but when the condition is uncommon they still outnumber true positives. A positive scan is only as informative as the base rate allows. The two flood levels meet near 9.1% prevalence."
+    "explanation": "High specificity keeps false positives in check, but when the condition is uncommon they still outnumber true positives: the 8% error rate applies to nearly everyone scanned, while the 80% catch rate applies to the few. The two flood levels meet near 9.1% prevalence."
   },
   {
     "track": "statistics",
@@ -5947,7 +5947,7 @@ export const QUIZ_SEEDS: QuizSeed[] = [
       "max": 20,
       "truth": 2.9
     },
-    "explanation": "Even a near-perfect test is swamped by false positives when the condition is very rare, because a tiny error rate applied to many healthy people still adds up. Positive predictive value is governed by the base rate. Here a positive result becomes a coin flip at just 2.9% prevalence."
+    "explanation": "Even a near-perfect test is swamped by false positives when the condition is very rare, because a tiny error rate applied to many healthy people still adds up. Flagging 3% of the non-carrier majority keeps pace with catching 99% of the few carriers. Here a positive result becomes a coin flip at just 2.9% prevalence."
   },
   {
     "track": "statistics",

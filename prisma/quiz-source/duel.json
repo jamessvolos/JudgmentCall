@@ -57,7 +57,7 @@
    ]
   },
   "better": "B",
-  "deskRationale": "Both cut bytes scanned versus a row store, but the column set is ad-hoc and unknowable, so a single columnar table prunes to whatever three columns a query names without pre-building anything. Materialized projections scan even less for their exact query, yet they are fragile here: the combinatorial space of column subsets means most ad-hoc queries hit no projection and pipelines balloon.",
+  "deskRationale": "Either layout cuts bytes scanned versus a row store, but the column set is ad-hoc and unknowable, so a single columnar table prunes to whatever three columns a query names without pre-building anything. Materialized projections scan even less for their exact query, yet they are fragile here: the combinatorial space of column subsets means most ad-hoc queries hit no projection and pipelines balloon.",
   "failureMode": "projection explosion, cold misses",
   "alsoFits": "Pick Design A when the query set is small, fixed, and latency-critical (a handful of dashboards hitting the same columns), where a purpose-built projection beats scanning a general columnar table."
  },
@@ -119,7 +119,7 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both can hit an hourly target within budget, but with tiny bursty volume and an ops-minimization goal, a scheduled ephemeral job carries almost no standing machinery and makes backfills a re-run. The scale-to-zero stream is legitimately cost-aware, yet its checkpointing, consumer lifecycle, and per-record overhead are ongoing operational weight bought to deliver freshness the requirement never asked for.",
+  "deskRationale": "Either pipeline hits an hourly target within budget, but with tiny bursty volume and an ops-minimization goal, a scheduled ephemeral job carries almost no standing machinery and makes backfills a re-run. The scale-to-zero stream is legitimately cost-aware, yet its checkpointing, consumer lifecycle, and per-record overhead are ongoing operational weight bought to deliver freshness the requirement never asked for.",
   "failureMode": "ops weight, unused freshness",
   "alsoFits": "Design B earns its keep when freshness tightens toward seconds or volume becomes steady and high, where continuous processing amortizes its overhead and the hourly batch would be too stale."
  },
@@ -274,7 +274,7 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both prevent double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require: real latency and operational tax for no added correctness here.",
+  "deskRationale": "Neither design double-charges, so the tie-breaker is the cost of getting there given a sink that already upserts by key. At-least-once with idempotent upsert makes redelivery a no-op with no coordination, while end-to-end exactly-once solves the same problem with distributed transactions the workload doesn't require: real latency and operational tax for no added correctness here.",
   "failureMode": "needless 2PC overhead",
   "alsoFits": "Design B becomes necessary when the sink cannot dedupe (a non-idempotent target or multi-row side effects per message), where transactional exactly-once is the only way to avoid partial or duplicated writes."
  },
@@ -367,7 +367,7 @@
    ]
   },
   "better": "B",
-  "deskRationale": "Both separate storage from compute, so both let storage grow cheaply. The compute profile decides it: spiky, mostly idle, measured against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use.",
+  "deskRationale": "Storage is decoupled either way and grows cheaply. The compute profile decides it: spiky, mostly idle, measured against a pay-per-use goal. Serverless on-demand compute bills only during the business-hours bursts and nothing overnight, whereas a standing autoscaled cluster keeps a minimum baseline running around the clock, paying for idle capacity the workload doesn't use.",
   "failureMode": "idle baseline cost",
   "alsoFits": "Design A pays off when compute is steady and high-utilization or latency-sensitive, where a warm cluster's consistent performance beats paying serverless per-query premiums and enduring cold starts all day."
  },
@@ -429,7 +429,7 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both can serve the page, but reads outnumber writes 100:1 and the catalog rarely changes, so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat.",
+  "deskRationale": "Serving the page is table stakes; reads outnumber writes 100:1 and the catalog rarely changes, so paying join cost on every read is backwards. A denormalized read model turns the page into one keyed fetch and pays its (small) price only on the infrequent edit, keeping p99 flat.",
   "failureMode": "per-read join cost",
   "alsoFits": "Design B wins when writes are frequent and many entities must stay mutually consistent: an order-management back office where duplication would breed update anomalies."
  },
@@ -491,7 +491,7 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both run the job, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero, which decides it when utilization is low and minutes of latency are acceptable.",
+  "deskRationale": "The job runs fine on either, but it's bursty and latency-tolerant, so a reserved cluster bills all day for a few minutes of work. On-demand compute charges only for the run and drops idle cost to zero, which decides it when utilization is low and minutes of latency are acceptable.",
   "failureMode": "paying for idle capacity",
   "alsoFits": "Design B is cheaper once the workload is steady and high-utilization: a cluster running near-continuously, where reserved capacity beats per-invocation pricing."
  },
@@ -553,7 +553,7 @@
    ]
   },
   "better": "A",
-  "deskRationale": "Both can hold the bytes, but at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic. The wrong tool once volume grows.",
+  "deskRationale": "Anything can hold the bytes; at scale the deciding factors are cost, durability, and CDN delivery. Object storage is purpose-built for cheap durable blobs the CDN can pull directly, while BLOB columns bloat the database and its backups and don't serve edge traffic. The wrong tool once volume grows.",
   "failureMode": "database bloat from binaries",
   "alsoFits": "Design B is acceptable when blobs are tiny and must be transactionally consistent with their row: small thumbnails or signatures where atomicity with the record outweighs scale concerns."
  }
