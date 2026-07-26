@@ -5,6 +5,11 @@ import { OG, OG_SIZE, OgMasthead, ogFonts } from "@/lib/og";
 // Live social card for the public results page: headline totals plus the
 // strongest published contrast, drawn in the caliper grammar. Faithful-only
 // public statistics — the same numbers as the page itself.
+// Rendered on demand, not at build time: this card needs the database, and a
+// transient DB outage during prerender must not fail the whole deploy. The
+// response is CDN-cached (s-maxage) so the live cost stays one query per window.
+export const dynamic = "force-dynamic";
+
 export const size = OG_SIZE;
 export const contentType = "image/png";
 export const alt = "Judgment Call — live results: what makes an insight land?";
