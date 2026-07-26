@@ -1,0 +1,45 @@
+{
+  "statistics": {
+    "words": 7240,
+    "emdash": 0,
+    "notthe": 0.7,
+    "epigram": 2
+  },
+  "economics": {
+    "words": 2828,
+    "emdash": 0,
+    "notthe": 0.4,
+    "epigram": 0
+  },
+  "architecture": {
+    "words": 6221,
+    "emdash": 0,
+    "notthe": 0,
+    "epigram": 2
+  },
+  "decision": {
+    "words": 4279,
+    "emdash": 0.2,
+    "notthe": 0.2,
+    "epigram": 0
+  },
+  "ml": {
+    "words": 4469,
+    "emdash": 0.2,
+    "notthe": 0,
+    "epigram": 4
+  },
+  "drills": {
+    "words": 16530,
+    "emdash": 2.7,
+    "notthe": 0.2,
+    "epigram": 0
+  },
+  "ui": {
+    "words": 5206,
+    "emdash": 0.6,
+    "notthe": 0.6,
+    "epigram": 0,
+    "thecaps": 40
+  }
+}

@@ -62,5 +62,26 @@ tests re-check every invariant after a copy edit; run them.
 | drills | 16,713 | 19.3 | 1.3 | 12 | |
 | ui | 5,304 | 16.0 | 2.3 | 0 | 40 |
 
-The after-table lives in `copy-lint.baseline.json`, which doubles as the CI
-threshold. Regressions fail the build.
+## The measured after (2026-07-26, post-rewrite)
+
+| group | words | em-dash/1k | not-the/1k | epigram % | THE-caps |
+|---|---:|---:|---:|---:|---:|
+| statistics | 7,240 | 0 | 0.7 | 2 | |
+| economics | 2,828 | 0 | 0.4 | 0 | |
+| architecture | 6,221 | 0 | 0 | 2 | |
+| decision | 4,279 | 0.2 | 0.2 | 0 | |
+| ml | 4,469 | 0.2 | 0 | 4 | |
+| drills | 16,530 | 2.7 | 0.2 | 0 | |
+| ui | 5,206 | 0.6 | 0.6 | 0 | 40 |
+
+Every surviving hit is deliberate: the drills residue sits entirely in
+frozen fields the crude extractor also counts (answer options, bolded data
+lines, titles — editable drill prose is at zero), the ui residue is the
+frozen LadderStrip plus two contrasts that are the lesson itself, and
+THE-caps stayed by design (room names are set decoration, not prose). A
+slop-reader pass then broke the structural repeats the counters cannot see:
+identical explanation scaffolds across sibling flood, gap, and duel items.
+
+The canonical after-numbers live in `scripts/copy-lint.baseline.json`,
+recorded via `node scripts/copy-lint.mjs --baseline`; `npm test` runs
+`copy-lint --check`, so a >15% regression on any metric fails the build.
