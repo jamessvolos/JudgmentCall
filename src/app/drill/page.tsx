@@ -231,9 +231,15 @@ export default function TrainingRoom() {
     [progress]
   );
 
-  const loadDashboard = useCallback(async () => {
+  // Returns the HTTP status so the bootstrap can tell "session row not there
+  // yet" (404, first visit) from a real failure. The timeout keeps a hung
+  // fetch from pinning the loading screen forever.
+  const loadDashboard = useCallback(async (): Promise<number> => {
     const sid = sessionIdRef.current!;
-    const res = await fetch(`/api/drill?sessionId=${encodeURIComponent(sid)}`);
+    const res = await fetch(`/api/drill?sessionId=${encodeURIComponent(sid)}`, {
+      signal: AbortSignal.timeout(12000),
+    });
+    if (res.status === 404) return 404;
     if (!res.ok) throw new Error("load failed");
     const data: DrillGet = await res.json();
     setRating(data.drillRating);
@@ -245,6 +251,7 @@ export default function TrainingRoom() {
     if (data.exam) setExam(data.exam);
     setCases(data.cases ?? []);
     setExamBlocked(data.examBlocked ?? null);
+    return res.status;
   }, []);
 
   type FetchOpts = { docket?: boolean; caseId?: string; exam?: boolean };
@@ -271,18 +278,27 @@ export default function TrainingRoom() {
     []
   );
 
-  // bootstrap: ensure a session exists (training works standalone), load the map
+  // bootstrap: ensure a session exists (training works standalone), load the
+  // map. The session POST and the dashboard GET run concurrently — a returning
+  // visitor pays one round trip; a 404 (session row not there yet, first
+  // visit) awaits the POST and retries the GET once.
   useEffect(() => {
     const sid = getOrCreateSessionId();
     sessionIdRef.current = sid;
     (async () => {
       try {
-        await fetch("/api/session", {
+        const sessionReady = fetch("/api/session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId: sid, segment: "other" }),
-        });
-        await loadDashboard();
+          signal: AbortSignal.timeout(12000),
+        }).catch(() => null);
+        let status = await loadDashboard();
+        if (status === 404) {
+          await sessionReady;
+          status = await loadDashboard();
+        }
+        if (status !== 200) throw new Error(`load failed (${status})`);
         setPhase("dashboard");
       } catch {
         setError(true);

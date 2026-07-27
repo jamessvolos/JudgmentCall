@@ -4,11 +4,16 @@ import { HOUSE_VIEW, stanceFor } from "@/lib/house-view";
 import { deskVerdict, verdictChipLabel, verdictChipTone } from "@/lib/desk-verdict";
 import { getAnalysisSnapshots } from "@/lib/repo";
 import { ATTRIBUTE_LABELS, VALUE_LABELS } from "@/lib/types";
+import { Suspense } from "react";
 import { CountUp } from "@/components/CountUp";
+import { ResultsCastLink } from "@/components/ResultsCastLink";
 import { YourContribution } from "@/components/YourContribution";
 import { ResultsHeadToHeads, type H2HRow } from "@/components/ResultsHeadToHeads";
 
-export const dynamic = "force-dynamic";
+// ISR: the publication re-renders at most once a minute. Per-session content
+// (YourContribution) and embed mode (?embed=1 → ResultsCastLink) are client
+// islands, so nothing here needs per-request server rendering.
+export const revalidate = 60;
 
 export const metadata = {
   title: "Judgment Call — Live results",
@@ -86,14 +91,11 @@ function buildH2HRows(stats: ValuePairStat[]): H2HRow[] {
 }
 
 
-export default async function ResultsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ embed?: string }>;
-}) {
+export default async function ResultsPage() {
   // Embed mode (?embed=1): chrome-less for iframes in articles — masthead and
-  // colophon drop away (body:has() rule in globals.css), content stays whole.
-  const embed = (await searchParams).embed === "1";
+  // colophon drop away (globals.css .embed-hide / body:has() rules), content
+  // stays whole. The flag is read client-side (ResultsCastLink) so this page
+  // stays prerenderable.
   const [a, snapshots] = await Promise.all([computeAnalyticsCached(), getAnalysisSnapshots(5)]);
   const exec = a.segmentStats.executive ?? [];
   const analyst = a.segmentStats.analyst ?? [];
@@ -110,14 +112,12 @@ export default async function ResultsPage({
     .sort((d1, d2) => Math.abs(d2.e.rateA! - d2.an!.rateA!) - Math.abs(d1.e.rateA! - d1.an!.rateA!));
 
   return (
-    <main className="flex-1 px-4 py-8 sm:py-12" {...(embed && { "data-embed": "1" })}>
+    <main className="flex-1 px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-2xl">
-        {!embed && (
-          <div className="hero-line" style={{ "--i": 0 } as React.CSSProperties}>
-            <p className="masthead text-ink-strong">Judgment Call · Live study</p>
-            <div className="datum mt-1.5" aria-hidden />
-          </div>
-        )}
+        <div className="embed-hide hero-line" style={{ "--i": 0 } as React.CSSProperties}>
+          <p className="masthead text-ink-strong">Judgment Call · Live study</p>
+          <div className="datum mt-1.5" aria-hidden />
+        </div>
         <h1
           className="hero-line ink-gradient mt-5 font-sans font-semibold text-[clamp(2.25rem,6vw,3.5rem)] leading-[1.02] tracking-[-0.03em] text-balance"
           style={{ "--i": 1 } as React.CSSProperties}
@@ -158,13 +158,15 @@ export default async function ResultsPage({
           and stay hidden until n≥{MIN_N}; full inclusion rules in Methods at the bottom.
         </p>
         <p className="mt-3 text-sm">
-          <Link
-            href="/"
-            {...(embed && { target: "_blank" })}
-            className="font-semibold text-accent hover:underline"
+          <Suspense
+            fallback={
+              <Link href="/" className="font-semibold text-accent hover:underline">
+                Cast your own votes →
+              </Link>
+            }
           >
-            Cast your own votes{embed ? " at judgment-call.vercel.app" : ""} →
-          </Link>
+            <ResultsCastLink />
+          </Suspense>
         </p>
         <YourContribution />
 

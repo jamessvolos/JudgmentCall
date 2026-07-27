@@ -157,8 +157,13 @@ export const DRILL_SEEDS: DrillSeed[] = [...DRILL_BASE, ...DRILL_POOL, ...CASE_S
 // non-null DB shape. Prisma-only import — this module never ships to a client.
 import type { PrismaClient } from "@prisma/client";
 
+const SYNC_BATCH = 50;
+
 export async function syncDrillItems(prisma: PrismaClient): Promise<number> {
-  for (const d of DRILL_SEEDS) {
+  // Build every (lazy) upsert first, then run them in batched transactions —
+  // one round trip per 50 items instead of one per item, so a single dropped
+  // connection can't strand the sync mid-pool. Still idempotent.
+  const ops = DRILL_SEEDS.map((d) => {
     const data = {
       contextSnippet: d.contextSnippet,
       sourceLabel: d.sourceLabel,
@@ -176,11 +181,14 @@ export async function syncDrillItems(prisma: PrismaClient): Promise<number> {
       caseId: d.caseId ?? "",
       caseSeq: d.caseSeq ?? 0,
     };
-    await prisma.drillItem.upsert({
+    return prisma.drillItem.upsert({
       where: { title: d.title },
       create: { title: d.title, ...data },
       update: data,
     });
+  });
+  for (let i = 0; i < ops.length; i += SYNC_BATCH) {
+    await prisma.$transaction(ops.slice(i, i + SYNC_BATCH));
   }
   return DRILL_SEEDS.length;
 }

@@ -6753,8 +6753,13 @@ export const QUIZ_SEEDS: QuizSeed[] = [
 // build (scripts/prod-init.ts) so both track pools ship without a reseed. The
 // update path omits rating/attempts, preserving each item's learned difficulty
 // across content edits. Prisma-only import — never ships to a client.
+const SYNC_BATCH = 50;
+
 export async function syncQuizItems(prisma: PrismaClient): Promise<number> {
-  for (const q of QUIZ_SEEDS) {
+  // Build every (lazy) upsert first, then run them in batched transactions —
+  // one round trip per 50 items instead of one per item, so a single dropped
+  // connection can't strand the sync mid-pool. Still idempotent.
+  const ops = QUIZ_SEEDS.map((q) => {
     const data = {
       track: q.track,
       topic: q.topic,
@@ -6766,11 +6771,14 @@ export async function syncQuizItems(prisma: PrismaClient): Promise<number> {
       explanation: q.explanation,
       difficulty: q.difficulty,
     };
-    await prisma.quizItem.upsert({
+    return prisma.quizItem.upsert({
       where: { title: q.title },
       create: { title: q.title, ...data },
       update: data,
     });
+  });
+  for (let i = 0; i < ops.length; i += SYNC_BATCH) {
+    await prisma.$transaction(ops.slice(i, i + SYNC_BATCH));
   }
   return QUIZ_SEEDS.length;
 }

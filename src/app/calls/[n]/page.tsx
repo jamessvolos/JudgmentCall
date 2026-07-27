@@ -11,7 +11,9 @@ import { ATTRIBUTE_LABELS, VALUE_LABELS } from "@/lib/types";
 // /calls/7 carries its own OG card into the feed. Craft-only by construction
 // (HOUSE_VIEW carries no fidelity vocabulary).
 
-export const dynamic = "force-dynamic";
+// ISR: the frozen registration never changes and the room's verdict moves at
+// ledger speed — a one-minute revalidation window serves both.
+export const revalidate = 60;
 
 function callFor(n: number) {
   if (!Number.isInteger(n) || n < 1 || n > HOUSE_VIEW.length) return null;

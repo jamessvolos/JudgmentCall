@@ -212,28 +212,53 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
   });
   const [poolDry, setPoolDry] = useState(false);
 
+  // Initial load, callable again from the error screen's Retry. The session
+  // POST and the room GET run concurrently: a returning visitor (the common
+  // case) pays one round trip. A 404 means the session row doesn't exist yet
+  // (first visit) — await the POST, then retry the GET once. Both fetches carry
+  // a timeout so a hung connection surfaces the error screen instead of the
+  // skeleton forever.
+  const loadRoom = useCallback(async () => {
+    try {
+      const sid = getOrCreateSessionId();
+      const sessionReady = fetch("/api/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: sid, segment: "other" }),
+        signal: AbortSignal.timeout(12000),
+      }).catch(() => null);
+      const getRoom = () =>
+        fetch(`/api/train?sessionId=${encodeURIComponent(sid)}&track=${trackId}`, {
+          signal: AbortSignal.timeout(12000),
+        });
+      let res = await getRoom();
+      if (res.status === 404) {
+        await sessionReady;
+        res = await getRoom();
+      }
+      if (!res.ok) throw new Error(`load failed (${res.status})`);
+      const data: GetDto = await res.json();
+      setStanding(data.standing);
+      setRating(data.standing?.liveRating ?? data.liveRating);
+    } catch {
+      setError("Couldn't load the room.");
+    } finally {
+      setLoading(false);
+    }
+  }, [trackId]);
+
   useEffect(() => {
     (async () => {
-      try {
-        const sid = getOrCreateSessionId();
-        await fetch("/api/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: sid, segment: "other" }),
-        });
-        const res = await fetch(`/api/train?sessionId=${encodeURIComponent(sid)}&track=${trackId}`);
-        if (!res.ok) throw new Error(`load failed (${res.status})`);
-        const data: GetDto = await res.json();
-        setStanding(data.standing);
-        setRating(data.standing?.liveRating ?? data.liveRating);
-      } catch {
-        setError("Couldn't load the room. Try again.");
-      } finally {
-        setLoading(false);
-      }
+      await loadRoom();
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadRoom]);
+
+  // Retry from the error screen: restore the skeleton, then run the same load.
+  const retryLoad = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    void loadRoom();
+  }, [loadRoom]);
 
   const fetchItem = useCallback(
     async (topic?: string): Promise<ItemDto | null> => {
@@ -377,12 +402,22 @@ export function TrackRoom({ trackId }: { trackId: TrackId }) {
       </div>
       <div className="double-rule mt-3" aria-hidden />
 
-      {error && (
+      {error && standing && (
         <p className="mt-6 rounded-md border border-danger/40 bg-danger/5 px-4 py-3 text-center text-sm text-danger">{error}</p>
       )}
 
       {loading && !standing ? (
         <p className="mt-16 text-center font-mono text-sm text-muted">Opening the room…</p>
+      ) : !loading && !standing ? (
+        <div className="mt-16 text-center">
+          <p className="text-muted">{error ?? "Couldn't load the room."}</p>
+          <button
+            onClick={retryLoad}
+            className="mt-3 rounded-chip border border-card-border px-4 py-2 font-mono text-sm hover:border-rule-strong"
+          >
+            Try again
+          </button>
+        </div>
       ) : phase === "dashboard" && standing ? (
         <Dashboard track={track} standing={standing} rating={rating} otherId={other} onStart={startRun} />
       ) : phase === "run" && item ? (
@@ -459,7 +494,8 @@ function LevelMeter({ track, standing, rating }: { track: Track; standing: Stand
       {nextLevel && toNext ? (
         <div className="mx-auto mt-4 max-w-sm">
           <div className="h-1 w-full overflow-hidden rounded-full bg-card-border">
-            <div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${Math.round(pct * 100)}%` }} />
+            {/* full-width inner bar scaled on the compositor (transform, not width) */}
+            <div className="h-full w-full origin-left rounded-full bg-accent transition-transform duration-500" style={{ transform: `scaleX(${Math.round(pct * 100) / 100})` }} />
           </div>
           <p className="mt-2 font-mono text-[0.7rem] text-muted">Level {nextLevel.roman} · {nextLevel.title}: {nextLevel.gate}</p>
           <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 font-mono text-[0.65rem] text-muted/70">
@@ -803,7 +839,8 @@ function Run({ track, item, reveal, submitting, rating, position, total, levelRo
         </div>
       ) : (
         <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-card-border" aria-hidden>
-          <div className="h-full rounded-full bg-rule-strong transition-[width] duration-300" style={{ width: `${(Math.min(position, total) / total) * 100}%` }} />
+          {/* full-width inner bar scaled on the compositor (transform, not width) */}
+          <div className="h-full w-full origin-left rounded-full bg-rule-strong transition-transform duration-300" style={{ transform: `scaleX(${Math.min(position, total) / total})` }} />
         </div>
       )}
 
@@ -1276,8 +1313,28 @@ function FloodCall({ item, reveal, submitting, onSubmit, postReveal }: {
   // color the first tp cells accent (true positives), next fp cells danger
   // (false positives), the rest faint (test-negatives) — the accent-vs-danger
   // ratio among the lit cells IS the PPV, made visible.
-  const cellCls = (i: number) => (i < tp ? "fill-accent" : i < tp + fp ? "fill-danger" : "fill-card-border");
-  const S = 10, GAP = 1.5;
+  //
+  // The tp / fp regions are contiguous runs in row-major order, so instead of
+  // 1,024 <rect>s rebuilt on every slider tick the grid is a handful of run
+  // rects filled with an SVG cell pattern (one 10×10 rx=1 cell per 11.5 tile,
+  // gaps transparent — pixel-identical to the per-cell version). A full-grid
+  // test-negative rect sits underneath; the opaque runs paint over it exactly.
+  const S = 10, GAP = 1.5, T = S + GAP;
+  const runRects = (start: number, count: number, fill: string) => {
+    if (count <= 0) return null;
+    const end = start + count - 1;
+    const r0 = Math.floor(start / COLS), c0 = start % COLS;
+    const r1 = Math.floor(end / COLS), c1 = end % COLS;
+    const rects: { x: number; y: number; w: number; h: number }[] =
+      r0 === r1
+        ? [{ x: c0 * T, y: r0 * T, w: (c1 - c0 + 1) * T, h: T }]
+        : [
+            { x: c0 * T, y: r0 * T, w: (COLS - c0) * T, h: T },
+            ...(r1 - r0 > 1 ? [{ x: 0, y: (r0 + 1) * T, w: COLS * T, h: (r1 - r0 - 1) * T }] : []),
+            { x: 0, y: r1 * T, w: (c1 + 1) * T, h: T },
+          ];
+    return rects.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} fill={fill} />);
+  };
   return (
     <>
       <div className="pair-in mt-5 rounded-lg border border-card-border bg-card px-4 py-4">
@@ -1287,10 +1344,23 @@ function FloodCall({ item, reveal, submitting, onSubmit, postReveal }: {
       <p className="mt-5 text-center text-base font-semibold text-ink-strong">{item.prompt}</p>
 
       <div className="mt-4 rounded-lg border border-card-border bg-card px-4 py-4">
-        <svg viewBox={`0 0 ${COLS * (S + GAP)} ${COLS * (S + GAP)}`} className="mx-auto block w-full max-w-[300px]" role="img" aria-label="A grid of 1024 people: true positives, false positives, and test-negatives at the chosen prevalence">
-          {Array.from({ length: N }, (_, i) => (
-            <rect key={i} x={(i % COLS) * (S + GAP)} y={Math.floor(i / COLS) * (S + GAP)} width={S} height={S} rx={1} className={cellCls(i)} />
-          ))}
+        <svg viewBox={`0 0 ${COLS * T} ${COLS * T}`} className="mx-auto block w-full max-w-[300px]" role="img" aria-label="A grid of 1024 people: true positives, false positives, and test-negatives at the chosen prevalence">
+          <defs>
+            {(
+              [
+                ["tp", "fill-accent"],
+                ["fp", "fill-danger"],
+                ["neg", "fill-card-border"],
+              ] as const
+            ).map(([k, cls]) => (
+              <pattern key={k} id={`flood-${k}`} width={T} height={T} patternUnits="userSpaceOnUse">
+                <rect width={S} height={S} rx={1} className={cls} />
+              </pattern>
+            ))}
+          </defs>
+          <rect x={0} y={0} width={COLS * T} height={COLS * T} fill="url(#flood-neg)" />
+          {runRects(0, tp, "url(#flood-tp)")}
+          {runRects(tp, fp, "url(#flood-fp)")}
         </svg>
         <div className="mt-3 flex items-center justify-center gap-4 font-mono text-[0.65rem]">
           <span className="text-accent">■ has it & tests + ({tp})</span>
@@ -1685,11 +1755,16 @@ function PoolCall({ item, reveal, submitting, onSubmit, postReveal }: {
               <span className="block h-3 w-0.5 bg-current" />
               <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">you</span>
             </div>
-            {/* the size-weighted truth: slides in from the simple-average position */}
-            <div className="pool-slide absolute top-4 -translate-x-1/2 -translate-y-1/2 text-ink-strong"
-              style={{ left: cx(reveal.truth ?? 0), ["--pool-from" as string]: cx(reveal.naive ?? 0), ["--pool-to" as string]: cx(reveal.truth ?? 0) } as CSSProperties}>
-              <span className="block h-3 w-0.5 bg-current" />
-              <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">weighted</span>
+            {/* the size-weighted truth: slides in from the simple-average position.
+                The rail-wide wrapper animates transform (compositor-friendly, %
+                of rail width); the marker inside keeps its exact final left +
+                centering translate, so the resting frame is pixel-identical. */}
+            <div className="pool-slide absolute inset-x-0 top-4"
+              style={{ ["--pool-from" as string]: cx(reveal.naive ?? 0), ["--pool-to" as string]: cx(reveal.truth ?? 0) } as CSSProperties}>
+              <div className="absolute top-0 -translate-x-1/2 -translate-y-1/2 text-ink-strong" style={{ left: cx(reveal.truth ?? 0) }}>
+                <span className="block h-3 w-0.5 bg-current" />
+                <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">weighted</span>
+              </div>
             </div>
           </div>
           <p className="mt-3 text-sm leading-relaxed text-foreground">{reveal.explanation}</p>
@@ -1810,10 +1885,12 @@ function GapCall({ item, reveal, submitting, onSubmit, postReveal }: {
               <span className="block h-3 w-0.5 bg-current" />
               <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">you</span>
             </div>
-            <div className="pool-slide absolute top-4 -translate-x-1/2 -translate-y-1/2 text-ink-strong"
-              style={{ left: cx(truth), ["--pool-from" as string]: cx(naive), ["--pool-to" as string]: cx(truth) } as CSSProperties}>
-              <span className="block h-3 w-0.5 bg-current" />
-              <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">true</span>
+            <div className="pool-slide absolute inset-x-0 top-4"
+              style={{ ["--pool-from" as string]: cx(naive), ["--pool-to" as string]: cx(truth) } as CSSProperties}>
+              <div className="absolute top-0 -translate-x-1/2 -translate-y-1/2 text-ink-strong" style={{ left: cx(truth) }}>
+                <span className="block h-3 w-0.5 bg-current" />
+                <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">true</span>
+              </div>
             </div>
           </div>
           {(reveal.swing ?? 0) > 0 && (
@@ -2069,10 +2146,12 @@ function PaybackCall({ item, reveal, submitting, onSubmit, postReveal }: {
               </div>
             )}
             {truthN != null && reveal.naiveN != null && (
-              <div className="pool-slide absolute top-4 -translate-x-1/2 -translate-y-1/2 text-ink-strong"
-                style={{ left: cx(truthN), ["--pool-from" as string]: cx(reveal.naiveN), ["--pool-to" as string]: cx(truthN) } as CSSProperties}>
-                <span className="block h-3 w-0.5 bg-current" />
-                <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">true</span>
+              <div className="pool-slide absolute inset-x-0 top-4"
+                style={{ ["--pool-from" as string]: cx(reveal.naiveN), ["--pool-to" as string]: cx(truthN) } as CSSProperties}>
+                <div className="absolute top-0 -translate-x-1/2 -translate-y-1/2 text-ink-strong" style={{ left: cx(truthN) }}>
+                  <span className="block h-3 w-0.5 bg-current" />
+                  <span className="mt-0.5 block whitespace-nowrap font-mono text-[0.5rem]">true</span>
+                </div>
               </div>
             )}
           </div>

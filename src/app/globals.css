@@ -108,12 +108,21 @@
 /* The deck under one overhead lamp: a single static radial, brightest
    top-centre, falling to the edges. No drift — the light source is still. */
 body {
-  background:
-    radial-gradient(120% 80% at 50% -10%, var(--lamp), transparent 60%),
-    var(--background);
-  background-attachment: fixed;
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+/* The lamp rides a fixed, non-interactive layer instead of a
+   background-attachment: fixed image (which forces a repaint on every scroll).
+   Same geometry: the gradient's positioning area was the viewport before, and
+   inset: 0 on a fixed element is exactly the viewport. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% -10%, var(--lamp), transparent 60%);
 }
 
 /* DATUM's only atmosphere is light: the static --lamp radial on <body>.
@@ -410,8 +419,13 @@ body {
 }
 
 /* Embed mode (?embed=1 on /results): the colophon disappears so the page
-   iframes cleanly inside an article. */
+   iframes cleanly inside an article. The flag is stamped client-side (so
+   /results can prerender); .embed-hide marks the in-page chrome that goes
+   with it. */
 body:has(main[data-embed]) footer {
+  display: none;
+}
+main[data-embed] .embed-hide {
   display: none;
 }
 
@@ -424,6 +438,9 @@ body:has(main[data-embed]) footer {
   }
   body {
     background: white;
+  }
+  body::before {
+    display: none;
   }
   .poster-print {
     print-color-adjust: exact;
@@ -442,10 +459,13 @@ body:has(main[data-embed]) footer {
 
 /* POOL reveal — the pooled dot slides from the naive (unweighted) average to
    its true size-weighted position, so you watch the big subgroup drag the
-   aggregate across the reversal line. */
+   aggregate across the reversal line. Runs on the compositor: .pool-slide is a
+   rail-wide (inset-x-0) wrapper whose transform starts at the from/to delta —
+   translateX percentages resolve against the wrapper's own width, i.e. the
+   rail — and settles at 0, where the marker inside sits at its final `left`. */
 @keyframes pool-slide {
-  from { left: var(--pool-from); }
-  to { left: var(--pool-to); }
+  from { transform: translateX(calc(var(--pool-from) - var(--pool-to))); }
+  to { transform: translateX(0); }
 }
 .pool-slide {
   animation: pool-slide 800ms cubic-bezier(0.4, 0, 0.2, 1) forwards;

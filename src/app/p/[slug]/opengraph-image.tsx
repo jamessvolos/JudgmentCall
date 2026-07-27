@@ -122,8 +122,9 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     {
       ...size,
       fonts: await ogFonts(),
-      // A published poster is immutable per slug — cache it hard (perf wave 5).
-      headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
+      // The card folds live standing per view — cache like the other cards
+      // (5 minutes), not the old immutable-poster hour.
+      headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
     }
   );
 }

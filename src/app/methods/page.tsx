@@ -4,10 +4,10 @@ import { MethodsProtocol } from "@/components/MethodsProtocol";
 
 // Methods as its own citable page: a stable URL a skeptic can vet, cite in an
 // argument, or drop into an onboarding doc (anchors m-01…m-06 are the public
-// contract). Live values compute from the same rows as /results on every
-// request — this page can never lag the ledger.
+// contract). Live values compute from the same rows as /results, revalidated
+// on a one-minute window (ISR) — this page can lag the ledger by at most 60s.
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "Judgment Call — Methods",

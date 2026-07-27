@@ -120,6 +120,14 @@ export default function Landing() {
       .catch(() => {});
   }, []);
 
+  // Warm the two primary CTA routes so the first tap doesn't pay the chunk
+  // fetch. Runs after the mount-fetch effect above, so the prefetches queue
+  // behind the live totals instead of competing with them.
+  useEffect(() => {
+    router.prefetch("/swipe");
+    router.prefetch("/train");
+  }, [router]);
+
   // The study launcher — Lane A. Starts immediately with the current segment
   // (default "other", pre-set from a prior run for returners).
   async function start() {
