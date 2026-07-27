@@ -7,7 +7,7 @@
 # migrations, seeds ONCE if the database is empty, and builds.
 set -euo pipefail
 
-sed 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma > prisma/postgres/schema.prisma
+bash scripts/gen-postgres-schema.sh
 npx prisma generate --schema prisma/postgres/schema.prisma
 npx prisma migrate deploy --schema prisma/postgres/schema.prisma
 npx tsx scripts/prod-init.ts

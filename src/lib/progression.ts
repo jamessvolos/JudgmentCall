@@ -20,7 +20,7 @@ export const XP = {
 export type XpKind = keyof typeof XP;
 
 // Editorial ladder, matching the Desk Edition masthead voice.
-export const LEVELS = [
+const LEVELS = [
   { at: 0, title: "Stringer" },
   { at: 250, title: "Desk Assistant" },
   { at: 750, title: "Beat Reporter" },
@@ -58,12 +58,12 @@ export function levelFor(xp: number): LevelInfo {
 const ABILITY_K = 0.35;
 const ABILITY_CLAMP = 3;
 
-export function logit(p: number): number {
+function logit(p: number): number {
   const q = Math.min(0.99, Math.max(0.01, p));
   return Math.log(q / (1 - q));
 }
 
-export function sigmoid(x: number): number {
+function sigmoid(x: number): number {
   return 1 / (1 + Math.exp(-x));
 }
 

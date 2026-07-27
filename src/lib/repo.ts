@@ -101,7 +101,8 @@ export async function getServingConfig(): Promise<ServingConfig> {
   if (!row) return DEFAULT_SERVING;
   try {
     return { ...DEFAULT_SERVING, ...JSON.parse(row.config) };
-  } catch {
+  } catch (err) {
+    console.warn("[repo] falling back to default serving config (unparseable ServingPolicy.config):", err);
     return DEFAULT_SERVING;
   }
 }
@@ -179,16 +180,6 @@ export async function getFindingComparisonCounts(
       count: counts.get(f.id) ?? 0,
       real: f.sourceUrl !== null,
     }));
-  });
-}
-
-export async function getFindingWithVariants(
-  findingId: string
-): Promise<(Finding & { variants: Variant[] }) | null> {
-  // Only approved variants are ever served (M2 review gate; seeds default approved).
-  return prisma.finding.findUnique({
-    where: { id: findingId },
-    include: { variants: { where: { status: "approved" } } },
   });
 }
 
@@ -337,7 +328,8 @@ async function getStarvedAttrs(): Promise<Set<string>> {
     try {
       const cov = JSON.parse(snap.coverage) as { starvation?: { attr: string }[] };
       return new Set<string>((cov.starvation ?? []).slice(0, 2).map((s) => s.attr));
-    } catch {
+    } catch (err) {
+      console.warn("[repo] falling back to no starved attrs (unparseable AnalysisSnapshot.coverage):", err);
       return new Set<string>();
     }
   });
@@ -658,14 +650,6 @@ export async function getFindingsWithVariantStats(): Promise<(Finding & { varian
   return prisma.finding.findMany({
     include: { variants: { where: { status: "approved" }, orderBy: { elo: "desc" } } },
   });
-}
-
-export async function getTotals(): Promise<{ comparisons: number; sessions: number }> {
-  const [comparisons, sessions] = await Promise.all([
-    prisma.comparison.count(),
-    prisma.session.count(),
-  ]);
-  return { comparisons, sessions };
 }
 
 // ---------------------------------------------------------------------------

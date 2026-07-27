@@ -15,21 +15,17 @@ import {
   getFindingsWithVariantStats,
   getJudgeScores,
 } from "./repo";
+import { wilsonClient } from "./client-stats";
 import { VALUE_LABELS, ATTRIBUTE_LABELS, type AttributeKey, type Segment } from "./types";
 
 export const MIN_N = 30;
 
 export type Interval = { lo: number; hi: number };
 
-/** Wilson 95% score interval for a binomial proportion. */
-export function wilson(wins: number, n: number, z = 1.96): Interval | null {
-  if (n === 0) return null;
-  const p = wins / n;
-  const d = 1 + (z * z) / n;
-  const center = (p + (z * z) / (2 * n)) / d;
-  const half = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / d;
-  return { lo: Math.max(0, center - half), hi: Math.min(1, center + half) };
-}
+/** Wilson 95% score interval for a binomial proportion. Single implementation
+ *  lives in client-stats.ts (dependency-free, client-safe); re-exported here
+ *  under the server-side name so callers keep one import site. */
+export const wilson = wilsonClient;
 
 export type ValuePairStat = {
   attribute: AttributeKey;

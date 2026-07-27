@@ -10,7 +10,7 @@ import { SKILL_IDS } from "./teaching";
 import { EXAM_META } from "./drill-credentials-meta";
 
 export const EXAM_LENGTH = EXAM_META.formLength; // 10
-export const EXAM_PASS_AT = EXAM_META.passAt; // 8
+const EXAM_PASS_AT = EXAM_META.passAt; // 8
 
 /** Form arithmetic — the entire state machine. */
 export function examSlot(examCount: number): { form: number; position: number } {

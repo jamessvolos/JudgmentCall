@@ -7,6 +7,7 @@
 //      if a session has exhausted every pair in the pool, repeats are allowed
 //      rather than dead-ending the swipe loop).
 
+import "server-only";
 import {
   getFindingComparisonCounts,
   getFindingsWithVariantsByIds,
@@ -20,7 +21,7 @@ import {
   type Variant,
   type WalkVariant,
 } from "./repo";
-import { attributeDiff, type AttributeKey, type AttributeProfile } from "./types";
+import { attributeDiff, toAttributeProfile, type AttributeKey } from "./types";
 
 export type SelectedPair = {
   finding: PairFinding;
@@ -83,7 +84,7 @@ function enumeratePairs(variants: WalkVariant[]): CandidatePair[] {
     for (let j = i + 1; j < variants.length; j++) {
       const a = variants[i];
       const b = variants[j];
-      const diff = attributeDiff(a as unknown as AttributeProfile, b as unknown as AttributeProfile);
+      const diff = attributeDiff(toAttributeProfile(a), toAttributeProfile(b));
       pairs.push({ a, b, diff, key: pairKey(a.id, b.id) });
     }
   }

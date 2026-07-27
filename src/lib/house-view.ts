@@ -10,6 +10,7 @@
 // Server-side only — stances reach clients as strings inside API payloads and
 // server-rendered pages, never as this module.
 
+import "server-only";
 import type { AttributeKey } from "./types";
 
 export type HouseStance = {

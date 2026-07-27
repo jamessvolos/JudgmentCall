@@ -40,6 +40,14 @@ jobs:
           npx prisma generate --schema prisma/schema.prisma
           npx prisma db push --skip-generate --schema prisma/schema.prisma
 
+      - name: Generated content is fresh (prisma/quiz.ts)
+        run: |
+          node scripts/gen-quiz.mjs
+          git diff --exit-code prisma/quiz.ts || {
+            echo "::error::prisma/quiz.ts is stale — run node scripts/gen-quiz.mjs and commit the result."
+            exit 1
+          }
+
       - name: Typecheck
         run: npx tsc --noEmit
 

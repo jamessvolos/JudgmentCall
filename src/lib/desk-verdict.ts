@@ -4,6 +4,7 @@
 // clears the 50% null; suppressed or missing data is always the uniform open
 // state. Server-side only; craft vocabulary only.
 
+import "server-only";
 import type { ValuePairStat } from "./analytics";
 import type { HouseStance } from "./house-view";
 

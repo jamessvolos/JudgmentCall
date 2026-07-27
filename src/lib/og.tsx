@@ -23,10 +23,23 @@ export const OG = {
 const FONT_DIR = path.join(process.cwd(), "node_modules/@fontsource/ibm-plex-mono/files");
 
 export async function ogFonts() {
-  const [regular, semibold] = await Promise.all([
-    readFile(path.join(FONT_DIR, "ibm-plex-mono-latin-400-normal.woff")),
-    readFile(path.join(FONT_DIR, "ibm-plex-mono-latin-600-normal.woff")),
-  ]);
+  let regular: Buffer;
+  let semibold: Buffer;
+  try {
+    [regular, semibold] = await Promise.all([
+      readFile(path.join(FONT_DIR, "ibm-plex-mono-latin-400-normal.woff")),
+      readFile(path.join(FONT_DIR, "ibm-plex-mono-latin-600-normal.woff")),
+    ]);
+  } catch (err) {
+    // Loud, named failure: these woffs are read from node_modules AT RUNTIME,
+    // which is why @fontsource/ibm-plex-mono must stay in "dependencies"
+    // (unlike the vendored @fontsource-variable UI fonts in src/app/fonts).
+    throw new Error(
+      `OG image fonts missing: could not read IBM Plex Mono woff files from ${FONT_DIR}. ` +
+        `Ensure the "@fontsource/ibm-plex-mono" package is installed as a runtime dependency. ` +
+        `Cause: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
   return [
     { name: "Plex Mono", data: regular, weight: 400 as const, style: "normal" as const },
     { name: "Plex Mono", data: semibold, weight: 600 as const, style: "normal" as const },

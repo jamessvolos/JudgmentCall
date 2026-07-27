@@ -5,9 +5,7 @@
 // vocabulary off /drill.
 
 import type { QuizStanding } from "@/lib/repo";
-import type { Track } from "@/lib/train-tracks";
-
-const AXMIN = 0.25; // chance on a 4-option call is 25% — the reliability x floor
+import { CAL_AXIS_MIN as AXMIN, type Track } from "@/lib/train-tracks";
 
 export type CredentialView = {
   room: string; // "THE STATS ROOM"

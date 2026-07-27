@@ -8,7 +8,7 @@
 
 import type { AttributeKey, Segment } from "./types";
 
-export const LESSONS: Partial<Record<AttributeKey, string>> = {
+const LESSONS: Partial<Record<AttributeKey, string>> = {
   leadType:
     "Where a telling starts sets what a reader checks. A number-first lead invites verification; an implication-first lead invites action; a question-first lead invites the reader to reason before being told. None is 'right' — but mismatching your audience costs attention in the first second.",
   lengthBand:

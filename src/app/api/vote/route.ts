@@ -17,7 +17,7 @@ import {
   LOW_ATTENTION_MS,
   MAX_VOTES_PER_MINUTE,
   RESULTS_AT_VOTES,
-  type AttributeProfile,
+  toAttributeProfile,
   type Segment,
 } from "@/lib/types";
 
@@ -98,9 +98,7 @@ async function voteHandler(request: Request): Promise<Response> {
 
   // Contrast is computed server-side from the stored tags — never trusted
   // from the client.
-  const contrastAttrs = contrastKey(
-    attributeDiff(pair.a as unknown as AttributeProfile, pair.b as unknown as AttributeProfile)
-  );
+  const contrastAttrs = contrastKey(attributeDiff(toAttributeProfile(pair.a), toAttributeProfile(pair.b)));
 
   const latency = Number.isFinite(latencyMs) ? Math.max(0, Math.round(latencyMs)) : 0;
 

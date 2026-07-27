@@ -810,7 +810,10 @@ const CAL_BINS: [number, number][] = [
   [75, 90],
   [90, 100],
 ];
-export const CAL_AXIS_MIN = 25; // reliability-diagram x-axis floor (percent)
+// Reliability-diagram x-axis floor, as a FRACTION: chance on a 4-option call
+// is 25%. The one canonical, client-safe copy — credential.ts (server view
+// model) and TrackRoom.tsx (client diagram) both anchor their x-scales here.
+export const CAL_AXIS_MIN = 0.25;
 // The grade needs enough staked calls to be more than binned noise (a decision
 // scientist's floor: 5 fixed bins are meaningless at n=5).
 const SCORE_MIN_N = 30;

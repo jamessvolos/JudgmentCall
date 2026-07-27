@@ -9,6 +9,7 @@
 // the overclaim experiment is hidden from normal surfaces (spec §4) and
 // telling users "you prefer overclaimed insights" would unblind it.
 
+import "server-only";
 import { getSessionComparisons } from "./repo";
 import {
   ATTRIBUTE_LABELS,

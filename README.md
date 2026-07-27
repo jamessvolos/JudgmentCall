@@ -254,3 +254,8 @@ Recurring jobs are plain scripts (run from repo root): `npm run analyze` writes 
 `AnalysisSnapshot` (the Study Log on `/results`), `npm run digest` posts the daily
 ops digest, `npm run replay` sanity-checks serving-policy changes against logged
 votes before you save them in `/admin`.
+
+### Dev tools
+
+- `scripts/loadtest.ts` — dependency-free load harness for the hot vote loop: N virtual voters hammer `GET /api/pair` → `POST /api/vote` for a fixed duration and it reports per-route latency percentiles (`BASE_URL=… CONCURRENCY=25 DURATION=20 npx tsx scripts/loadtest.ts`; it writes real votes, so aim it at a preview deploy).
+- `scripts/regression.ts` — prompt-regression gate: replays the golden seed set through the current generation prompt + validators and exits 1 if the hard-failure rate regresses against `docs/golden-baseline.json` (`npx tsx scripts/regression.ts [--update-baseline]`; needs `ANTHROPIC_API_KEY`).

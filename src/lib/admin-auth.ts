@@ -3,6 +3,7 @@
 // (browser history / referrer leak). ?key= is still accepted for curl and
 // local scripts.
 
+import "server-only";
 import { createHash } from "crypto";
 import { cookies } from "next/headers";
 import { prisma } from "./db";

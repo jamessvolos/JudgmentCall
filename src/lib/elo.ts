@@ -2,9 +2,9 @@
 // "Can't decide" votes never reach this module: they are logged with
 // winnerId=null and cause no rating change (spec §9).
 
-export const K = 32;
+const K = 32;
 
-export function expectedScore(ratingA: number, ratingB: number): number {
+function expectedScore(ratingA: number, ratingB: number): number {
   return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
 }
 

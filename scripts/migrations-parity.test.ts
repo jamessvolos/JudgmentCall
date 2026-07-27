@@ -7,7 +7,9 @@
 // (exactly how QuizAttempt.level broke all five training rooms). This test
 // fails the suite the moment the schema declares a scalar field that no
 // postgres migration ever creates.
-import { readFileSync, readdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 let failures = 0;
@@ -56,6 +58,26 @@ for (const model of schema.matchAll(/^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm)) {
       new RegExp(`"${field}"`).test(scoped),
       `no postgres CREATE/ALTER TABLE "${name}" creates column "${field}" — add one under ${migrationsDir}`
     );
+  }
+}
+
+// Drift lock for the committed build product: prisma/postgres/schema.prisma is
+// derived from the canonical sqlite schema by scripts/gen-postgres-schema.sh
+// (the same script vercel-build.sh and the workflows run), but it is committed
+// — so it can go stale when the canonical schema changes. Re-derive it here and
+// require a byte-for-byte match.
+{
+  const tmp = mkdtempSync(join(tmpdir(), "pg-schema-"));
+  const derived = join(tmp, "schema.prisma");
+  try {
+    execFileSync("bash", ["scripts/gen-postgres-schema.sh", derived]);
+    check(
+      "prisma/postgres/schema.prisma matches the derived postgres schema",
+      readFileSync(derived, "utf8") === readFileSync("prisma/postgres/schema.prisma", "utf8"),
+      "stale build product — regenerate with: bash scripts/gen-postgres-schema.sh  (writes prisma/postgres/schema.prisma)"
+    );
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
   }
 }
 

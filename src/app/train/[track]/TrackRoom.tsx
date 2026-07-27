@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode, type CSSPrope
 import Link from "next/link";
 import { getOrCreateSessionId, nowMs } from "@/lib/session-client";
 import { RUNG_LABELS, KIND_TEMPLATES, nextRungLine, AT_PRINCIPAL } from "@/lib/level";
-import { TRACKS, TRACK_IDS, topicOf, type TrackId, type Track } from "@/lib/train-tracks";
+import { CAL_AXIS_MIN as AXMIN, TRACKS, TRACK_IDS, topicOf, type TrackId, type Track } from "@/lib/train-tracks";
 
 // The client experience for one Training Room track (10x). A three-phase
 // machine: dashboard → run → recap. The run serves four interaction kinds —
@@ -521,7 +521,6 @@ function GateChip({ label, have, need }: { label: string; have: number; need: nu
 // (y). The diagonal is perfect calibration; dots below it are overconfidence.
 function CalibrationCard({ cal, coverage }: { cal: CalibrationDto; coverage: CoverageDto }) {
   const W = 260, H = 180, pad = 28;
-  const AXMIN = 0.25; // chance on a 4-option call is 25%
   const x = (conf: number) => pad + (Math.max(AXMIN, conf) - AXMIN) * ((W - 2 * pad) / (1 - AXMIN));
   const y = (acc: number) => H - pad - acc * (H - 2 * pad); // 0..1 → bottom..top
   const active = cal.bins.filter((b) => b.count > 0);

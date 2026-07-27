@@ -47,6 +47,37 @@ export function isSegment(value: unknown): value is Segment {
   return typeof value === "string" && (SEGMENTS as readonly string[]).includes(value);
 }
 
+// The six attribute columns are plain strings in the DB (SQLite has no native
+// enums), so rows come back as `string`. This is the one sanctioned narrowing
+// to AttributeProfile: validate every field against the canonical value lists
+// and THROW on mismatch — these rows are written by our own seed/generation
+// paths, so an unknown value is data corruption worth a loud failure, never a
+// silent cast. Cheap by design (array includes over 2–3 values; no zod).
+const ATTRIBUTE_VALUES: Record<AttributeKey, readonly string[]> = {
+  leadType: LEAD_TYPES,
+  lengthBand: LENGTH_BANDS,
+  caveatPlacement: CAVEAT_PLACEMENTS,
+  quantification: QUANTIFICATIONS,
+  soWhat: SO_WHATS,
+  fidelity: FIDELITIES,
+};
+
+export function toAttributeProfile(v: {
+  leadType: string;
+  lengthBand: string;
+  caveatPlacement: string;
+  quantification: string;
+  soWhat: string;
+  fidelity: string;
+}): AttributeProfile {
+  for (const key of ATTRIBUTE_KEYS) {
+    if (!ATTRIBUTE_VALUES[key].includes(v[key])) {
+      throw new Error(`corrupt attribute profile: ${key}="${v[key]}" is not one of [${ATTRIBUTE_VALUES[key].join(", ")}]`);
+    }
+  }
+  return v as AttributeProfile;
+}
+
 /** Attribute keys on which two variants differ. */
 export function attributeDiff(
   a: Pick<AttributeProfile, AttributeKey>,
@@ -84,9 +115,13 @@ export const VALUE_LABELS: Record<string, string> = {
   overclaimed: "punchy-but-overclaimed",
 };
 
-export const VARIANT_STATUSES = ["pending", "approved", "rejected"] as const;
+// Kept as value tuples (not plain unions) so promoting them back to runtime
+// validators stays a one-word change; today only the derived types are used.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- type source only
+const VARIANT_STATUSES = ["pending", "approved", "rejected"] as const;
 export type VariantStatus = (typeof VARIANT_STATUSES)[number];
-export const VARIANT_SOURCES = ["seed", "generated"] as const;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- type source only
+const VARIANT_SOURCES = ["seed", "generated"] as const;
 export type VariantSource = (typeof VARIANT_SOURCES)[number];
 
 // ---------------------------------------------------------------------------
