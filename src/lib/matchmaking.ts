@@ -14,14 +14,16 @@ import {
   getContrastCounts,
   getSessionContrastCounts,
   getServingConfig,
-  type Finding,
+  getVariantsByIds,
+  type PairFinding,
   type ServingConfig,
   type Variant,
+  type WalkVariant,
 } from "./repo";
 import { attributeDiff, type AttributeKey, type AttributeProfile } from "./types";
 
 export type SelectedPair = {
-  finding: Finding;
+  finding: PairFinding;
   variantA: Variant;
   variantB: Variant;
   contrastAttrs: AttributeKey[];
@@ -69,13 +71,13 @@ export function contrastKey(attrs: AttributeKey[]): string {
 }
 
 type CandidatePair = {
-  a: Variant;
-  b: Variant;
+  a: WalkVariant;
+  b: WalkVariant;
   diff: AttributeKey[];
   key: string;
 };
 
-function enumeratePairs(variants: Variant[]): CandidatePair[] {
+function enumeratePairs(variants: WalkVariant[]): CandidatePair[] {
   const pairs: CandidatePair[] = [];
   for (let i = 0; i < variants.length; i++) {
     for (let j = i + 1; j < variants.length; j++) {
@@ -228,12 +230,19 @@ export async function selectPair(
 
       const best = pickBest(tier, contrastCounts, sessionContrasts, policy, early);
 
+      // The walk ran on tag-only projections; fetch the CHOSEN pair's full rows
+      // (one findMany) for serialization — text never rides the candidate scan.
+      const fullRows = await getVariantsByIds([best.a.id, best.b.id]);
+      const fullA = fullRows.find((v) => v.id === best.a.id);
+      const fullB = fullRows.find((v) => v.id === best.b.id);
+      if (!fullA || !fullB) continue; // vanished between reads — walk on
+
       // Randomize left/right so position bias doesn't correlate with identity.
       const flip = Math.random() < 0.5;
       return {
         finding,
-        variantA: flip ? best.b : best.a,
-        variantB: flip ? best.a : best.b,
+        variantA: flip ? fullB : fullA,
+        variantB: flip ? fullA : fullB,
         contrastAttrs: best.diff,
       };
     }

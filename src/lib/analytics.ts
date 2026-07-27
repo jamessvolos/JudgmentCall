@@ -110,15 +110,23 @@ export type OverclaimSnapshot = {
 // Read-path economics (perf wave 1): computeAnalytics scans every comparison,
 // and /results, /api/review, /api/crowd and the OG image all want it per
 // request. Memoize per server instance, keyed by getAnalyticsVersion() —
-// freshness is exact (any new vote or approval changes the key), not
-// TTL-approximate, and a cold serverless instance simply recomputes once.
-let memo: { key: string; snap: AnalyticsSnapshot } | null = null;
+// any new vote or approval changes the key, and a cold serverless instance
+// simply recomputes once. A short TTL floor (perf wave 2) skips even the
+// version check while the memo is younger than 10s, so a burst of reads
+// costs zero freshness queries; at most it delays a new vote's appearance
+// in published aggregates by seconds.
+const MEMO_TTL_FLOOR_MS = 10_000;
+let memo: { key: string; at: number; snap: AnalyticsSnapshot } | null = null;
 
 export async function computeAnalyticsCached(): Promise<AnalyticsSnapshot> {
+  if (memo && Date.now() - memo.at < MEMO_TTL_FLOOR_MS) return memo.snap;
   const key = await getAnalyticsVersion();
-  if (memo?.key === key) return memo.snap;
+  if (memo?.key === key) {
+    memo.at = Date.now();
+    return memo.snap;
+  }
   const snap = await computeAnalytics();
-  memo = { key, snap };
+  memo = { key, at: Date.now(), snap };
   return snap;
 }
 

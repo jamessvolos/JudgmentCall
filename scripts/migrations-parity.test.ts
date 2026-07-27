@@ -32,8 +32,19 @@ const modelNames = new Set([...schema.matchAll(/^model\s+(\w+)\s*\{/gm)].map((m)
 
 const SCALARS = new Set(["String", "Int", "Float", "Boolean", "DateTime", "BigInt", "Decimal", "Bytes", "Json"]);
 
+// Per-table SQL scope: ONLY the CREATE TABLE "Model" block and ALTER TABLE
+// "Model" statements. Matching a field name against ALL migration SQL
+// concatenated let a common column name (status, id, track…) on some OTHER
+// table false-pass a brand-new model that has no migration at all.
+function tableScopedSql(model: string): string {
+  const create = sql.match(new RegExp(`CREATE TABLE (?:"public"\\.)?"${model}"\\s*\\([^;]*;`, "g")) ?? [];
+  const alter = sql.match(new RegExp(`ALTER TABLE (?:"public"\\.)?"${model}"[^;]*;`, "g")) ?? [];
+  return [...create, ...alter].join("\n");
+}
+
 for (const model of schema.matchAll(/^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm)) {
   const [, name, body] = model;
+  const scoped = tableScopedSql(name);
   for (const line of body.split("\n")) {
     const m = line.trim().match(/^(\w+)\s+(\w+)(\[\])?\??\s*/);
     if (!m) continue;
@@ -42,8 +53,8 @@ for (const model of schema.matchAll(/^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm)) {
     if (!SCALARS.has(type)) continue; // block attributes, enums, comments
     check(
       `${name}.${field} exists in postgres migrations`,
-      new RegExp(`"${field}"`).test(sql),
-      `no postgres migration creates column "${field}" — add one under ${migrationsDir}`
+      new RegExp(`"${field}"`).test(scoped),
+      `no postgres CREATE/ALTER TABLE "${name}" creates column "${field}" — add one under ${migrationsDir}`
     );
   }
 }

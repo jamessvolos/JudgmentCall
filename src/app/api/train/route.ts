@@ -12,6 +12,7 @@ import {
 import {
   getSession,
   getQuizItem,
+  getQuizRows,
   getNextQuizItem,
   getQuizStanding,
   getDuelTally,
@@ -100,9 +101,12 @@ async function getHandler(request: Request) {
   const session = await getSession(sessionId);
   if (!session) return NextResponse.json({ error: "unknown session" }, { status: 404 });
 
+  // One attempt-ledger read for the whole GET: getNextQuizItem and
+  // getQuizStanding both fold over the same rows, so fetch once and pass in.
+  const rows = await getQuizRows(sessionId, track);
   const [next, standing] = await Promise.all([
-    getNextQuizItem(sessionId, track, { topic }),
-    getQuizStanding(sessionId, track),
+    getNextQuizItem(sessionId, track, { topic }, rows),
+    getQuizStanding(sessionId, track, rows),
   ]);
 
   const record = { standing };
@@ -214,6 +218,7 @@ async function postHandler(request: Request) {
   let correct: boolean;
   let choiceIndex = -1;
   let capturedFlag: boolean | null = null; // estimate coverage; null for other kinds
+  let floodTol: number | null = null; // flood tolerance, computed once at grading and passed to readOf
   let reveal: Record<string, unknown>;
 
   if (item.kind === "estimate") {
@@ -268,6 +273,7 @@ async function postHandler(request: Request) {
     if (!Number.isFinite(prevalence)) return NextResponse.json({ error: "invalid prevalence" }, { status: 400 });
     // correct if you land within a fair tolerance of the PPV-50 prevalence
     const tol = Math.max(2.5, 0.2 * p.truth);
+    floodTol = tol;
     correct = Math.abs(prevalence - p.truth) <= tol;
     reveal = { truth: p.truth, yourPrev: prevalence, sensitivity: p.sensitivity, specificity: p.specificity, explanation: item.explanation };
   } else if (item.kind === "market") {
@@ -380,21 +386,33 @@ async function postHandler(request: Request) {
   // THE LADDER — the seniority read, graded with the call from the same facts
   // the reveal shows (docs/LADDER-10X.md). Stored on the attempt row exactly
   // like `correct`: a grade-time derivation, re-derivable from the reveal.
-  const read = readOf(item.kind, item.difficulty, correct, confidence, reveal);
+  const read = readOf(item.kind, item.difficulty, correct, confidence, reveal, floodTol);
 
-  const result = await recordQuizAttempt({
-    sessionId,
-    quizItemId: quizId,
-    track: item.track,
-    topic: item.topic,
-    difficulty: item.difficulty,
-    correct,
-    choiceIndex,
-    confidence,
-    captured: capturedFlag,
-    level: read.rung,
-    latencyMs: latency,
-  });
+  let result;
+  try {
+    result = await recordQuizAttempt({
+      sessionId,
+      quizItemId: quizId,
+      track: item.track,
+      topic: item.topic,
+      difficulty: item.difficulty,
+      correct,
+      choiceIndex,
+      confidence,
+      captured: capturedFlag,
+      level: read.rung,
+      latencyMs: latency,
+    });
+  } catch (e) {
+    // A raced double-submit slips past the hasAttemptedQuiz pre-check (the fast
+    // path); the unique (sessionId, quizItemId) index rejects the second insert
+    // and the whole settle rolls back — same 409 as the pre-check, no dup row,
+    // no double Elo. Mirrors the vote route's clientVoteId P2002 handling.
+    if (e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002") {
+      return NextResponse.json({ error: "already attempted" }, { status: 409 });
+    }
+    throw e;
+  }
 
   // The Room verdict is computed AFTER recording, so it includes this vote.
   if (item.kind === "duel") reveal = { ...reveal, room: await getDuelTally(quizId) };
@@ -415,14 +433,16 @@ async function postHandler(request: Request) {
 
 // Maps a graded exchange to its ladder read. Every input is either a stored
 // attempt fact or a field the reveal is about to show the learner — the read
-// is re-derivable from the screen, by design. flood's tolerance is recomputed
-// here identically to its grade branch (it never ships a tol field).
+// is re-derivable from the screen, by design. flood's tolerance is computed
+// once in its grade branch and passed through here (it never ships a tol
+// field in the reveal).
 function readOf(
   kind: string,
   difficulty: number,
   correct: boolean,
   confidence: number | null,
-  r: Record<string, unknown>
+  r: Record<string, unknown>,
+  floodTol: number | null = null
 ): Read {
   if (kind === "estimate") {
     const your = r.your as { lo: number; hi: number };
@@ -431,8 +451,8 @@ function readOf(
   }
   if (kind === "flood") {
     const truth = r.truth as number;
-    const tol = Math.max(2.5, 0.2 * truth);
-    return levelNumeric(correct, false, Math.abs((r.yourPrev as number) - truth), tol);
+    // floodTol is always set by the flood grade branch before readOf runs.
+    return levelNumeric(correct, false, Math.abs((r.yourPrev as number) - truth), floodTol as number);
   }
   if (kind === "market" || kind === "redline" || kind === "pool" || kind === "gap") {
     const truth = r.truth as number;

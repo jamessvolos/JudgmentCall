@@ -117,18 +117,19 @@ export async function setServingConfig(config: ServingConfig): Promise<void> {
 /**
  * Cheap freshness key for cached analytics: changes whenever a comparison is
  * logged or a variant clears review — the two events that can move any
- * published number. Three indexed point queries instead of a full-table scan.
+ * published number. The latest comparison (indexed point read on createdAt;
+ * its id+timestamp change on every insert) replaces the old O(n)
+ * comparison.count() — two indexed queries, no full-table scan.
  */
 export async function getAnalyticsVersion(): Promise<string> {
-  const [comparisons, latest, approved] = await Promise.all([
-    prisma.comparison.count(),
+  const [latest, approved] = await Promise.all([
     prisma.comparison.findFirst({
       orderBy: { createdAt: "desc" },
       select: { id: true, createdAt: true },
     }),
     prisma.variant.count({ where: { status: "approved" } }),
   ]);
-  return `${comparisons}:${latest?.createdAt.getTime() ?? 0}:${latest?.id ?? ""}:${approved}`;
+  return `${latest?.createdAt.getTime() ?? 0}:${latest?.id ?? ""}:${approved}`;
 }
 
 export async function getAnalysisSnapshots(take = 20) {
@@ -143,24 +144,42 @@ export async function getDeckComparisonsCsv(deckId: string) {
   });
 }
 
+// Serverless warm-instance memo for the global matchmaking aggregates (same
+// pattern as computeAnalyticsCached). These feed coverage WEIGHTING only, so
+// up-to-30s staleness is explicitly acceptable — see the callers' own comments
+// ("fewest-comparisons weighting", "coverage balancing"): a slightly stale
+// count nudges a probability, it never breaks correctness. A cold instance
+// simply recomputes once.
+const AGG_TTL_MS = 30_000;
+const aggMemo = new Map<string, { at: number; value: unknown }>();
+async function memoAgg<T>(key: string, compute: () => Promise<T>): Promise<T> {
+  const hit = aggMemo.get(key);
+  if (hit && Date.now() - hit.at < AGG_TTL_MS) return hit.value as T;
+  const value = await compute();
+  aggMemo.set(key, { at: Date.now(), value });
+  return value;
+}
+
 export async function getFindingComparisonCounts(
   deckId: string | null = null
 ): Promise<{ findingId: string; count: number; real: boolean }[]> {
-  const findings = await prisma.finding.findMany({
-    where: {
-      deckId,
-      status: { in: ["active", "submitted"] },
-      OR: [{ staleAfter: null }, { staleAfter: { gte: new Date() } }],
-    },
-    select: { id: true, sourceUrl: true },
+  return memoAgg(`findingCounts:${deckId ?? ""}`, async () => {
+    const findings = await prisma.finding.findMany({
+      where: {
+        deckId,
+        status: { in: ["active", "submitted"] },
+        OR: [{ staleAfter: null }, { staleAfter: { gte: new Date() } }],
+      },
+      select: { id: true, sourceUrl: true },
+    });
+    const grouped = await prisma.comparison.groupBy({ by: ["findingId"], _count: { _all: true } });
+    const counts = new Map(grouped.map((g) => [g.findingId, g._count._all]));
+    return findings.map((f) => ({
+      findingId: f.id,
+      count: counts.get(f.id) ?? 0,
+      real: f.sourceUrl !== null,
+    }));
   });
-  const grouped = await prisma.comparison.groupBy({ by: ["findingId"], _count: { _all: true } });
-  const counts = new Map(grouped.map((g) => [g.findingId, g._count._all]));
-  return findings.map((f) => ({
-    findingId: f.id,
-    count: counts.get(f.id) ?? 0,
-    real: f.sourceUrl !== null,
-  }));
 }
 
 export async function getFindingWithVariants(
@@ -173,19 +192,72 @@ export async function getFindingWithVariants(
   });
 }
 
+/** The finding fields the matchmaking walk + pair DTO consume — no truthSummary,
+ *  no deck/staleness columns (already filtered by getFindingComparisonCounts). */
+export type PairFinding = Pick<
+  Finding,
+  "id" | "title" | "domain" | "contextSnippet" | "sourceLabel" | "sourceUrl"
+>;
+
+/** The variant fields the pair-selection walk consumes: the six attribute tags
+ *  (attributeDiff), elo (tie-break), ids, status. Deliberately NO text — the
+ *  chosen pair's full rows are fetched separately (getVariantsByIds). */
+export type WalkVariant = Pick<
+  Variant,
+  | "id"
+  | "findingId"
+  | "leadType"
+  | "lengthBand"
+  | "caveatPlacement"
+  | "quantification"
+  | "soWhat"
+  | "fidelity"
+  | "elo"
+  | "status"
+>;
+
 /**
  * Batch form of the above for matchmaking: the selection loop walks findings
  * in sampled order until one yields a pair, and fetching them one-by-one made
  * the worst case (small pools, well-covered sessions) one query per finding.
+ * Projected to the walk fields only — full variant text for every candidate
+ * was the bulk of the per-serve (and per-vote) transfer.
  */
 export async function getFindingsWithVariantsByIds(
   ids: string[]
-): Promise<Map<string, Finding & { variants: Variant[] }>> {
+): Promise<Map<string, PairFinding & { variants: WalkVariant[] }>> {
   const rows = await prisma.finding.findMany({
     where: { id: { in: ids } },
-    include: { variants: { where: { status: "approved" } } },
+    select: {
+      id: true,
+      title: true,
+      domain: true,
+      contextSnippet: true,
+      sourceLabel: true,
+      sourceUrl: true,
+      variants: {
+        where: { status: "approved" },
+        select: {
+          id: true,
+          findingId: true,
+          leadType: true,
+          lengthBand: true,
+          caveatPlacement: true,
+          quantification: true,
+          soWhat: true,
+          fidelity: true,
+          elo: true,
+          status: true,
+        },
+      },
+    },
   });
   return new Map(rows.map((f) => [f.id, f]));
+}
+
+/** Full rows for the chosen pair (serialization needs the text) — one findMany. */
+export async function getVariantsByIds(ids: string[]): Promise<Variant[]> {
+  return prisma.variant.findMany({ where: { id: { in: ids } } });
 }
 
 /** Unordered pair keys ("idA|idB", ids sorted) this session has already been shown. */
@@ -209,8 +281,10 @@ export async function getSessionContrastCounts(sessionId: string): Promise<Map<s
 
 /** Total comparisons logged per contrast key (e.g. "leadType"), for coverage balancing. */
 export async function getContrastCounts(): Promise<Map<string, number>> {
-  const grouped = await prisma.comparison.groupBy({ by: ["contrastAttrs"], _count: { _all: true } });
-  return new Map(grouped.map((g) => [g.contrastAttrs, g._count._all]));
+  return memoAgg("contrastCounts", async () => {
+    const grouped = await prisma.comparison.groupBy({ by: ["contrastAttrs"], _count: { _all: true } });
+    return new Map(grouped.map((g) => [g.contrastAttrs, g._count._all]));
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -253,16 +327,20 @@ export type VoteResult = {
 // grabbing it".
 const WRITE_TX_OPTS = { maxWait: 10_000, timeout: 15_000 } as const;
 
-/** Top-2 most-starved craft attributes from the newest analysis snapshot. */
+/** Top-2 most-starved craft attributes from the newest analysis snapshot.
+ *  Memoized (30s): snapshots land via the offline analyze script, so staleness
+ *  here only delays which contrasts earn the generic "frontier" XP bonus. */
 async function getStarvedAttrs(): Promise<Set<string>> {
-  const snap = await prisma.analysisSnapshot.findFirst({ orderBy: { createdAt: "desc" } });
-  if (!snap) return new Set();
-  try {
-    const cov = JSON.parse(snap.coverage) as { starvation?: { attr: string }[] };
-    return new Set((cov.starvation ?? []).slice(0, 2).map((s) => s.attr));
-  } catch {
-    return new Set();
-  }
+  return memoAgg("starvedAttrs", async () => {
+    const snap = await prisma.analysisSnapshot.findFirst({ orderBy: { createdAt: "desc" } });
+    if (!snap) return new Set<string>();
+    try {
+      const cov = JSON.parse(snap.coverage) as { starvation?: { attr: string }[] };
+      return new Set<string>((cov.starvation ?? []).slice(0, 2).map((s) => s.attr));
+    } catch {
+      return new Set<string>();
+    }
+  });
 }
 
 /**
@@ -433,11 +511,43 @@ export async function recordVote(input: VoteInput): Promise<VoteResult> {
 // ---------------------------------------------------------------------------
 // Personal results
 
-/** A session's decided comparisons with both variants, for preference computation. */
-export async function getSessionComparisons(sessionId: string): Promise<ComparisonWithVariants[]> {
+/** The variant fields analytics + personal results consume: the six attribute
+ *  tags only — never the text, never the selfCheck ledger. */
+export type VariantTags = Pick<
+  Variant,
+  "id" | "leadType" | "lengthBand" | "caveatPlacement" | "quantification" | "soWhat" | "fidelity"
+>;
+
+/** A personal-results comparison row: the vote's disposition + both variants' tags. */
+export type PersonalComparison = Pick<
+  Comparison,
+  "winnerId" | "variantAId" | "contrastAttrs" | "isRepeat" | "lowAttention"
+> & { variantA: VariantTags; variantB: VariantTags };
+
+const VARIANT_TAGS_SELECT = {
+  id: true,
+  leadType: true,
+  lengthBand: true,
+  caveatPlacement: true,
+  quantification: true,
+  soWhat: true,
+  fidelity: true,
+} as const;
+
+/** A session's comparisons with both variants' tags, for preference computation
+ *  (src/lib/results.ts). Projected — the card never needs variant text. */
+export async function getSessionComparisons(sessionId: string): Promise<PersonalComparison[]> {
   return prisma.comparison.findMany({
     where: { sessionId },
-    include: { variantA: true, variantB: true },
+    select: {
+      winnerId: true,
+      variantAId: true,
+      contrastAttrs: true,
+      isRepeat: true,
+      lowAttention: true,
+      variantA: { select: VARIANT_TAGS_SELECT },
+      variantB: { select: VARIANT_TAGS_SELECT },
+    },
     orderBy: { createdAt: "asc" },
   });
 }
@@ -481,16 +591,34 @@ export async function hasSeenPair(
 // ---------------------------------------------------------------------------
 // Analytics reads (public results page + admin)
 
+/** An analytics comparison row: the cut keys + both variants' tags — exactly
+ *  what analytics.ts and scripts/integrity-scan.ts consume, no variant text. */
+export type AnalyticsComparison = Pick<
+  Comparison,
+  "sessionId" | "segment" | "winnerId" | "variantAId" | "variantBId" | "contrastAttrs" | "postDrill"
+> & { variantA: VariantTags; variantB: VariantTags };
+
 /**
- * Decided, attention-passing, non-repeat comparisons with both variants —
- * the only votes that count toward published stats. Fine to compute in-process
+ * Decided, attention-passing, non-repeat comparisons with both variants' tags —
+ * the only votes that count toward published stats. Projected (no full variant
+ * rows: analytics folds over tags, never text). Fine to compute in-process
  * at current scale; revisit with materialized aggregates post-launch.
  */
-export async function getAnalyticsComparisons(): Promise<ComparisonWithVariants[]> {
+export async function getAnalyticsComparisons(): Promise<AnalyticsComparison[]> {
   // deckId null = the public study; private BYO decks never mix in.
   return prisma.comparison.findMany({
     where: { winnerId: { not: null }, lowAttention: false, isRepeat: false, deckId: null },
-    include: { variantA: true, variantB: true },
+    select: {
+      sessionId: true,
+      segment: true,
+      winnerId: true,
+      variantAId: true,
+      variantBId: true,
+      contrastAttrs: true,
+      postDrill: true,
+      variantA: { select: VARIANT_TAGS_SELECT },
+      variantB: { select: VARIANT_TAGS_SELECT },
+    },
   });
 }
 
@@ -580,15 +708,19 @@ export async function getDeckWithStats(slug: string) {
   return { deck, votes };
 }
 
-/** Sanity helper for the vote route: both variants, verified to share a finding. */
+/** Sanity helper for the vote route: both variants, verified to share a finding.
+ *  One findMany (id IN pair) instead of two point reads; slot order restored
+ *  from the requested ids, so semantics match the old two-findUnique form. */
 export async function getVariantPair(
   variantAId: string,
   variantBId: string
 ): Promise<{ a: VariantWithFinding; b: VariantWithFinding } | null> {
-  const [a, b] = await Promise.all([
-    prisma.variant.findUnique({ where: { id: variantAId }, include: { finding: true } }),
-    prisma.variant.findUnique({ where: { id: variantBId }, include: { finding: true } }),
-  ]);
+  const rows = await prisma.variant.findMany({
+    where: { id: { in: [variantAId, variantBId] } },
+    include: { finding: true },
+  });
+  const a = rows.find((r) => r.id === variantAId);
+  const b = rows.find((r) => r.id === variantBId);
   if (!a || !b || a.findingId !== b.findingId || a.id === b.id) return null;
   return { a, b };
 }
@@ -681,9 +813,40 @@ export function docketRand(sessionId: string, seenCount: number): () => number {
 export type SittingInfo = { position: number; total: number; correctSoFar: number };
 export type ExamBlocked = { reason: "sat_today" } | { reason: "exhausted"; skill: string };
 
+/** The superset attempt projection both drill reads consume — fetched ONCE per
+ *  request and passed into getNextDrillItem AND getDrillStanding (which used to
+ *  each run their own near-identical drillAttempt scan + session read). */
+export type DrillAttemptRow = {
+  drillItemId: string;
+  correct: boolean;
+  createdAt: Date;
+  ratingAfter: number | null;
+  namedSkill: string | null;
+  mode: string;
+  item: { skill: string; difficulty: number; mode: string; caseId: string };
+};
+
+export async function getDrillAttemptRows(sessionId: string): Promise<DrillAttemptRow[]> {
+  return prisma.drillAttempt.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: "asc" },
+    select: {
+      drillItemId: true,
+      correct: true,
+      createdAt: true,
+      ratingAfter: true,
+      namedSkill: true,
+      mode: true,
+      item: { select: { skill: true, difficulty: true, mode: true, caseId: true } },
+    },
+  });
+}
+
 export async function getNextDrillItem(
   sessionId: string,
-  opts?: { mode?: string; skill?: string; docket?: boolean; caseId?: string; exam?: boolean }
+  opts?: { mode?: string; skill?: string; docket?: boolean; caseId?: string; exam?: boolean },
+  // Pre-fetched state (see getDrillAttemptRows) — back-compat default fetches.
+  pre?: { attempts?: DrillAttemptRow[]; session?: Session | null }
 ): Promise<{
   item: DrillItem | null;
   remaining: number;
@@ -693,17 +856,10 @@ export async function getNextDrillItem(
   examBlocked?: ExamBlocked;
 }> {
   const [attempts, session] = await Promise.all([
-    prisma.drillAttempt.findMany({
-      where: { sessionId },
-      select: {
-        drillItemId: true,
-        correct: true,
-        mode: true,
-        createdAt: true,
-        item: { select: { skill: true } },
-      },
-    }),
-    prisma.session.findUnique({ where: { id: sessionId } }),
+    pre?.attempts ?? getDrillAttemptRows(sessionId),
+    pre?.session !== undefined
+      ? pre.session
+      : prisma.session.findUnique({ where: { id: sessionId } }),
   ]);
   // Per-skill recap map, derived from the attempts we just fetched — no second scan.
   const skillProgress = tallySkillProgress(attempts);
@@ -941,27 +1097,21 @@ export type CaseStanding = {
   filedAt: Date | null;
 };
 
-export async function getDrillStanding(sessionId: string): Promise<{
+export async function getDrillStanding(
+  sessionId: string,
+  // Pre-fetched state (see getDrillAttemptRows) — back-compat default fetches.
+  pre?: { attempts?: DrillAttemptRow[]; session?: { drillRating: number } | null }
+): Promise<{
   grade: ReturnType<typeof gradeFor>;
   credentials: Conferral[];
   exam: ExamStanding;
   cases: CaseStanding[];
 }> {
   const [rows, session, caseTotals] = await Promise.all([
-    prisma.drillAttempt.findMany({
-      where: { sessionId },
-      orderBy: { createdAt: "asc" },
-      select: {
-        drillItemId: true,
-        correct: true,
-        createdAt: true,
-        ratingAfter: true,
-        namedSkill: true,
-        mode: true,
-        item: { select: { skill: true, difficulty: true, mode: true, caseId: true } },
-      },
-    }),
-    prisma.session.findUnique({ where: { id: sessionId }, select: { drillRating: true } }),
+    pre?.attempts ?? getDrillAttemptRows(sessionId),
+    pre?.session !== undefined
+      ? pre.session
+      : prisma.session.findUnique({ where: { id: sessionId }, select: { drillRating: true } }),
     prisma.drillItem.groupBy({
       by: ["caseId"],
       where: { caseId: { not: "" }, status: "active" },
@@ -1060,8 +1210,10 @@ export async function recordDrillAttempt(input: {
 // whole standing (rating, level, badges, topic map) is a pure fold over its
 // rows (src/lib/train-tracks.ts). Never touches the study or the overclaim drill.
 
-/** A session's ordered attempt ledger for one track, projected to the fold shape. */
-async function quizRows(sessionId: string, track: string): Promise<QuizRow[]> {
+/** A session's ordered attempt ledger for one track, projected to the fold shape.
+ *  Exported so /api/train's GET can fetch ONCE and hand the same rows to both
+ *  getNextQuizItem and getQuizStanding (which otherwise each run this query). */
+export async function getQuizRows(sessionId: string, track: string): Promise<QuizRow[]> {
   const rows = await prisma.quizAttempt.findMany({
     where: { sessionId, track },
     orderBy: { createdAt: "asc" },
@@ -1099,12 +1251,17 @@ export async function hasAttemptedQuiz(sessionId: string, quizItemId: string): P
 export async function getNextQuizItem(
   sessionId: string,
   track: string,
-  opts?: { topic?: string }
+  opts?: { topic?: string },
+  // Pre-fetched attempt rows (see getQuizRows) — back-compat default fetches.
+  preRows?: QuizRow[]
 ): Promise<{ item: QuizItem | null; remaining: number; liveRating: number; count: number }> {
+  // Pool projection: only the weighting fields — the chosen item's full row
+  // (scenario, choices, payload…) is a point read after the draw.
   const [rows, items] = await Promise.all([
-    quizRows(sessionId, track),
+    preRows ?? getQuizRows(sessionId, track),
     prisma.quizItem.findMany({
       where: { track, status: "active", ...(opts?.topic ? { topic: opts.topic } : {}) },
+      select: { id: true, topic: true, difficulty: true, rating: true, kind: true },
     }),
   ]);
   const rating = foldLiveRating(rows);
@@ -1134,7 +1291,8 @@ export async function getNextQuizItem(
       break;
     }
   }
-  return { item: chosen, remaining: pool.length, liveRating: Math.round(rating), count: rows.length };
+  const item = await prisma.quizItem.findUnique({ where: { id: chosen.id } });
+  return { item, remaining: pool.length, liveRating: Math.round(rating), count: rows.length };
 }
 
 /** Atomically: settle both Elo ratings and log the attempt. The current
@@ -1203,11 +1361,16 @@ export type QuizStanding = {
   read: SeniorityRead | null;
 };
 
-/** The Record for a track — level, badges, topic map, calibration — a pure fold. */
-export async function getQuizStanding(sessionId: string, track: string): Promise<QuizStanding | null> {
+/** The Record for a track — level, badges, topic map, calibration — a pure fold.
+ *  Accepts pre-fetched rows (see getQuizRows); back-compat default fetches. */
+export async function getQuizStanding(
+  sessionId: string,
+  track: string,
+  preRows?: QuizRow[]
+): Promise<QuizStanding | null> {
   const t = getTrack(track);
   if (!t) return null;
-  const rows = await quizRows(sessionId, track);
+  const rows = preRows ?? (await getQuizRows(sessionId, track));
   return {
     liveRating: Math.round(foldLiveRating(rows)),
     count: rows.length,

@@ -14,6 +14,7 @@ import {
 } from "@/lib/drill-grade";
 import { NextResponse } from "next/server";
 import {
+  getDrillAttemptRows,
   getDrillItem,
   getDrillStanding,
   getNextDrillItem,
@@ -77,9 +78,12 @@ async function getHandler(request: Request) {
   const session = await getSession(sessionId);
   if (!session) return NextResponse.json({ error: "unknown session" }, { status: 404 });
 
+  // One drillAttempt scan for the whole GET (superset projection) + the session
+  // row already fetched above, passed into both reads instead of each re-reading.
+  const attempts = await getDrillAttemptRows(sessionId);
   const [{ item, remaining, skillProgress, sitting, examBlocked }, standing] = await Promise.all([
-    getNextDrillItem(sessionId, { mode, skill, docket, caseId, exam }),
-    getDrillStanding(sessionId),
+    getNextDrillItem(sessionId, { mode, skill, docket, caseId, exam }, { attempts, session }),
+    getDrillStanding(sessionId, { attempts, session }),
   ]);
   const record = {
     grade: {
@@ -184,7 +188,8 @@ async function postHandler(request: Request) {
   if (isExam) {
     // The mark must mean the form was sat in order: recompute the position's
     // deterministic pick and refuse a hand-picked drillId or a blocked form.
-    const expected = await getNextDrillItem(sessionId, { exam: true });
+    // Reuses the POST's session fetch; the attempt scan is still its own read.
+    const expected = await getNextDrillItem(sessionId, { exam: true }, { session });
     if (expected.examBlocked || !expected.item || expected.item.id !== drillId) {
       return NextResponse.json({ error: "the form moved" }, { status: 409 });
     }
@@ -285,13 +290,26 @@ async function postHandler(request: Request) {
     };
   }
 
-  const result = await recordDrillAttempt({
-    sessionId,
-    drillItemId: drillId,
-    correct,
-    latencyMs: latency,
-    mode: isField ? "field" : isExam ? "exam" : "",
-  });
+  let result;
+  try {
+    result = await recordDrillAttempt({
+      sessionId,
+      drillItemId: drillId,
+      correct,
+      latencyMs: latency,
+      mode: isField ? "field" : isExam ? "exam" : "",
+    });
+  } catch (e) {
+    // A raced double-submit slips past the hasAttemptedDrill pre-check (the
+    // fast path); the unique (sessionId, drillItemId, mode) index rejects the
+    // second insert and the whole settle rolls back — same 409 as the
+    // pre-check, no dup row, no double Elo. Mirrors the vote route's
+    // clientVoteId P2002 handling.
+    if (e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002") {
+      return NextResponse.json({ error: "already attempted" }, { status: 409 });
+    }
+    throw e;
+  }
 
   return NextResponse.json({
     correct,

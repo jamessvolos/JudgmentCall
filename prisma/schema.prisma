@@ -89,6 +89,8 @@ model Comparison {
   @@index([findingId])
   @@index([contrastAttrs]) // coverage balancing groupBy
   @@index([createdAt]) // votes/day series, latest-run reads, freshness keys
+  @@index([variantAId, variantBId]) // gold-consensus groupBy per decided vote
+  @@index([deckId]) // deck-scoped counts + public-study filters
 }
 
 model Session {
@@ -176,6 +178,9 @@ model DrillAttempt {
   mode        String    @default("") // "" = the item's own mode; "field" = single-telling re-serve
   createdAt   DateTime  @default(now())
 
+  // Idempotency backstop: the route's pre-check is the fast path; this makes a
+  // raced double-submit a P2002 (mapped to the same 409) instead of a dup row.
+  @@unique([sessionId, drillItemId, mode])
   @@index([sessionId])
   @@index([drillItemId])
 }
@@ -229,6 +234,9 @@ model QuizAttempt {
   ratingAfter Float? // per-track session rating after this attempt settled
   createdAt   DateTime @default(now())
 
+  // Idempotency backstop: the route's pre-check is the fast path; this makes a
+  // raced double-submit a P2002 (mapped to the same 409) instead of a dup row.
+  @@unique([sessionId, quizItemId])
   @@index([sessionId, track])
   @@index([quizItemId])
 }
