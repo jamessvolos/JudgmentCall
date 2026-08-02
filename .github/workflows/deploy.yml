@@ -65,6 +65,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
           ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
           IP_HASH_SALT: ${{ secrets.IP_HASH_SALT }}
         run: |
@@ -74,6 +75,10 @@ jobs:
             echo "set $1"
           }
           set_env DATABASE_URL "$DATABASE_URL"
+          # Migrations bypass the pooler via directUrl. Until a separate
+          # DIRECT_DATABASE_URL secret exists, fall back to DATABASE_URL —
+          # today's status quo (one direct URL for everything).
+          set_env DIRECT_DATABASE_URL "${DIRECT_DATABASE_URL:-$DATABASE_URL}"
           set_env ADMIN_KEY "$ADMIN_KEY"
           set_env IP_HASH_SALT "$IP_HASH_SALT"
 

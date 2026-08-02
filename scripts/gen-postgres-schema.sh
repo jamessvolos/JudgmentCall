@@ -8,4 +8,11 @@
 set -euo pipefail
 
 OUT="${1:-prisma/postgres/schema.prisma}"
-sed 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma > "$OUT"
+# Postgres-only additions: swap the provider, and give the CLI a directUrl so
+# `prisma migrate deploy` bypasses Neon's PgBouncer pooler (transaction pooling
+# breaks migration advisory locks). The generated client ignores directUrl and
+# uses the pooled DATABASE_URL at runtime; the deploy workflow falls back to
+# DIRECT_DATABASE_URL=DATABASE_URL when no separate direct secret exists.
+sed -e 's/provider = "sqlite"/provider = "postgresql"/' \
+    -e 's|^  url      = env("DATABASE_URL")$|  url       = env("DATABASE_URL")\n  directUrl = env("DIRECT_DATABASE_URL")|' \
+    prisma/schema.prisma > "$OUT"

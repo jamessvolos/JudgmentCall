@@ -7,6 +7,10 @@
 # migrations, seeds ONCE if the database is empty, and builds.
 set -euo pipefail
 
+# The postgres schema's directUrl (used only by prisma migrate) falls back to
+# the runtime URL when no dedicated direct-connection URL is configured.
+export DIRECT_DATABASE_URL="${DIRECT_DATABASE_URL:-$DATABASE_URL}"
+
 bash scripts/gen-postgres-schema.sh
 npx prisma generate --schema prisma/postgres/schema.prisma
 npx prisma migrate deploy --schema prisma/postgres/schema.prisma

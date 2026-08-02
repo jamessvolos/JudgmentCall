@@ -7,6 +7,11 @@
 # out the app branch. Requires the DATABASE_URL repo secret.
 name: Daily ops
 
+# prisma/postgres/schema.prisma declares directUrl for migrations; resolve it
+# to the dedicated direct secret when present, else the main URL (status quo).
+env:
+  DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || secrets.DATABASE_URL }}
+
 on:
   schedule:
     - cron: "17 9 * * *" # 09:17 UTC daily — off the top of the hour

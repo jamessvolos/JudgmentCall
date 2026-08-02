@@ -8,6 +8,11 @@
 # never in a fabricated fact — see src/lib/generation/planner.ts).
 name: Content pipeline
 
+# prisma/postgres/schema.prisma declares directUrl for migrations; resolve it
+# to the dedicated direct secret when present, else the main URL (status quo).
+env:
+  DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || secrets.DATABASE_URL }}
+
 on:
   workflow_dispatch:
     inputs:
